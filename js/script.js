@@ -52,3 +52,9 @@ for (const transaction of transactions) {
 const monthlySpendingText = document.querySelector("#monthly-spending");
 
 monthlySpendingText.textContent = `$${monthlySpending.toFixed(2)}`;
+
+const totalBalance = monthlyIncome - monthlySpending;
+
+const totalBalanceText = document.querySelector("#total-balance");
+
+totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
