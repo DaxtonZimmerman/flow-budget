@@ -58,3 +58,68 @@ const totalBalance = monthlyIncome - monthlySpending;
 const totalBalanceText = document.querySelector("#total-balance");
 
 totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
+
+const recentTransactions = document.querySelector("#recent-transactions");
+
+for (const transaction of transactions) {
+
+    let icon = "receipt";
+    let iconColor = "blue-icon";
+
+    if (transaction.category === "Food") {
+        icon = "utensils";
+        iconColor = "red-icon";
+    }
+
+    if (transaction.category === "Entertainment") {
+        icon = "music";
+        iconColor = "green-icon";
+    }
+
+    if (transaction.category === "Income") {
+        icon = "banknote";
+        iconColor = "blue-icon";
+    }
+
+    if (transaction.category === "Transport") {
+        icon = "fuel";
+        iconColor = "orange-icon";
+    }
+
+
+    let amountText = `$${Math.abs(transaction.amount).toFixed(2)}`;
+
+    if (transaction.amount > 0) {
+        amountText = `+$${transaction.amount.toFixed(2)}`;
+    }
+
+    if (transaction.amount < 0) {
+        amountText = `-$${Math.abs(transaction.amount).toFixed(2)}`;
+    }
+
+
+    recentTransactions.innerHTML += `
+        <div class="transaction-row">
+
+            <div class="transaction-left">
+
+                <div class="merchant-icon ${iconColor}">
+                    <i data-lucide="${icon}"></i>
+                </div>
+
+                <div>
+                    <strong>${transaction.name}</strong>
+                    <span>${transaction.category}</span>
+                </div>
+
+            </div>
+
+            <div class="transaction-right">
+                <strong>${amountText}</strong>
+            </div>
+
+        </div>
+    `;
+}
+
+lucide.createIcons();
