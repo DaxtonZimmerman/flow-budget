@@ -9,7 +9,7 @@
 
     <link rel="stylesheet" href="css/styles.css">
 
-    <script src="https://unpkg.com/lucide@0.576.0/dist/umd/lucide.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
     <script src="js/script.js" defer></script>
 </head>
 
@@ -140,7 +140,7 @@
 
                     </div>
 
-                    <h3>$5,320.12</h3>
+                    <h3 id="total-balance">$0.00</h3>
 
                     <p class="good-text">
                         ↑ 2.4% from last month
@@ -161,7 +161,7 @@
 
                     </div>
 
-                    <h3>$1,240.50</h3>
+                    <h3 id="safe-to-spend">$0.00</h3>
 
                     <p class="small-text">
                         After bills & budgets
@@ -182,7 +182,7 @@
 
                     </div>
 
-                    <h3>$3,500.00</h3>
+                    <h3 id="monthly-income">$0.00</h3>
 
                     <p class="good-text">
                         ↑ 12% from last month
@@ -203,7 +203,7 @@
 
                     </div>
 
-                    <h3>$2,259.50</h3>
+                    <h3 id="monthly-spending">$0.00</h3>
 
                     <p class="bad-text">
                         ↓ 5% from last month
@@ -411,101 +411,10 @@
 
                     </div>
 
-
-                    <div class="transaction-list">
-
-                        <div class="transaction-row">
-
-                            <div class="transaction-left">
-
-                                <div class="merchant-icon red-icon">
-                                    <i data-lucide="utensils"></i>
-                                </div>
-
-                                <div>
-                                    <strong>Chick-fil-A</strong>
-                                    <span>Dining & Food</span>
-                                </div>
-
-                            </div>
-
-                            <div class="transaction-right">
-                                <strong>-$12.45</strong>
-                                <span>Today</span>
-                            </div>
-
-                        </div>
-
-
-                        <div class="transaction-row">
-
-                            <div class="transaction-left">
-
-                                <div class="merchant-icon green-icon">
-                                    <i data-lucide="music"></i>
-                                </div>
-
-                                <div>
-                                    <strong>Spotify</strong>
-                                    <span>Entertainment</span>
-                                </div>
-
-                            </div>
-
-                            <div class="transaction-right">
-                                <strong>-$10.99</strong>
-                                <span>Yesterday</span>
-                            </div>
-
-                        </div>
-
-
-                        <div class="transaction-row">
-
-                            <div class="transaction-left">
-
-                                <div class="merchant-icon blue-icon">
-                                    <i data-lucide="banknote"></i>
-                                </div>
-
-                                <div>
-                                    <strong>Direct deposit</strong>
-                                    <span>Income</span>
-                                </div>
-
-                            </div>
-
-                            <div class="transaction-right">
-                                <strong class="income-text">
-                                    +$2,500.00
-                                </strong>
-                                <span>Oct 22</span>
-                            </div>
-
-                        </div>
-
-
-                        <div class="transaction-row">
-
-                            <div class="transaction-left">
-
-                                <div class="merchant-icon orange-icon">
-                                    <i data-lucide="fuel"></i>
-                                </div>
-
-                                <div>
-                                    <strong>Maverik</strong>
-                                    <span>Transportation</span>
-                                </div>
-
-                            </div>
-
-                            <div class="transaction-right">
-                                <strong>-$45.12</strong>
-                                <span>Oct 21</span>
-                            </div>
-
-                        </div>
+                    <div
+                        class="transaction-list"
+                        id="recent-transactions"
+                    >
 
                     </div>
 
@@ -525,87 +434,10 @@
 
                     </div>
 
-
-                    <div class="budget-list">
-
-                        <div class="budget-row">
-
-                            <div class="budget-info">
-                                <strong>Food</strong>
-                                <span>$320 / $500</span>
-                            </div>
-
-                            <div class="budget-progress">
-
-                                <div class="progress-bar">
-                                    <div class="progress-fill food-progress"></div>
-                                </div>
-
-                                <strong>64%</strong>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="budget-row">
-
-                            <div class="budget-info">
-                                <strong>Transport</strong>
-                                <span>$120 / $300</span>
-                            </div>
-
-                            <div class="budget-progress">
-
-                                <div class="progress-bar">
-                                    <div class="progress-fill transport-progress"></div>
-                                </div>
-
-                                <strong>40%</strong>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="budget-row">
-
-                            <div class="budget-info">
-                                <strong>Entertainment</strong>
-                                <span>$90 / $200</span>
-                            </div>
-
-                            <div class="budget-progress">
-
-                                <div class="progress-bar">
-                                    <div class="progress-fill entertainment-progress"></div>
-                                </div>
-
-                                <strong>45%</strong>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="budget-row">
-
-                            <div class="budget-info">
-                                <strong>Shopping</strong>
-                                <span>$180 / $400</span>
-                            </div>
-
-                            <div class="budget-progress">
-
-                                <div class="progress-bar">
-                                    <div class="progress-fill shopping-progress"></div>
-                                </div>
-
-                                <strong>45%</strong>
-
-                            </div>
-
-                        </div>
+                    <div
+                        class="budget-list"
+                        id="budget-list"
+                    >
 
                     </div>
 
