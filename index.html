@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Flow | Budget Dashboard</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://unpkg.com/lucide@0.576.0/dist/umd/lucide.min.js" defer></script>
+    <script src="js/script.js" defer></script>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-top">
+
+                <h1 class="logo">Flow</h1>
+
+                <nav class="nav">
+
+                    <a href="#" class="nav-link active" aria-current="page">
+                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                        Dashboard
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="arrow-left-right" class="nav-icon"></i>
+                        Transactions
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="wallet-cards" class="nav-icon"></i>
+                        Budgets
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="target" class="nav-icon"></i>
+                        Goals
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="landmark" class="nav-icon"></i>
+                        Accounts
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="chart-no-axes-combined" class="nav-icon"></i>
+                        Insights
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="settings-2" class="nav-icon"></i>
+                        Settings
+                    </a>
+
+                </nav>
+
+            </div>
+
+            <button class="profile" type="button">
+
+                <span class="profile-icon">DZ</span>
+
+                <span class="profile-text">
+                    <strong>Daxton</strong>
+                    <span>View profile</span>
+                </span>
+
+            </button>
+
+        </aside>
+
+
+        <main class="main">
+
+            <div class="top-bar">
+
+                <div class="search">
+
+                    <i data-lucide="search"></i>
+
+                    <input
+                        type="text"
+                        placeholder="Search transactions, categories, or accounts..."
+                    >
+
+                </div>
+
+                <div class="top-actions">
+
+                    <button
+                        class="icon-button"
+                        type="button"
+                        aria-label="Notifications"
+                    >
+                        <i data-lucide="bell"></i>
+                    </button>
+
+                    <button class="top-profile" type="button">
+                        DZ
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <header class="welcome">
+
+                <div>
+                    <h2>Good morning, Daxton</h2>
+                    <p>Here's your financial overview.</p>
+                </div>
+
+                <button class="month-button" type="button">
+                    October 2026
+                </button>
+
+            </header>
+
+
+            <section class="summary-grid">
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Total balance</p>
+
+                        <span class="card-icon green-icon">
+                            <i data-lucide="wallet"></i>
+                        </span>
+
+                    </div>
+
+                    <h3>$5,320.12</h3>
+
+                    <p class="good-text">
+                        ↑ 2.4% from last month
+                    </p>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Safe to spend</p>
+
+                        <span class="card-icon blue-icon">
+                            <i data-lucide="shield-check"></i>
+                        </span>
+
+                    </div>
+
+                    <h3>$1,240.50</h3>
+
+                    <p class="small-text">
+                        After bills & budgets
+                    </p>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Monthly income</p>
+
+                        <span class="card-icon green-icon">
+                            <i data-lucide="trending-up"></i>
+                        </span>
+
+                    </div>
+
+                    <h3>$3,500.00</h3>
+
+                    <p class="good-text">
+                        ↑ 12% from last month
+                    </p>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Monthly spending</p>
+
+                        <span class="card-icon red-icon">
+                            <i data-lucide="trending-down"></i>
+                        </span>
+
+                    </div>
+
+                    <h3>$2,259.50</h3>
+
+                    <p class="bad-text">
+                        ↓ 5% from last month
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <section class="chart-grid">
+
+                <div class="card">
+
+                    <div class="section-top">
+
+                        <div>
+                            <p class="small-label">Overview</p>
+                            <h3>Spending this month</h3>
+                        </div>
+
+                        <button class="small-button" type="button">
+                            This month
+                        </button>
+
+                    </div>
+
+
+                    <div class="spending-chart">
+
+                        <div class="chart-values">
+                            <span>$600</span>
+                            <span>$400</span>
+                            <span>$200</span>
+                            <span>$0</span>
+                        </div>
+
+                        <div class="bars">
+
+                            <div class="bar-group">
+                                <div class="bar bar-1"></div>
+                                <span>Oct 1</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-2"></div>
+                                <span>Oct 5</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-3"></div>
+                                <span>Oct 9</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-4"></div>
+                                <span>Oct 13</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-5"></div>
+                                <span>Oct 17</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-6"></div>
+                                <span>Oct 21</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-7"></div>
+                                <span>Oct 25</span>
+                            </div>
+
+                            <div class="bar-group">
+                                <div class="bar bar-8"></div>
+                                <span>Oct 29</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-top">
+
+                        <div>
+                            <p class="small-label">Categories</p>
+                            <h3>Spending by category</h3>
+                        </div>
+
+                    </div>
+
+
+                    <div class="category-content">
+
+                        <div class="donut">
+
+                            <div class="donut-center">
+                                <strong>$2,259</strong>
+                                <span>Total spent</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="category-list">
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot food-dot"></span>
+                                    Food
+                                </div>
+
+                                <strong>28%</strong>
+
+                            </div>
+
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot transport-dot"></span>
+                                    Transport
+                                </div>
+
+                                <strong>18%</strong>
+
+                            </div>
+
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot shopping-dot"></span>
+                                    Shopping
+                                </div>
+
+                                <strong>16%</strong>
+
+                            </div>
+
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot entertainment-dot"></span>
+                                    Entertainment
+                                </div>
+
+                                <strong>12%</strong>
+
+                            </div>
+
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot bills-dot"></span>
+                                    Bills
+                                </div>
+
+                                <strong>10%</strong>
+
+                            </div>
+
+
+                            <div class="category-row">
+
+                                <div>
+                                    <span class="dot other-dot"></span>
+                                    Other
+                                </div>
+
+                                <strong>16%</strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="bottom-grid">
+
+                <div class="card">
+
+                    <div class="section-top">
+
+                        <div>
+                            <p class="small-label">Latest activity</p>
+                            <h3>Recent transactions</h3>
+                        </div>
+
+                        <a href="#">See all</a>
+
+                    </div>
+
+
+                    <div class="transaction-list">
+
+                        <div class="transaction-row">
+
+                            <div class="transaction-left">
+
+                                <div class="merchant-icon red-icon">
+                                    <i data-lucide="utensils"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Chick-fil-A</strong>
+                                    <span>Dining & Food</span>
+                                </div>
+
+                            </div>
+
+                            <div class="transaction-right">
+                                <strong>-$12.45</strong>
+                                <span>Today</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="transaction-row">
+
+                            <div class="transaction-left">
+
+                                <div class="merchant-icon green-icon">
+                                    <i data-lucide="music"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Spotify</strong>
+                                    <span>Entertainment</span>
+                                </div>
+
+                            </div>
+
+                            <div class="transaction-right">
+                                <strong>-$10.99</strong>
+                                <span>Yesterday</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="transaction-row">
+
+                            <div class="transaction-left">
+
+                                <div class="merchant-icon blue-icon">
+                                    <i data-lucide="banknote"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Direct deposit</strong>
+                                    <span>Income</span>
+                                </div>
+
+                            </div>
+
+                            <div class="transaction-right">
+                                <strong class="income-text">
+                                    +$2,500.00
+                                </strong>
+                                <span>Oct 22</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="transaction-row">
+
+                            <div class="transaction-left">
+
+                                <div class="merchant-icon orange-icon">
+                                    <i data-lucide="fuel"></i>
+                                </div>
+
+                                <div>
+                                    <strong>Maverik</strong>
+                                    <span>Transportation</span>
+                                </div>
+
+                            </div>
+
+                            <div class="transaction-right">
+                                <strong>-$45.12</strong>
+                                <span>Oct 21</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="section-top">
+
+                        <div>
+                            <p class="small-label">This month</p>
+                            <h3>Budget progress</h3>
+                        </div>
+
+                        <a href="#">See all</a>
+
+                    </div>
+
+
+                    <div class="budget-list">
+
+                        <div class="budget-row">
+
+                            <div class="budget-info">
+                                <strong>Food</strong>
+                                <span>$320 / $500</span>
+                            </div>
+
+                            <div class="budget-progress">
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill food-progress"></div>
+                                </div>
+
+                                <strong>64%</strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="budget-row">
+
+                            <div class="budget-info">
+                                <strong>Transport</strong>
+                                <span>$120 / $300</span>
+                            </div>
+
+                            <div class="budget-progress">
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill transport-progress"></div>
+                                </div>
+
+                                <strong>40%</strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="budget-row">
+
+                            <div class="budget-info">
+                                <strong>Entertainment</strong>
+                                <span>$90 / $200</span>
+                            </div>
+
+                            <div class="budget-progress">
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill entertainment-progress"></div>
+                                </div>
+
+                                <strong>45%</strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="budget-row">
+
+                            <div class="budget-info">
+                                <strong>Shopping</strong>
+                                <span>$180 / $400</span>
+                            </div>
+
+                            <div class="budget-progress">
+
+                                <div class="progress-bar">
+                                    <div class="progress-fill shopping-progress"></div>
+                                </div>
+
+                                <strong>45%</strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>
