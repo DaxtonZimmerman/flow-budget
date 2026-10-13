@@ -82,6 +82,37 @@ const totalBalanceText = document.querySelector("#total-balance");
 
 totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
 
+let remainingBudget = 0;
+
+for (const budget of budgets) {
+
+    let spent = 0;
+
+    for (const transaction of transactions) {
+
+        if (
+            transaction.category === budget.category &&
+            transaction.amount < 0
+        ) {
+            spent += Math.abs(transaction.amount);
+        }
+
+    }
+
+    const amountLeft = budget.limit - spent;
+
+    if (amountLeft > 0) {
+        remainingBudget += amountLeft;
+    }
+
+}
+
+const safeToSpend = totalBalance - remainingBudget;
+
+const safeToSpendText = document.querySelector("#safe-to-spend");
+
+safeToSpendText.textContent = `$${safeToSpend.toFixed(2)}`;
+
 
 const recentTransactions = document.querySelector("#recent-transactions");
 
