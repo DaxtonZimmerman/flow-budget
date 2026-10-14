@@ -83,16 +83,20 @@
 
             <div class="top-bar">
 
-                <div class="search">
-
-                    <i data-lucide="search"></i>
+                <form class="search" action="transactions.html" method="get">
 
                     <input
-                        type="text"
-                        placeholder="Search transactions, categories, or accounts..."
+                        type="search"
+                        name="search"
+                        aria-label="Search transactions"
+                        placeholder="Search transactions..."
                     >
 
-                </div>
+                    <button type="submit" aria-label="Search transactions">
+                        <i data-lucide="search"></i>
+                    </button>
+
+                </form>
 
                 <div class="top-actions">
 

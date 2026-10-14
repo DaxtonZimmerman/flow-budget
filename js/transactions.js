@@ -41,6 +41,12 @@ const historyExpenses = document.querySelector("#history-expenses");
 const historyBalance = document.querySelector("#history-balance");
 
 const historySearch = document.querySelector("#history-search");
+const dashboardSearch = new URLSearchParams(window.location.search).get("search");
+
+if (dashboardSearch) {
+    historySearch.value = dashboardSearch;
+}
+
 const historyTypeFilter = document.querySelector("#history-type-filter");
 const historyCategoryFilter = document.querySelector("#history-category-filter");
 const historySort = document.querySelector("#history-sort");

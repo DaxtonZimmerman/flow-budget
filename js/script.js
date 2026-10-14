@@ -264,7 +264,37 @@ if (monthlySpending === 0) {
 
 const recentTransactions = document.querySelector("#recent-transactions");
 
-for (const transaction of transactions) {
+const recentTransactionsToShow = [...transactions].reverse();
+
+recentTransactionsToShow.sort(function(first, second) {
+
+    const firstDate = first.date || "";
+    const secondDate = second.date || "";
+
+    if (firstDate && !secondDate) {
+        return -1;
+    }
+
+    if (!firstDate && secondDate) {
+        return 1;
+    }
+
+    return secondDate.localeCompare(firstDate);
+
+});
+
+
+if (recentTransactionsToShow.length === 0) {
+
+    const emptyMessage = document.createElement("p");
+    emptyMessage.classList.add("budget-empty");
+    emptyMessage.textContent = "No transactions yet.";
+    recentTransactions.appendChild(emptyMessage);
+
+}
+
+
+for (const transaction of recentTransactionsToShow.slice(0, 5)) {
 
     let icon = "receipt";
     let iconColor = "blue-icon";
@@ -279,7 +309,10 @@ for (const transaction of transactions) {
         iconColor = "green-icon";
     }
 
-    if (transaction.category === "Income") {
+    if (
+        transaction.category === "Income" ||
+        transaction.category === "Salary"
+    ) {
         icon = "banknote";
         iconColor = "blue-icon";
     }
@@ -290,39 +323,55 @@ for (const transaction of transactions) {
     }
 
 
-    let amountText = `$${Math.abs(transaction.amount).toFixed(2)}`;
+    const row = document.createElement("div");
+    row.classList.add("transaction-row");
+
+    const left = document.createElement("div");
+    left.classList.add("transaction-left");
+
+    const iconBox = document.createElement("div");
+    iconBox.classList.add("merchant-icon", iconColor);
+    iconBox.innerHTML = `<i data-lucide="${icon}"></i>`;
+
+    const details = document.createElement("div");
+
+    const name = document.createElement("strong");
+    name.textContent = transaction.name;
+
+    const category = document.createElement("span");
+    category.textContent = transaction.category || "Uncategorized";
+
+    details.appendChild(name);
+    details.appendChild(category);
+
+    left.appendChild(iconBox);
+    left.appendChild(details);
+
+
+    const right = document.createElement("div");
+    right.classList.add("transaction-right");
+
+    const amount = document.createElement("strong");
 
     if (transaction.amount > 0) {
-        amountText = `+$${transaction.amount.toFixed(2)}`;
+        amount.textContent = `+$${transaction.amount.toFixed(2)}`;
+        amount.classList.add("income-text");
+    } else {
+        amount.textContent =
+            `-$${Math.abs(transaction.amount).toFixed(2)}`;
     }
 
-    if (transaction.amount < 0) {
-        amountText = `-$${Math.abs(transaction.amount).toFixed(2)}`;
-    }
+    const date = document.createElement("span");
+    date.textContent = transaction.date || "No date";
 
+    right.appendChild(amount);
+    right.appendChild(date);
 
-    recentTransactions.innerHTML += `
-        <div class="transaction-row">
+    row.appendChild(left);
+    row.appendChild(right);
 
-            <div class="transaction-left">
+    recentTransactions.appendChild(row);
 
-                <div class="merchant-icon ${iconColor}">
-                    <i data-lucide="${icon}"></i>
-                </div>
-
-                <div>
-                    <strong>${transaction.name}</strong>
-                    <span>${transaction.category}</span>
-                </div>
-
-            </div>
-
-            <div class="transaction-right">
-                <strong>${amountText}</strong>
-            </div>
-
-        </div>
-    `;
 }
 
 
