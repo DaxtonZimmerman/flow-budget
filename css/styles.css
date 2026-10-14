@@ -1193,7 +1193,8 @@ button:active {
         minmax(6rem, 1fr)
         minmax(7rem, 1fr)
         minmax(8rem, 1.5fr)
-        minmax(6rem, 0.75fr);
+        minmax(6rem, 0.75fr)
+        minmax(5rem, 0.6fr);
 
     align-items: center;
 
@@ -1255,6 +1256,32 @@ button:active {
 
 .history-amount {
     text-align: right;
+}
+
+
+.delete-transaction-button {
+    padding: 0.5rem 0.75rem;
+
+    border: 1px solid var(--red-light);
+    border-radius: 0.5rem;
+
+    background: var(--red-light);
+    color: #b91c1c;
+
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+.delete-transaction-button:hover {
+    background: #fecaca;
+}
+
+
+.delete-transaction-button:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 2px;
 }
 
 
@@ -1338,7 +1365,7 @@ button:active {
 
     .history-header,
     .history-row {
-        min-width: 48rem;
+        min-width: 54rem;
     }
 
 }

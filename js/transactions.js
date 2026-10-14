@@ -6,6 +6,28 @@ const savedTransactions = localStorage.getItem("transactions");
 let transactions = JSON.parse(savedTransactions) || [];
 
 
+/* give old transactions an id */
+
+let nextId = Date.now();
+
+for (const transaction of transactions) {
+
+    if (!transaction.id) {
+
+        while (transactions.some(item => item.id === nextId)) {
+            nextId++;
+        }
+
+        transaction.id = nextId;
+        nextId++;
+
+    }
+
+}
+
+localStorage.setItem("transactions", JSON.stringify(transactions));
+
+
 const transactionHistory = document.querySelector("#transaction-history");
 
 const transactionCount = document.querySelector("#transaction-count");
@@ -173,6 +195,43 @@ if (transactions.length === 0) {
         transactionRow.appendChild(notesText);
 
         transactionRow.appendChild(amountText);
+
+
+        const deleteButton = document.createElement("button");
+
+        deleteButton.type = "button";
+        deleteButton.classList.add("delete-transaction-button");
+        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute(
+            "aria-label",
+            `Delete ${transaction.name}`
+        );
+
+        deleteButton.addEventListener("click", function() {
+
+            const shouldDelete = window.confirm(
+                `Delete ${transaction.name}? This cannot be undone.`
+            );
+
+            if (!shouldDelete) {
+                return;
+            }
+
+            transactions = transactions.filter(function(item) {
+                return item.id !== transaction.id;
+            });
+
+            localStorage.setItem(
+                "transactions",
+                JSON.stringify(transactions)
+            );
+
+            window.location.reload();
+
+        });
+
+
+        transactionRow.appendChild(deleteButton);
 
 
         transactionHistory.appendChild(transactionRow);
