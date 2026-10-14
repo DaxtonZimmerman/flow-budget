@@ -197,6 +197,20 @@ if (transactions.length === 0) {
         transactionRow.appendChild(amountText);
 
 
+        const actions = document.createElement("div");
+
+        actions.classList.add("history-actions");
+
+
+        const editLink = document.createElement("a");
+
+        editLink.href =
+            `add-transaction.html?edit=${encodeURIComponent(transaction.id)}`;
+        editLink.classList.add("edit-transaction-link");
+        editLink.textContent = "Edit";
+        editLink.setAttribute("aria-label", `Edit ${transaction.name}`);
+
+
         const deleteButton = document.createElement("button");
 
         deleteButton.type = "button";
@@ -231,7 +245,10 @@ if (transactions.length === 0) {
         });
 
 
-        transactionRow.appendChild(deleteButton);
+        actions.appendChild(editLink);
+        actions.appendChild(deleteButton);
+
+        transactionRow.appendChild(actions);
 
 
         transactionHistory.appendChild(transactionRow);

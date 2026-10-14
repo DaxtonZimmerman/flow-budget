@@ -75,11 +75,11 @@
 
                 <div>
                     <p class="small-label">Transactions</p>
-                    <h2>Add transaction</h2>
-                    <p>Record new income or spending.</p>
+                    <h2 id="form-title">Add transaction</h2>
+                    <p id="form-description">Record new income or spending.</p>
                 </div>
 
-                <a href="index.html" class="back-button">
+                <a href="index.html" id="form-back-link" class="back-button">
                     Back to dashboard
                 </a>
 
@@ -133,6 +133,7 @@
 
                             <option value="">Select category</option>
                             <option value="Salary">Salary</option>
+                            <option value="Income">Income</option>
                             <option value="Food">Food</option>
                             <option value="Transport">Transport</option>
                             <option value="Entertainment">Entertainment</option>
@@ -195,7 +196,7 @@
 
                     <p id="form-message" class="form-message"></p>
 
-                    <button class="save-button" type="submit">
+                    <button id="save-transaction-button" class="save-button" type="submit">
                         Save transaction
                     </button>
 

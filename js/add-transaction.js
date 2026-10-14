@@ -8,6 +8,12 @@ const dateInput = document.querySelector("#transaction-date");
 const notesInput = document.querySelector("#transaction-notes");
 
 const formMessage = document.querySelector("#form-message");
+const formTitle = document.querySelector("#form-title");
+const formDescription = document.querySelector("#form-description");
+const formBackLink = document.querySelector("#form-back-link");
+const saveButton = document.querySelector("#save-transaction-button");
+
+const editId = new URLSearchParams(window.location.search).get("edit");
 
 
 /* set today's date */
@@ -19,6 +25,46 @@ const month = String(today.getMonth() + 1).padStart(2, "0");
 const day = String(today.getDate()).padStart(2, "0");
 
 dateInput.value = `${year}-${month}-${day}`;
+
+
+/* fill the form when editing */
+
+if (editId !== null) {
+
+    document.title = "Edit Transaction | Flow";
+    formTitle.textContent = "Edit transaction";
+    formDescription.textContent = "Update this income or expense.";
+    formBackLink.href = "transactions.html";
+    formBackLink.textContent = "Back to transactions";
+    saveButton.textContent = "Save changes";
+
+
+    const savedTransactions = localStorage.getItem("transactions");
+    const transactions = JSON.parse(savedTransactions) || [];
+
+    const transaction = transactions.find(function(item) {
+        return String(item.id) === editId;
+    });
+
+
+    if (!transaction) {
+
+        showError("Transaction not found. Return to transactions and try again.");
+        saveButton.disabled = true;
+
+    } else {
+
+        typeInput.value = transaction.type ||
+            (transaction.amount > 0 ? "Income" : "Expense");
+        nameInput.value = transaction.name;
+        categoryInput.value = transaction.category;
+        amountInput.value = Math.abs(transaction.amount);
+        dateInput.value = transaction.date || "";
+        notesInput.value = transaction.notes || "";
+
+    }
+
+}
 
 
 /* save transaction */
@@ -76,23 +122,47 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    const newTransaction = {
-        id: Date.now(),
-        type: type,
-        name: name,
-        category: category,
-        amount: finalAmount,
-        date: date,
-        notes: notes
-    };
-
-
     const savedTransactions = localStorage.getItem("transactions");
 
     let transactions = JSON.parse(savedTransactions) || [];
 
 
-    transactions.push(newTransaction);
+    if (editId !== null) {
+
+        const transactionIndex = transactions.findIndex(function(item) {
+            return String(item.id) === editId;
+        });
+
+        if (transactionIndex === -1) {
+            showError("Transaction not found. Return to transactions and try again.");
+            return;
+        }
+
+        transactions[transactionIndex] = {
+            id: transactions[transactionIndex].id,
+            type: type,
+            name: name,
+            category: category,
+            amount: finalAmount,
+            date: date,
+            notes: notes
+        };
+
+    } else {
+
+        const newTransaction = {
+            id: Date.now(),
+            type: type,
+            name: name,
+            category: category,
+            amount: finalAmount,
+            date: date,
+            notes: notes
+        };
+
+        transactions.push(newTransaction);
+
+    }
 
 
     localStorage.setItem(
@@ -101,7 +171,7 @@ transactionForm.addEventListener("submit", function(event) {
     );
 
 
-    window.location.href = "index.html";
+    window.location.href = editId !== null ? "transactions.html" : "index.html";
 
 });
 

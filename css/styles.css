@@ -1194,7 +1194,7 @@ button:active {
         minmax(7rem, 1fr)
         minmax(8rem, 1.5fr)
         minmax(6rem, 0.75fr)
-        minmax(5rem, 0.6fr);
+        minmax(8rem, 0.9fr);
 
     align-items: center;
 
@@ -1259,18 +1259,51 @@ button:active {
 }
 
 
+.history-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 0.5rem;
+}
+
+
+.edit-transaction-link,
 .delete-transaction-button {
     padding: 0.5rem 0.75rem;
 
-    border: 1px solid var(--red-light);
     border-radius: 0.5rem;
-
-    background: var(--red-light);
-    color: #b91c1c;
 
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;
+}
+
+
+.edit-transaction-link {
+    border: 1px solid var(--blue-light);
+
+    background: var(--blue-light);
+    color: var(--blue);
+}
+
+
+.edit-transaction-link:hover {
+    background: #dbe3ff;
+}
+
+
+.edit-transaction-link:focus-visible,
+.delete-transaction-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
+
+.delete-transaction-button {
+    border: 1px solid var(--red-light);
+
+    background: var(--red-light);
+    color: #b91c1c;
 }
 
 
@@ -1280,8 +1313,13 @@ button:active {
 
 
 .delete-transaction-button:focus-visible {
-    outline: 2px solid var(--red);
-    outline-offset: 2px;
+    outline-color: var(--red);
+}
+
+
+.save-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 
@@ -1365,7 +1403,7 @@ button:active {
 
     .history-header,
     .history-row {
-        min-width: 54rem;
+        min-width: 58rem;
     }
 
 }
