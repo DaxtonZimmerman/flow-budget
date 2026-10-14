@@ -394,8 +394,16 @@ button:active {
     border-radius: 0.75rem;
 
     color: var(--text);
+}
 
-    cursor: pointer;
+
+.month-button {
+    display: inline-block;
+}
+
+
+.small-button {
+    display: inline-block;
 }
 
 
@@ -585,6 +593,11 @@ button:active {
 }
 
 
+.spending-chart[hidden] {
+    display: none;
+}
+
+
 .chart-values {
     padding-bottom: 2rem;
 
@@ -624,10 +637,10 @@ button:active {
 .bar-group {
     height: 100%;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    align-items: end;
 
     flex: 1;
 
@@ -646,51 +659,13 @@ button:active {
     width: 100%;
     max-width: 1.5rem;
 
+    align-self: end;
+
     position: relative;
 
     background: var(--blue);
 
     border-radius: 0.5rem 0.5rem 0 0;
-}
-
-
-.bar-1 {
-    height: 25%;
-}
-
-
-.bar-2 {
-    height: 40%;
-}
-
-
-.bar-3 {
-    height: 60%;
-}
-
-
-.bar-4 {
-    height: 35%;
-}
-
-
-.bar-5 {
-    height: 75%;
-}
-
-
-.bar-6 {
-    height: 55%;
-}
-
-
-.bar-7 {
-    height: 45%;
-}
-
-
-.bar-8 {
-    height: 70%;
 }
 
 
@@ -715,15 +690,7 @@ button:active {
 
     flex-shrink: 0;
 
-    background:
-        conic-gradient(
-            var(--green) 0 28%,
-            var(--orange) 28% 46%,
-            var(--purple) 46% 62%,
-            var(--pink) 62% 74%,
-            var(--blue) 74% 84%,
-            #cbd5e1 84% 100%
-        );
+    background: var(--border);
 
     border-radius: 50%;
 }
@@ -1667,7 +1634,7 @@ button:active {
     }
 
     .bar-group span {
-        display: none;
+        font-size: 0.625rem;
     }
 
     .form-header {

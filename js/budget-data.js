@@ -23,12 +23,20 @@ function loadBudgets() {
 }
 
 
-function getBudgetSpending(category, transactions) {
+function getCurrentMonth() {
 
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, "0");
-    const currentMonth = `${year}-${month}`;
+
+    return `${year}-${month}`;
+
+}
+
+
+function getBudgetSpending(category, transactions) {
+
+    const currentMonth = getCurrentMonth();
 
     let spent = 0;
 

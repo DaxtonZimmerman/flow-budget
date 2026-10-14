@@ -126,9 +126,7 @@
                         Add transaction
                     </a>
 
-                    <button class="month-button" type="button">
-                        October 2026
-                    </button>
+                    <span id="current-month-label" class="month-button"></span>
 
                 </div>
 
@@ -151,8 +149,8 @@
 
                     <h3 id="total-balance">$0.00</h3>
 
-                    <p class="good-text">
-                        ↑ 2.4% from last month
+                    <p class="small-text">
+                        Across all saved transactions
                     </p>
 
                 </div>
@@ -193,8 +191,8 @@
 
                     <h3 id="monthly-income">$0.00</h3>
 
-                    <p class="good-text">
-                        ↑ 12% from last month
+                    <p class="small-text">
+                        Dated income this month
                     </p>
 
                 </div>
@@ -214,8 +212,8 @@
 
                     <h3 id="monthly-spending">$0.00</h3>
 
-                    <p class="bad-text">
-                        ↓ 5% from last month
+                    <p class="small-text">
+                        Dated expenses this month
                     </p>
 
                 </div>
@@ -234,68 +232,22 @@
                             <h3>Spending this month</h3>
                         </div>
 
-                        <button class="small-button" type="button">
-                            This month
-                        </button>
+                        <span class="small-button">This month</span>
 
                     </div>
 
 
-                    <div class="spending-chart">
+                    <div id="spending-chart" class="spending-chart">
 
-                        <div class="chart-values">
-                            <span>$600</span>
-                            <span>$400</span>
-                            <span>$200</span>
-                            <span>$0</span>
-                        </div>
+                        <div id="chart-values" class="chart-values"></div>
 
-                        <div class="bars">
-
-                            <div class="bar-group">
-                                <div class="bar bar-1"></div>
-                                <span>Oct 1</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-2"></div>
-                                <span>Oct 5</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-3"></div>
-                                <span>Oct 9</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-4"></div>
-                                <span>Oct 13</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-5"></div>
-                                <span>Oct 17</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-6"></div>
-                                <span>Oct 21</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-7"></div>
-                                <span>Oct 25</span>
-                            </div>
-
-                            <div class="bar-group">
-                                <div class="bar bar-8"></div>
-                                <span>Oct 29</span>
-                            </div>
-
-                        </div>
+                        <div id="spending-bars" class="bars"></div>
 
                     </div>
 
+                    <p id="spending-chart-empty" class="budget-empty" hidden>
+                        No dated expenses this month.
+                    </p>
                 </div>
 
 
@@ -313,70 +265,18 @@
 
                     <div class="category-content">
 
-                        <div class="donut">
+                        <div id="category-donut" class="donut">
 
                             <div class="donut-center">
-                                <strong>$2,259</strong>
+                                <strong id="category-total">$0.00</strong>
                                 <span>Total spent</span>
                             </div>
 
                         </div>
 
-
-                        <div class="category-list">
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot food-dot"></span>
-                                    Food
-                                </div>
-                                <strong>28%</strong>
-                            </div>
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot transport-dot"></span>
-                                    Transport
-                                </div>
-                                <strong>18%</strong>
-                            </div>
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot shopping-dot"></span>
-                                    Shopping
-                                </div>
-                                <strong>16%</strong>
-                            </div>
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot entertainment-dot"></span>
-                                    Entertainment
-                                </div>
-                                <strong>12%</strong>
-                            </div>
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot bills-dot"></span>
-                                    Bills
-                                </div>
-                                <strong>10%</strong>
-                            </div>
-
-                            <div class="category-row">
-                                <div>
-                                    <span class="dot other-dot"></span>
-                                    Other
-                                </div>
-                                <strong>16%</strong>
-                            </div>
-
-                        </div>
+                        <div id="category-list" class="category-list"></div>
 
                     </div>
-
                 </div>
 
             </section>
