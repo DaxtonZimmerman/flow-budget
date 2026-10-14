@@ -40,6 +40,7 @@ if (savedTransactions) {
 
 }
 
+
 const budgets = [
     {
         category: "Food",
@@ -58,6 +59,7 @@ const budgets = [
         limit: 400
     }
 ];
+
 
 console.log(transactions);
 console.log(budgets);
@@ -98,6 +100,7 @@ const totalBalance = monthlyIncome - monthlySpending;
 const totalBalanceText = document.querySelector("#total-balance");
 
 totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
+
 
 let remainingBudget = 0;
 
@@ -219,6 +222,7 @@ for (const budget of budgets) {
 
             <div class="budget-info">
                 <strong>${budget.category}</strong>
+
                 <span>
                     $${spent.toFixed(2)} / $${budget.limit.toFixed(2)}
                 </span>

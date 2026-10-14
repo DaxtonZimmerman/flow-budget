@@ -56,7 +56,9 @@ a {
 
 
 button,
-input {
+input,
+select,
+textarea {
     font: inherit;
 }
 
@@ -232,6 +234,8 @@ button:active {
 }
 
 
+/* top bar */
+
 .top-bar {
     margin-bottom: 1.5rem;
 
@@ -325,6 +329,8 @@ button:active {
 }
 
 
+/* welcome */
+
 .welcome {
     margin-bottom: 1.25rem;
 
@@ -349,6 +355,32 @@ button:active {
     color: var(--text-light);
 
     font-size: 0.75rem;
+}
+
+
+.welcome-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 0.75rem;
+}
+
+
+.add-transaction-link {
+    padding: 0.75rem 1rem;
+
+    background: var(--blue);
+    color: white;
+
+    border-radius: 0.75rem;
+
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+.add-transaction-link:hover {
+    opacity: 0.9;
 }
 
 
@@ -957,29 +989,137 @@ button:active {
 }
 
 
-.food-progress {
-    width: 64%;
+/* transaction form */
+
+.form-header {
+    margin-bottom: 1.5rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
 }
 
 
-.transport-progress {
-    width: 40%;
+.form-header h2 {
+    margin: 0.25rem 0;
+
+    font-size: 1.5rem;
+}
+
+
+.form-header p {
+    margin: 0;
+
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+}
+
+
+.back-button {
+    padding: 0.75rem 1rem;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+.form-card {
+    width: 100%;
+    max-width: 42rem;
+
+    padding: 1.5rem;
+
+    background: var(--card);
+
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+
+#transaction-form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 1.25rem;
+}
+
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.5rem;
+}
+
+
+.form-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+
+    padding: 0.75rem 1rem;
+
+    background: white;
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+
+    outline: none;
+}
+
+
+.form-group textarea {
+    resize: vertical;
+}
+
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--blue);
+}
+
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #94a3b8;
+}
+
+
+.save-button {
+    padding: 0.75rem 1rem;
 
     background: var(--blue);
+    color: white;
+
+    border: none;
+    border-radius: 0.75rem;
+
+    font-weight: 600;
+
+    cursor: pointer;
 }
 
 
-.entertainment-progress {
-    width: 45%;
-
-    background: var(--purple);
-}
-
-
-.shopping-progress {
-    width: 45%;
-
-    background: var(--pink);
+.save-button:hover {
+    opacity: 0.9;
 }
 
 
@@ -1114,8 +1254,17 @@ button:active {
         flex-direction: column;
     }
 
+    .welcome-actions {
+        width: 100%;
+
+        flex-direction: column;
+    }
+
+    .add-transaction-link,
     .month-button {
         width: 100%;
+
+        text-align: center;
     }
 
     .summary-grid {
@@ -1140,6 +1289,21 @@ button:active {
 
     .bar-group span {
         display: none;
+    }
+
+    .form-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .back-button {
+        width: 100%;
+
+        text-align: center;
+    }
+
+    .form-card {
+        padding: 1rem;
     }
 
 }
