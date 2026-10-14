@@ -40,6 +40,39 @@ const historyExpenses = document.querySelector("#history-expenses");
 
 const historyBalance = document.querySelector("#history-balance");
 
+const historySearch = document.querySelector("#history-search");
+const historyTypeFilter = document.querySelector("#history-type-filter");
+const historyCategoryFilter = document.querySelector("#history-category-filter");
+const noMatchingTransactions = document.querySelector("#no-matching-transactions");
+
+const transactionRows = [];
+
+
+/* fill category filter */
+
+const categories = [];
+
+for (const transaction of transactions) {
+
+    if (transaction.category && !categories.includes(transaction.category)) {
+        categories.push(transaction.category);
+    }
+
+}
+
+categories.sort();
+
+for (const category of categories) {
+
+    const option = document.createElement("option");
+
+    option.value = category;
+    option.textContent = category;
+
+    historyCategoryFilter.appendChild(option);
+
+}
+
 
 let totalIncome = 0;
 let totalExpenses = 0;
@@ -253,9 +286,74 @@ if (transactions.length === 0) {
 
         transactionHistory.appendChild(transactionRow);
 
+        transactionRows.push({
+            transaction: transaction,
+            row: transactionRow
+        });
+
     }
 
 }
+
+
+/* filter visible rows */
+
+function filterTransactions() {
+
+    const searchText = historySearch.value.trim().toLowerCase();
+    const selectedType = historyTypeFilter.value;
+    const selectedCategory = historyCategoryFilter.value;
+
+    let visibleCount = 0;
+
+
+    for (const item of transactionRows) {
+
+        const transaction = item.transaction;
+
+        const searchableText = [
+            transaction.name,
+            transaction.category,
+            transaction.notes || ""
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = searchableText.includes(searchText);
+        const matchesType = selectedType === "all" ||
+            (selectedType === "income" && transaction.amount > 0) ||
+            (selectedType === "expense" && transaction.amount < 0);
+        const matchesCategory = selectedCategory === "all" ||
+            transaction.category === selectedCategory;
+
+        const matches = matchesSearch && matchesType && matchesCategory;
+
+        item.row.hidden = !matches;
+
+        if (matches) {
+            visibleCount++;
+        }
+
+    }
+
+
+    if (visibleCount === transactions.length) {
+        transactionCount.textContent =
+            `${transactions.length} ${transactions.length === 1 ? "transaction" : "transactions"}`;
+    } else {
+        transactionCount.textContent =
+            `${visibleCount} of ${transactions.length} transactions`;
+    }
+
+    noMatchingTransactions.hidden =
+        transactions.length === 0 || visibleCount > 0;
+
+}
+
+
+historySearch.addEventListener("input", filterTransactions);
+historyTypeFilter.addEventListener("change", filterTransactions);
+historyCategoryFilter.addEventListener("change", filterTransactions);
+
+filterTransactions();
 
 
 lucide.createIcons();
