@@ -43,6 +43,7 @@ const historyBalance = document.querySelector("#history-balance");
 const historySearch = document.querySelector("#history-search");
 const historyTypeFilter = document.querySelector("#history-type-filter");
 const historyCategoryFilter = document.querySelector("#history-category-filter");
+const historySort = document.querySelector("#history-sort");
 const noMatchingTransactions = document.querySelector("#no-matching-transactions");
 
 const transactionRows = [];
@@ -288,9 +289,62 @@ if (transactions.length === 0) {
 
         transactionRows.push({
             transaction: transaction,
-            row: transactionRow
+            row: transactionRow,
+            order: transactionRows.length
         });
 
+    }
+
+}
+
+
+/* sort transactions */
+
+function sortTransactions() {
+
+    const selectedSort = historySort.value;
+
+    transactionRows.sort(function(first, second) {
+
+        if (selectedSort === "date-newest" || selectedSort === "date-oldest") {
+
+            const firstDate = first.transaction.date || "";
+            const secondDate = second.transaction.date || "";
+
+            if (!firstDate && secondDate) {
+                return 1;
+            }
+
+            if (firstDate && !secondDate) {
+                return -1;
+            }
+
+            if (firstDate !== secondDate) {
+                return selectedSort === "date-newest"
+                    ? secondDate.localeCompare(firstDate)
+                    : firstDate.localeCompare(secondDate);
+            }
+
+        }
+
+        if (selectedSort === "amount-high" || selectedSort === "amount-low") {
+
+            const difference = selectedSort === "amount-high"
+                ? second.transaction.amount - first.transaction.amount
+                : first.transaction.amount - second.transaction.amount;
+
+            if (difference !== 0) {
+                return difference;
+            }
+
+        }
+
+        return first.order - second.order;
+
+    });
+
+    for (const item of transactionRows) {
+        transactionHistory.appendChild(item.row);
     }
 
 }
@@ -352,7 +406,9 @@ function filterTransactions() {
 historySearch.addEventListener("input", filterTransactions);
 historyTypeFilter.addEventListener("change", filterTransactions);
 historyCategoryFilter.addEventListener("change", filterTransactions);
+historySort.addEventListener("change", sortTransactions);
 
+sortTransactions();
 filterTransactions();
 
 

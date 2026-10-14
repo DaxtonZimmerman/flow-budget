@@ -1189,6 +1189,7 @@ button:active {
     padding: 0 0.75rem 1rem;
 
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
 
     gap: 0.75rem;
@@ -1197,6 +1198,7 @@ button:active {
 
 .history-filter {
     display: flex;
+    flex: 1 1 9rem;
     flex-direction: column;
 
     gap: 0.4rem;
@@ -1204,7 +1206,7 @@ button:active {
 
 
 .history-filter:first-child {
-    flex: 1;
+    flex: 2 1 14rem;
 }
 
 
