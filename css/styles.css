@@ -989,6 +989,63 @@ button:active {
 }
 
 
+.progress-fill.over-budget {
+    background: var(--red);
+}
+
+
+.budget-page-card {
+    max-width: 56rem;
+}
+
+
+.budget-form {
+    margin-bottom: 0.5rem;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 1rem;
+}
+
+
+.budget-form .form-group {
+    flex: 1;
+}
+
+
+.budget-form .save-button {
+    white-space: nowrap;
+}
+
+
+.budget-page-list {
+    margin-top: 1rem;
+}
+
+
+.budget-detail-row {
+    padding: 1rem 0;
+
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1.5fr) auto;
+    align-items: center;
+
+    gap: 1rem;
+
+    border-top: 1px solid var(--border);
+}
+
+
+.budget-empty {
+    margin: 1rem 0;
+
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+}
+
+
 /* transaction form */
 
 .form-header {
@@ -1541,6 +1598,17 @@ button:active {
 
 
 @media (max-width: 640px) {
+
+    .budget-form,
+    .budget-detail-row {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .budget-detail-row .history-actions {
+        justify-content: flex-start;
+    }
 
     .history-filters {
         flex-direction: column;

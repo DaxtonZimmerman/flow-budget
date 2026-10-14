@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Budgets | Flow</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="js/budget-data.js" defer></script>
+    <script src="js/budgets.js" defer></script>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-top">
+
+                <h1 class="logo">Flow</h1>
+
+                <nav class="nav">
+
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                        Dashboard
+                    </a>
+
+                    <a href="transactions.html" class="nav-link">
+                        <i data-lucide="arrow-left-right" class="nav-icon"></i>
+                        Transactions
+                    </a>
+
+                    <a href="budgets.html" class="nav-link active" aria-current="page">
+                        <i data-lucide="wallet-cards" class="nav-icon"></i>
+                        Budgets
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="target" class="nav-icon"></i>
+                        Goals
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="landmark" class="nav-icon"></i>
+                        Accounts
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="chart-no-axes-combined" class="nav-icon"></i>
+                        Insights
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="settings-2" class="nav-icon"></i>
+                        Settings
+                    </a>
+
+                </nav>
+
+            </div>
+
+            <button class="profile" type="button">
+
+                <span class="profile-icon">DZ</span>
+
+                <span class="profile-text">
+                    <strong>Daxton</strong>
+                    <span>View profile</span>
+                </span>
+
+            </button>
+
+        </aside>
+
+
+        <main class="main">
+
+            <div class="page-header">
+
+                <div>
+                    <p class="small-label">Plan</p>
+                    <h2>Budgets</h2>
+                    <p>Set category limits and track this month's spending.</p>
+                </div>
+
+                <a href="add-transaction.html" class="add-transaction-link">
+                    Add transaction
+                </a>
+
+            </div>
+
+
+            <section class="transaction-summary-grid">
+
+                <div class="summary-card">
+                    <div class="summary-top">
+                        <p>Total budget</p>
+                        <span class="card-icon blue-icon">
+                            <i data-lucide="wallet-cards"></i>
+                        </span>
+                    </div>
+                    <h3 id="budget-total">$0.00</h3>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-top">
+                        <p>Spent this month</p>
+                        <span class="card-icon red-icon">
+                            <i data-lucide="trending-down"></i>
+                        </span>
+                    </div>
+                    <h3 id="budget-spent">$0.00</h3>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-top">
+                        <p>Remaining</p>
+                        <span class="card-icon green-icon">
+                            <i data-lucide="shield-check"></i>
+                        </span>
+                    </div>
+                    <h3 id="budget-remaining">$0.00</h3>
+                </div>
+
+            </section>
+
+
+            <section class="card budget-page-card">
+
+                <div class="section-top">
+                    <div>
+                        <p class="small-label">Monthly limits</p>
+                        <h3>Category budgets</h3>
+                    </div>
+                </div>
+
+                <form id="budget-form" class="budget-form">
+
+                    <div class="form-group">
+                        <label for="budget-category">Category</label>
+                        <select id="budget-category">
+                            <option value="">Select category</option>
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="budget-limit">Monthly limit</label>
+                        <input
+                            id="budget-limit"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="0.00"
+                        >
+                    </div>
+
+                    <button class="save-button" type="submit">Save budget</button>
+
+                </form>
+
+                <p id="budget-message" class="form-message" aria-live="polite"></p>
+
+                <div id="budget-page-list" class="budget-page-list"></div>
+
+                <p id="empty-budgets" class="budget-empty" hidden>
+                    No budgets yet. Choose a category and set a monthly limit.
+                </p>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

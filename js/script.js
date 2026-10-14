@@ -41,24 +41,7 @@ if (savedTransactions) {
 }
 
 
-const budgets = [
-    {
-        category: "Food",
-        limit: 500
-    },
-    {
-        category: "Transport",
-        limit: 300
-    },
-    {
-        category: "Entertainment",
-        limit: 200
-    },
-    {
-        category: "Shopping",
-        limit: 400
-    }
-];
+const budgets = loadBudgets();
 
 
 console.log(transactions);
@@ -106,19 +89,7 @@ let remainingBudget = 0;
 
 for (const budget of budgets) {
 
-    let spent = 0;
-
-    for (const transaction of transactions) {
-
-        if (
-            transaction.category === budget.category &&
-            transaction.amount < 0
-        ) {
-            spent += Math.abs(transaction.amount);
-        }
-
-    }
-
+    const spent = getBudgetSpending(budget.category, transactions);
     const amountLeft = budget.limit - spent;
 
     if (amountLeft > 0) {
@@ -200,22 +171,17 @@ for (const transaction of transactions) {
 
 const budgetList = document.querySelector("#budget-list");
 
+if (budgets.length === 0) {
+    budgetList.innerHTML =
+        '<p class="budget-empty">No budgets yet. Add one on the Budgets page.</p>';
+}
+
 for (const budget of budgets) {
 
-    let spent = 0;
-
-    for (const transaction of transactions) {
-
-        if (
-            transaction.category === budget.category &&
-            transaction.amount < 0
-        ) {
-            spent += Math.abs(transaction.amount);
-        }
-
-    }
-
+    const spent = getBudgetSpending(budget.category, transactions);
     const percentage = (spent / budget.limit) * 100;
+    const barWidth = Math.min(percentage, 100);
+    const barColor = spent > budget.limit ? "over-budget" : "";
 
     budgetList.innerHTML += `
         <div class="budget-row">
@@ -232,8 +198,8 @@ for (const budget of budgets) {
 
                 <div class="progress-bar">
                     <div
-                        class="progress-fill"
-                        style="width: ${percentage}%"
+                        class="progress-fill ${barColor}"
+                        style="width: ${barWidth}%"
                     ></div>
                 </div>
 
