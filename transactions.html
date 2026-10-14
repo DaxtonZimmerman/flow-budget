@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Transactions | Flow</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="js/transactions.js" defer></script>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-top">
+
+                <h1 class="logo">Flow</h1>
+
+                <nav class="nav">
+
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                        Dashboard
+                    </a>
+
+                    <a
+                        href="transactions.html"
+                        class="nav-link active"
+                        aria-current="page"
+                    >
+                        <i data-lucide="arrow-left-right" class="nav-icon"></i>
+                        Transactions
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="wallet-cards" class="nav-icon"></i>
+                        Budgets
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="target" class="nav-icon"></i>
+                        Goals
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="landmark" class="nav-icon"></i>
+                        Accounts
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="chart-no-axes-combined" class="nav-icon"></i>
+                        Insights
+                    </a>
+
+                    <a href="#" class="nav-link">
+                        <i data-lucide="settings-2" class="nav-icon"></i>
+                        Settings
+                    </a>
+
+                </nav>
+
+            </div>
+
+            <button class="profile" type="button">
+
+                <span class="profile-icon">DZ</span>
+
+                <span class="profile-text">
+                    <strong>Daxton</strong>
+                    <span>View profile</span>
+                </span>
+
+            </button>
+
+        </aside>
+
+
+        <main class="main">
+
+            <div class="page-header">
+
+                <div>
+                    <p class="small-label">Activity</p>
+                    <h2>Transactions</h2>
+                    <p>View all of your income and expenses.</p>
+                </div>
+
+                <a
+                    href="add-transaction.html"
+                    class="add-transaction-link"
+                >
+                    Add transaction
+                </a>
+
+            </div>
+
+
+            <section class="transaction-summary-grid">
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Total income</p>
+
+                        <span class="card-icon green-icon">
+                            <i data-lucide="trending-up"></i>
+                        </span>
+
+                    </div>
+
+                    <h3 id="history-income">$0.00</h3>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Total expenses</p>
+
+                        <span class="card-icon red-icon">
+                            <i data-lucide="trending-down"></i>
+                        </span>
+
+                    </div>
+
+                    <h3 id="history-expenses">$0.00</h3>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-top">
+
+                        <p>Net balance</p>
+
+                        <span class="card-icon blue-icon">
+                            <i data-lucide="wallet"></i>
+                        </span>
+
+                    </div>
+
+                    <h3 id="history-balance">$0.00</h3>
+
+                </div>
+
+            </section>
+
+
+            <section class="card transaction-history-card">
+
+                <div class="section-top">
+
+                    <div>
+                        <p class="small-label">History</p>
+                        <h3>All transactions</h3>
+                    </div>
+
+                    <span
+                        id="transaction-count"
+                        class="transaction-count"
+                    >
+                        0 transactions
+                    </span>
+
+                </div>
+
+
+                <div class="history-header">
+
+                    <span>Transaction</span>
+                    <span>Category</span>
+                    <span>Date</span>
+                    <span>Notes</span>
+                    <span>Amount</span>
+
+                </div>
+
+
+                <div id="transaction-history">
+
+                </div>
+
+
+                <div
+                    id="empty-transactions"
+                    class="empty-state"
+                    hidden
+                >
+
+                    <i data-lucide="receipt"></i>
+
+                    <h3>No transactions yet</h3>
+
+                    <p>
+                        Add your first transaction to start tracking your money.
+                    </p>
+
+                    <a
+                        href="add-transaction.html"
+                        class="add-transaction-link"
+                    >
+                        Add transaction
+                    </a>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

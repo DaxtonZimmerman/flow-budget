@@ -1134,6 +1134,161 @@ button:active {
 }
 
 
+/* transaction history */
+
+.page-header {
+    margin-bottom: 1.5rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+}
+
+
+.page-header h2 {
+    margin: 0.25rem 0;
+
+    font-size: 1.5rem;
+}
+
+
+.page-header p {
+    margin: 0;
+
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+}
+
+
+.transaction-summary-grid {
+    margin-bottom: 1.5rem;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 1rem;
+}
+
+
+.transaction-history-card {
+    overflow: hidden;
+}
+
+
+.transaction-count {
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+}
+
+
+.history-header,
+.history-row {
+    display: grid;
+    grid-template-columns:
+        minmax(10rem, 1.5fr)
+        minmax(6rem, 1fr)
+        minmax(7rem, 1fr)
+        minmax(8rem, 1.5fr)
+        minmax(6rem, 0.75fr);
+
+    align-items: center;
+
+    gap: 1rem;
+}
+
+
+.history-header {
+    padding: 0.75rem;
+
+    background: #f8fafc;
+
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+
+.history-row {
+    padding: 1rem 0.75rem;
+
+    border-bottom: 1px solid var(--border);
+
+    font-size: 0.75rem;
+}
+
+
+.history-row:last-child {
+    border-bottom: none;
+}
+
+
+.history-row > span {
+    color: var(--text-light);
+}
+
+
+.history-name {
+    display: flex;
+    align-items: center;
+
+    gap: 0.75rem;
+
+    min-width: 0;
+}
+
+
+.history-name strong {
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.history-amount {
+    text-align: right;
+}
+
+
+.empty-state {
+    padding: 4rem 1rem;
+
+    text-align: center;
+}
+
+
+.empty-state svg {
+    width: 2rem;
+    height: 2rem;
+
+    margin-bottom: 0.75rem;
+
+    color: var(--text-light);
+}
+
+
+.empty-state h3 {
+    margin: 0 0 0.5rem;
+}
+
+
+.empty-state p {
+    margin: 0 0 1.5rem;
+
+    color: var(--text-light);
+
+    font-size: 0.75rem;
+}
+
+
 /* responsive */
 
 @media (max-width: 1280px) {
@@ -1169,6 +1324,21 @@ button:active {
 
     .bottom-grid {
         grid-template-columns: 1fr;
+    }
+
+    .transaction-summary-grid {
+    grid-template-columns: 1fr;
+}
+
+
+    .transaction-history-card {
+        overflow-x: auto;
+    }
+
+
+    .history-header,
+    .history-row {
+        min-width: 48rem;
     }
 
 }
@@ -1315,6 +1485,18 @@ button:active {
 
     .form-card {
         padding: 1rem;
+    }
+
+    .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+}
+
+
+    .page-header .add-transaction-link {
+        width: 100%;
+
+        text-align: center;
     }
 
 }
