@@ -130,7 +130,7 @@
                         Add transaction
                     </a>
 
-                    <span id="current-month-label" class="month-button"></span>
+                    <input type="month" id="dashboard-month" class="month-button" aria-label="Choose month">
 
                 </div>
 
@@ -196,7 +196,7 @@
                     <h3 id="monthly-income">$0.00</h3>
 
                     <p class="small-text">
-                        Dated income this month
+                        Dated income in selected month
                     </p>
 
                 </div>
@@ -217,7 +217,7 @@
                     <h3 id="monthly-spending">$0.00</h3>
 
                     <p class="small-text">
-                        Dated expenses this month
+                        Dated expenses in selected month
                     </p>
 
                 </div>
@@ -233,10 +233,10 @@
 
                         <div>
                             <p class="small-label">Overview</p>
-                            <h3>Spending this month</h3>
+                            <h3>Spending by week</h3>
                         </div>
 
-                        <span class="small-button">This month</span>
+                        <span id="chart-month-label" class="small-button"></span>
 
                     </div>
 
@@ -250,7 +250,7 @@
                     </div>
 
                     <p id="spending-chart-empty" class="budget-empty" hidden>
-                        No dated expenses this month.
+                        No dated expenses for this month.
                     </p>
                 </div>
 
@@ -316,7 +316,7 @@
                     <div class="section-top">
 
                         <div>
-                            <p class="small-label">This month</p>
+                            <p class="small-label">Selected month</p>
                             <h3>Budget progress</h3>
                         </div>
 

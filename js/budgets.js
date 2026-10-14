@@ -6,6 +6,19 @@ const transactions = JSON.parse(savedTransactions) || [];
 
 let budgets = loadBudgets();
 
+const selectedMonth = getSelectedMonth();
+const budgetMonth = document.querySelector("#budget-month");
+const dashboardLink = document.querySelector("#dashboard-link");
+
+budgetMonth.value = selectedMonth;
+dashboardLink.href = `index.html?month=${selectedMonth}`;
+
+budgetMonth.addEventListener("change", function() {
+    if (budgetMonth.value) {
+        window.location.href = `budgets.html?month=${budgetMonth.value}`;
+    }
+});
+
 const budgetForm = document.querySelector("#budget-form");
 const categoryInput = document.querySelector("#budget-category");
 const limitInput = document.querySelector("#budget-limit");
@@ -31,7 +44,7 @@ function showBudgets() {
 
     for (const budget of budgets) {
 
-        const spent = getBudgetSpending(budget.category, transactions);
+        const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
         const remaining = Math.max(0, budget.limit - spent);
         const percentage = (spent / budget.limit) * 100;
 

@@ -46,13 +46,10 @@ const budgets = loadBudgets();
 
 /* calculate totals */
 
-const currentMonth = getCurrentMonth();
-const today = new Date();
-const daysInMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0
-).getDate();
+const selectedMonth = getSelectedMonth();
+const selectedYear = Number(selectedMonth.slice(0, 4));
+const selectedMonthNumber = Number(selectedMonth.slice(5, 7));
+const daysInMonth = new Date(selectedYear, selectedMonthNumber, 0).getDate();
 
 const weeklySpending = Array(Math.ceil(daysInMonth / 7)).fill(0);
 const categorySpending = {};
@@ -65,14 +62,14 @@ let monthlySpending = 0;
 
 for (const transaction of transactions) {
 
-    const isThisMonth = transaction.date &&
-        transaction.date.slice(0, 7) === currentMonth;
+    const isSelectedMonth = transaction.date &&
+        transaction.date.slice(0, 7) === selectedMonth;
 
     if (transaction.amount > 0) {
 
         totalIncome += transaction.amount;
 
-        if (isThisMonth) {
+        if (isSelectedMonth) {
             monthlyIncome += transaction.amount;
         }
 
@@ -84,7 +81,7 @@ for (const transaction of transactions) {
 
         totalSpending += amount;
 
-        if (isThisMonth) {
+        if (isSelectedMonth) {
 
             monthlySpending += amount;
 
@@ -111,21 +108,32 @@ const totalBalance = totalIncome - totalSpending;
 const monthlyIncomeText = document.querySelector("#monthly-income");
 const monthlySpendingText = document.querySelector("#monthly-spending");
 const totalBalanceText = document.querySelector("#total-balance");
-const currentMonthLabel = document.querySelector("#current-month-label");
+const dashboardMonth = document.querySelector("#dashboard-month");
+const chartMonthLabel = document.querySelector("#chart-month-label");
+const monthName = new Date(selectedYear, selectedMonthNumber - 1, 1)
+    .toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
 monthlyIncomeText.textContent = `$${monthlyIncome.toFixed(2)}`;
 monthlySpendingText.textContent = `$${monthlySpending.toFixed(2)}`;
 totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
-currentMonthLabel.textContent = today.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric"
+dashboardMonth.value = selectedMonth;
+chartMonthLabel.textContent = monthName;
+
+dashboardMonth.addEventListener("change", function() {
+    if (dashboardMonth.value) {
+        window.location.href = `index.html?month=${dashboardMonth.value}`;
+    }
 });
+
+for (const link of document.querySelectorAll('a[href="budgets.html"]')) {
+    link.href = `budgets.html?month=${selectedMonth}`;
+}
 
 let remainingBudget = 0;
 
 for (const budget of budgets) {
 
-    const spent = getBudgetSpending(budget.category, transactions);
+    const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
     const amountLeft = budget.limit - spent;
 
     if (amountLeft > 0) {
@@ -161,7 +169,7 @@ if (monthlySpending === 0) {
 
     const emptyCategory = document.createElement("p");
     emptyCategory.classList.add("budget-empty");
-    emptyCategory.textContent = "No dated expenses this month.";
+    emptyCategory.textContent = "No dated expenses for this month.";
     categoryList.appendChild(emptyCategory);
 
 } else {
@@ -384,7 +392,7 @@ if (budgets.length === 0) {
 
 for (const budget of budgets) {
 
-    const spent = getBudgetSpending(budget.category, transactions);
+    const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
     const percentage = (spent / budget.limit) * 100;
     const barWidth = Math.min(percentage, 100);
     const barColor = spent > budget.limit ? "over-budget" : "";

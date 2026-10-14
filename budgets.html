@@ -26,7 +26,7 @@
 
                 <nav class="nav">
 
-                    <a href="index.html" class="nav-link">
+                    <a href="index.html" id="dashboard-link" class="nav-link">
                         <i data-lucide="layout-dashboard" class="nav-icon"></i>
                         Dashboard
                     </a>
@@ -86,12 +86,16 @@
                 <div>
                     <p class="small-label">Plan</p>
                     <h2>Budgets</h2>
-                    <p>Set category limits and track this month's spending.</p>
+                    <p>Set monthly category limits and track the selected month's spending.</p>
                 </div>
 
-                <a href="add-transaction.html" class="add-transaction-link">
-                    Add transaction
-                </a>
+                <div class="budget-header-actions">
+                    <a href="add-transaction.html" class="add-transaction-link">
+                        Add transaction
+                    </a>
+
+                    <input type="month" id="budget-month" class="month-button" aria-label="Choose month">
+                </div>
 
             </div>
 
@@ -110,7 +114,7 @@
 
                 <div class="summary-card">
                     <div class="summary-top">
-                        <p>Spent this month</p>
+                        <p>Spent in selected month</p>
                         <span class="card-icon red-icon">
                             <i data-lucide="trending-down"></i>
                         </span>

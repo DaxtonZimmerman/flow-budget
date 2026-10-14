@@ -34,9 +34,20 @@ function getCurrentMonth() {
 }
 
 
-function getBudgetSpending(category, transactions) {
+function getSelectedMonth() {
 
-    const currentMonth = getCurrentMonth();
+    const month = new URLSearchParams(window.location.search).get("month");
+
+    if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+        return month;
+    }
+
+    return getCurrentMonth();
+
+}
+
+
+function getBudgetSpending(category, transactions, month) {
 
     let spent = 0;
 
@@ -46,7 +57,7 @@ function getBudgetSpending(category, transactions) {
             transaction.category === category &&
             transaction.amount < 0 &&
             transaction.date &&
-            transaction.date.slice(0, 7) === currentMonth
+            transaction.date.slice(0, 7) === month
         ) {
             spent += Math.abs(transaction.amount);
         }
