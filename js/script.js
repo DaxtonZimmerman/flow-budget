@@ -1,48 +1,16 @@
-lucide.createIcons();
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}
 
 const savedTransactions = localStorage.getItem("transactions");
-
-let transactions;
-
-if (savedTransactions) {
-
-    transactions = JSON.parse(savedTransactions);
-
-} else {
-
-    transactions = [
-        {
-            name: "Chick-fil-A",
-            category: "Food",
-            amount: -12.45
-        },
-        {
-            name: "Spotify",
-            category: "Entertainment",
-            amount: -10.99
-        },
-        {
-            name: "Direct deposit",
-            category: "Income",
-            amount: 2500
-        },
-        {
-            name: "Maverik",
-            category: "Transport",
-            amount: -45.12
-        }
-    ];
-
-    localStorage.setItem(
-        "transactions",
-        JSON.stringify(transactions)
-    );
-
-}
+const transactions = JSON.parse(savedTransactions) || [];
 
 
 const selectedMonth = getSelectedMonth();
 const budgets = loadBudgets(selectedMonth);
+
+document.querySelector(".nav-link.active").href =
+    `index.html?month=${selectedMonth}`;
 
 
 /* calculate totals */
@@ -114,7 +82,11 @@ const monthName = new Date(selectedYear, selectedMonthNumber - 1, 1)
 
 monthlyIncomeText.textContent = `$${monthlyIncome.toFixed(2)}`;
 monthlySpendingText.textContent = `$${monthlySpending.toFixed(2)}`;
-totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
+if (totalBalance < 0) {
+    totalBalanceText.textContent = `-$${Math.abs(totalBalance).toFixed(2)}`;
+} else {
+    totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
+}
 dashboardMonth.value = selectedMonth;
 chartMonthLabel.textContent = monthName;
 
@@ -149,7 +121,11 @@ for (const budget of budgets) {
 
 }
 
-const safeToSpend = totalBalance - remainingBudget;
+let safeToSpend = totalBalance - remainingBudget;
+
+if (safeToSpend < 0) {
+    safeToSpend = 0;
+}
 
 const safeToSpendText = document.querySelector("#safe-to-spend");
 
@@ -433,4 +409,6 @@ for (const budget of budgets) {
 }
 
 
-lucide.createIcons();
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}

@@ -1,4 +1,6 @@
-lucide.createIcons();
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}
 
 
 const savedTransactions = localStorage.getItem("transactions");
@@ -47,6 +49,9 @@ const monthFromPage = pageParameters.get("month");
 const selectedMonth = monthFromPage && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthFromPage)
     ? monthFromPage
     : "";
+
+document.querySelector(".nav-link.active").href =
+    `transactions.html${window.location.search}`;
 
 const historyMonth = document.querySelector("#history-month");
 const allMonthsButton = document.querySelector("#all-months-button");
@@ -163,7 +168,11 @@ historyIncome.textContent = `$${totalIncome.toFixed(2)}`;
 
 historyExpenses.textContent = `$${totalExpenses.toFixed(2)}`;
 
-historyBalance.textContent = `$${balance.toFixed(2)}`;
+if (balance < 0) {
+    historyBalance.textContent = `-$${Math.abs(balance).toFixed(2)}`;
+} else {
+    historyBalance.textContent = `$${balance.toFixed(2)}`;
+}
 
 
 transactionCount.textContent =
@@ -484,4 +493,6 @@ sortTransactions();
 filterTransactions();
 
 
-lucide.createIcons();
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}

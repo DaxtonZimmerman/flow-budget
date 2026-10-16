@@ -1,4 +1,6 @@
-lucide.createIcons();
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}
 
 
 const savedTransactions = localStorage.getItem("transactions");
@@ -10,6 +12,8 @@ const budgetMonth = document.querySelector("#budget-month");
 const dashboardLink = document.querySelector("#dashboard-link");
 
 budgetMonth.value = selectedMonth;
+document.querySelector(".nav-link.active").href =
+    `budgets.html?month=${selectedMonth}`;
 dashboardLink.href = `index.html?month=${selectedMonth}`;
 document.querySelector('a[href="transactions.html"]').href =
     `transactions.html?month=${selectedMonth}`;

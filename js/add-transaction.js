@@ -135,7 +135,7 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    if (amount <= 0 || Number.isNaN(amount)) {
+    if (!Number.isFinite(amount) || amount <= 0) {
         showError("Please enter an amount greater than $0.");
         return;
     }
@@ -182,8 +182,18 @@ transactionForm.addEventListener("submit", function(event) {
 
     } else {
 
+        /* avoid duplicate ids */
+
+        let newId = Date.now();
+
+        while (transactions.some(function(item) {
+            return String(item.id) === String(newId);
+        })) {
+            newId++;
+        }
+
         const newTransaction = {
-            id: Date.now(),
+            id: newId,
             type: type,
             name: name,
             category: category,
