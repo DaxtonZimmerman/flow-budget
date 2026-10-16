@@ -1144,6 +1144,44 @@ button:active {
 }
 
 
+/* backup */
+
+.backup-card {
+    margin-top: 1rem;
+}
+
+
+.backup-card > p:first-of-type {
+    color: var(--text-light);
+    font-size: 0.75rem;
+}
+
+
+.backup-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+
+.backup-actions label,
+.backup-actions input,
+.backup-actions button {
+    font-size: 0.75rem;
+}
+
+
+.backup-actions input {
+    max-width: 100%;
+}
+
+
+.backup-card .form-message {
+    margin-top: 0.75rem;
+}
+
+
 /* transaction history */
 
 .budget-header-actions {

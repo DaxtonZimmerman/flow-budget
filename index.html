@@ -12,6 +12,7 @@
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
     <script src="js/budget-data.js" defer></script>
     <script src="js/script.js" defer></script>
+    <script src="js/backup.js" defer></script>
 </head>
 
 <body>
@@ -297,6 +298,35 @@
                     </div>
 
                 </div>
+
+            </section>
+
+
+            <section class="card backup-card">
+
+                <div class="section-top">
+                    <div>
+                        <p class="small-label">Your data</p>
+                        <h3>Backup and restore</h3>
+                    </div>
+                </div>
+
+                <p>Download a copy of your transactions and budgets. Restoring a backup replaces the data saved in this browser.</p>
+
+                <div class="backup-actions">
+                    <button id="download-backup" class="save-button" type="button">
+                        Download backup
+                    </button>
+
+                    <label for="backup-file">Backup file</label>
+                    <input id="backup-file" type="file" accept=".json,application/json">
+
+                    <button id="restore-backup" class="back-button" type="button">
+                        Restore backup
+                    </button>
+                </div>
+
+                <p id="backup-message" class="form-message" aria-live="polite"></p>
 
             </section>
 
