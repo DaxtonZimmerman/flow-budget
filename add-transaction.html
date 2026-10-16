@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Add Transaction | Flow</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="js/cloud-config.js" defer></script>
+    <script src="js/cloud-sync.js" defer></script>
+    <script src="js/money-data.js" defer></script>
+    <script src="js/add-transaction.js" defer></script>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-top">
+
+                <h1 class="logo">Flow</h1>
+
+                <nav class="nav" aria-label="Main navigation">
+
+                    <a href="index.html" class="nav-link">
+                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                        Dashboard
+                    </a>
+
+                    <a href="transactions.html" class="nav-link active">
+                        <i data-lucide="arrow-left-right" class="nav-icon"></i>
+                        Transactions
+                    </a>
+
+                    <a href="budgets.html" class="nav-link">
+                        <i data-lucide="wallet-cards" class="nav-icon"></i>
+                        Budgets
+                    </a>
+
+                    <a href="account.html" class="nav-link">
+                        <i data-lucide="user-round" class="nav-icon"></i>
+                        Account
+                    </a>
+
+                </nav>
+
+            </div>
+
+        </aside>
+
+
+        <main class="main">
+
+            <header class="form-header">
+
+                <div>
+                    <p class="small-label">Transactions</p>
+                    <h2 id="form-title">Add transaction</h2>
+                    <p id="form-description">Record new income or spending.</p>
+                </div>
+
+                <a href="index.html" id="form-back-link" class="back-button">
+                    Back to dashboard
+                </a>
+
+            </header>
+
+
+            <section class="form-card">
+
+                <form id="transaction-form">
+
+                    <div class="form-group">
+
+                        <label for="transaction-type">
+                            Transaction type
+                        </label>
+
+                        <select id="transaction-type" name="type">
+
+                            <option value="">Select type</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="transaction-name">
+                            Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="transaction-name"
+                            name="name"
+                            placeholder="Example: Chick-fil-A"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="transaction-category">
+                            Category
+                        </label>
+
+                        <select id="transaction-category" name="category">
+
+                            <option value="">Select category</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Income">Income</option>
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="transaction-amount">
+                            Amount
+                        </label>
+
+                        <input
+                            type="number"
+                            id="transaction-amount"
+                            name="amount"
+                            placeholder="0.00"
+                            min="0.01"
+                            step="0.01"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="transaction-date">
+                            Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="transaction-date"
+                            name="date"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="transaction-notes">
+                            Notes
+                        </label>
+
+                        <textarea
+                            id="transaction-notes"
+                            name="notes"
+                            placeholder="Optional note..."
+                            rows="4"
+                        ></textarea>
+
+                    </div>
+
+                    <p id="form-message" class="form-message"></p>
+
+                    <button id="save-transaction-button" class="save-button" type="submit">
+                        Save transaction
+                    </button>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>
