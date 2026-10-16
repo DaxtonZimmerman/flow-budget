@@ -25,7 +25,7 @@
 
                 <nav class="nav">
 
-                    <a href="index.html" class="nav-link">
+                    <a href="index.html" id="history-dashboard-link" class="nav-link">
                         <i data-lucide="layout-dashboard" class="nav-icon"></i>
                         Dashboard
                     </a>
@@ -39,7 +39,7 @@
                         Transactions
                     </a>
 
-                    <a href="budgets.html" class="nav-link">
+                    <a href="budgets.html" id="history-budgets-link" class="nav-link">
                         <i data-lucide="wallet-cards" class="nav-icon"></i>
                         Budgets
                     </a>
@@ -89,7 +89,7 @@
                 <div>
                     <p class="small-label">Activity</p>
                     <h2>Transactions</h2>
-                    <p>View all of your income and expenses.</p>
+                    <p>View your income and expenses by month.</p>
                 </div>
 
                 <a
@@ -163,7 +163,7 @@
 
                     <div>
                         <p class="small-label">History</p>
-                        <h3>All transactions</h3>
+                        <h3 id="history-title">All transactions</h3>
                     </div>
 
                     <span
@@ -185,6 +185,14 @@
                             type="search"
                             placeholder="Name, category, or notes"
                         >
+                    </div>
+
+                    <div class="history-filter">
+                        <label for="history-month">Month</label>
+                        <div class="history-month-control">
+                            <input id="history-month" type="month">
+                            <button id="all-months-button" type="button">All months</button>
+                        </div>
                     </div>
 
                     <div class="history-filter">

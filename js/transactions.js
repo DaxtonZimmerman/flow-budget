@@ -41,7 +41,50 @@ const historyExpenses = document.querySelector("#history-expenses");
 const historyBalance = document.querySelector("#history-balance");
 
 const historySearch = document.querySelector("#history-search");
-const dashboardSearch = new URLSearchParams(window.location.search).get("search");
+const pageParameters = new URLSearchParams(window.location.search);
+const dashboardSearch = pageParameters.get("search");
+const monthFromPage = pageParameters.get("month");
+const selectedMonth = monthFromPage && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthFromPage)
+    ? monthFromPage
+    : "";
+
+const historyMonth = document.querySelector("#history-month");
+const allMonthsButton = document.querySelector("#all-months-button");
+const historyTitle = document.querySelector("#history-title");
+
+historyMonth.value = selectedMonth;
+allMonthsButton.hidden = selectedMonth === "";
+
+if (selectedMonth) {
+    const year = Number(selectedMonth.slice(0, 4));
+    const month = Number(selectedMonth.slice(5, 7));
+    const monthName = new Date(year, month - 1, 1)
+        .toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+    historyTitle.textContent = `${monthName} transactions`;
+    document.querySelector("#history-dashboard-link").href =
+        `index.html?month=${selectedMonth}`;
+    document.querySelector("#history-budgets-link").href =
+        `budgets.html?month=${selectedMonth}`;
+}
+
+historyMonth.addEventListener("change", function() {
+    const url = new URL(window.location.href);
+
+    if (historyMonth.value) {
+        url.searchParams.set("month", historyMonth.value);
+    } else {
+        url.searchParams.delete("month");
+    }
+
+    window.location.href = url.href;
+});
+
+allMonthsButton.addEventListener("click", function() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("month");
+    window.location.href = url.href;
+});
 
 if (dashboardSearch) {
     historySearch.value = dashboardSearch;
@@ -86,6 +129,11 @@ let totalExpenses = 0;
 
 
 for (const transaction of transactions) {
+
+    if (selectedMonth && (!transaction.date ||
+        transaction.date.slice(0, 7) !== selectedMonth)) {
+        continue;
+    }
 
     if (transaction.amount > 0) {
         totalIncome += transaction.amount;
@@ -384,7 +432,11 @@ function filterTransactions() {
         const matchesCategory = selectedCategory === "all" ||
             transaction.category === selectedCategory;
 
-        const matches = matchesSearch && matchesType && matchesCategory;
+        const matchesMonth = !selectedMonth ||
+            (transaction.date && transaction.date.slice(0, 7) === selectedMonth);
+
+        const matches = matchesSearch && matchesType &&
+            matchesCategory && matchesMonth;
 
         item.row.hidden = !matches;
 

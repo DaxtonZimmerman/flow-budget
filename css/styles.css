@@ -1291,8 +1291,35 @@ button:active {
 }
 
 
+.history-month-control {
+    display: flex;
+    gap: 0.4rem;
+}
+
+
+.history-month-control button {
+    padding: 0.6rem 0.75rem;
+
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+
+    background: white;
+    color: var(--text);
+
+    font-size: 0.75rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+
+.history-month-control button[hidden] {
+    display: none;
+}
+
+
 .history-filter input:focus,
-.history-filter select:focus {
+.history-filter select:focus,
+.history-month-control button:focus {
     outline: 2px solid var(--blue);
     outline-offset: 2px;
 }
@@ -1614,6 +1641,10 @@ button:active {
     .history-filters {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .history-month-control input {
+        min-width: 0;
     }
 
     .sidebar {

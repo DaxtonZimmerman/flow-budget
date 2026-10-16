@@ -129,6 +129,12 @@ for (const link of document.querySelectorAll('a[href="budgets.html"]')) {
     link.href = `budgets.html?month=${selectedMonth}`;
 }
 
+for (const link of document.querySelectorAll('a[href="transactions.html"]')) {
+    link.href = `transactions.html?month=${selectedMonth}`;
+}
+
+document.querySelector("#search-month").value = selectedMonth;
+
 let remainingBudget = 0;
 
 for (const budget of budgets) {
