@@ -14,6 +14,7 @@ create table if not exists public.plaid_connections (
 
 alter table public.plaid_connections enable row level security;
 revoke all on public.plaid_connections from anon, authenticated;
+grant select, insert, update, delete on public.plaid_connections to service_role;
 
 create table if not exists public.plaid_transactions (
     item_id text not null references public.plaid_connections(item_id) on delete cascade,
@@ -25,6 +26,7 @@ create table if not exists public.plaid_transactions (
 
 alter table public.plaid_transactions enable row level security;
 revoke all on public.plaid_transactions from anon, authenticated;
+grant select, insert, update, delete on public.plaid_transactions to service_role;
 
 -- save every page and its cursor together
 create or replace function public.save_plaid_sync(

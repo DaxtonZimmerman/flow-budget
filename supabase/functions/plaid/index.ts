@@ -124,7 +124,17 @@ Deno.serve(async function(request) {
     }
 
     const auth = createClient(projectUrl, publishableKey);
-    const { data: userData, error: userError } = await auth.auth.getUser(token);
+    let userData;
+    let userError;
+
+    try {
+        const result = await auth.auth.getUser(token);
+        userData = result.data;
+        userError = result.error;
+    } catch (error) {
+        console.error("Could not check bank sign-in:", error);
+        return reply({ error: "Could not check sign-in. Try again." }, 502);
+    }
 
     if (userError || !userData.user) {
         return reply({ error: "Sign in first." }, 401);
@@ -182,6 +192,7 @@ Deno.serve(async function(request) {
                 .order("created_at", { ascending: false });
 
             if (error) {
+                console.error("Could not load bank connections:", error);
                 return reply({ error: "Could not load bank connections." }, 500);
             }
 
