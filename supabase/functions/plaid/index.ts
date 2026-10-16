@@ -150,15 +150,36 @@ Deno.serve(async function(request) {
     }
 
     try {
-        if (body.action === "create-link-token") {
-            const result = await plaidRequest("/link/token/create", {
+        if (body.action === "create-link-token" || body.action === "reconnect") {
+            const options = {
                 client_name: "Flow",
                 country_codes: ["US"],
                 language: "en",
-                products: ["transactions"],
                 user: { client_user_id: userData.user.id }
-            });
+            };
 
+            if (body.action === "reconnect") {
+                if (typeof body.connection_id !== "string") {
+                    return reply({ error: "Choose a bank connection." }, 400);
+                }
+
+                const { data: connection, error } = await database
+                    .from("plaid_connections")
+                    .select("access_token")
+                    .eq("id", body.connection_id)
+                    .eq("user_id", userData.user.id)
+                    .maybeSingle();
+
+                if (error || !connection) {
+                    return reply({ error: "Bank connection not found." }, 404);
+                }
+
+                Object.assign(options, { access_token: connection.access_token });
+            } else {
+                Object.assign(options, { products: ["transactions"] });
+            }
+
+            const result = await plaidRequest("/link/token/create", options);
             return reply({ link_token: result.link_token });
         }
 
@@ -187,7 +208,7 @@ Deno.serve(async function(request) {
 
         if (body.action === "connections") {
             const { data, error } = await database.from("plaid_connections")
-                .select("id,institution_name,created_at,last_synced_at")
+                .select("id,institution_name,access_token,created_at,last_synced_at")
                 .eq("user_id", userData.user.id)
                 .order("created_at", { ascending: false });
 
@@ -196,7 +217,31 @@ Deno.serve(async function(request) {
                 return reply({ error: "Could not load bank connections." }, 500);
             }
 
-            return reply({ connections: data });
+            const connections = [];
+
+            for (const connection of data) {
+                let needsReconnect = false;
+
+                try {
+                    const item = await plaidRequest("/item/get", {
+                        access_token: connection.access_token
+                    });
+                    needsReconnect = item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
+                } catch (error) {
+                    if (error.code !== "ITEM_LOGIN_REQUIRED") throw error;
+                    needsReconnect = true;
+                }
+
+                connections.push({
+                    id: connection.id,
+                    institution_name: connection.institution_name,
+                    created_at: connection.created_at,
+                    last_synced_at: connection.last_synced_at,
+                    needs_reconnect: needsReconnect
+                });
+            }
+
+            return reply({ connections });
         }
 
         if (body.action === "sync") {
@@ -213,6 +258,17 @@ Deno.serve(async function(request) {
 
             if (connectionError || !connection) {
                 return reply({ error: "Bank connection not found." }, 404);
+            }
+
+            const item = await plaidRequest("/item/get", {
+                access_token: connection.access_token
+            });
+
+            if (item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED") {
+                return reply({
+                    error: "This bank needs to be reconnected.",
+                    needs_reconnect: true
+                }, 409);
             }
 
             const changes = await getPlaidChanges(connection);
@@ -278,6 +334,13 @@ Deno.serve(async function(request) {
 
         return reply({ error: "Unknown action." }, 400);
     } catch (error) {
+        if (error.code === "ITEM_LOGIN_REQUIRED") {
+            return reply({
+                error: "This bank needs to be reconnected.",
+                needs_reconnect: true
+            }, 409);
+        }
+
         return reply({ error: error.message || "Bank connection failed." }, 502);
     }
 });

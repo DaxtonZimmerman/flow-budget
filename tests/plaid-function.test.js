@@ -17,6 +17,7 @@ function makeServer(options = {}) {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
         access_token: "access-secret-test", cursor: null
     };
+    const needsReconnect = options.needsReconnect;
     const environment = {
         SUPABASE_URL: "https://example.supabase.co",
         SUPABASE_ANON_KEY: "publishable-test",
@@ -48,6 +49,7 @@ function makeServer(options = {}) {
                     const filters = {};
                     const query = {
                         select: () => query,
+                        order: () => query,
                         eq: (field, value) => {
                             filters[field] = value;
                             return query;
@@ -65,7 +67,10 @@ function makeServer(options = {}) {
                         },
                         then: resolve => resolve({
                             data: table === "plaid_transactions"
-                                ? [{ data: { transaction_id: "txn-1" } }] : [],
+                                ? [{ data: { transaction_id: "txn-1" } }]
+                                : table === "plaid_connections" &&
+                                    filters.user_id === connection.user_id
+                                    ? [connection] : [],
                             error: null
                         })
                     };
@@ -81,6 +86,7 @@ function makeServer(options = {}) {
             const body = JSON.parse(options.body);
             calls.push({ url, body });
             const exchange = url.endsWith("/item/public_token/exchange");
+            const itemGet = url.endsWith("/item/get");
             const sync = url.endsWith("/transactions/sync");
 
             if (sync && body.cursor === "cursor-1" &&
@@ -100,6 +106,10 @@ function makeServer(options = {}) {
                 json: async () => {
                     if (exchange) {
                         return { item_id: "item-1", access_token: "access-secret-test" };
+                    }
+                    if (itemGet) {
+                        return { item: { error: needsReconnect
+                            ? { error_code: "ITEM_LOGIN_REQUIRED" } : null } };
                     }
                     if (sync && !body.cursor) {
                         return {
@@ -178,9 +188,10 @@ test("sync gathers every page before saving changes and cursor", async () => {
     });
 
     assert.equal(result.status, 200);
-    assert.equal(server.calls.length, 2);
-    assert.equal(server.calls[0].body.cursor, "");
-    assert.equal(server.calls[1].body.cursor, "cursor-1");
+    assert.equal(server.calls.length, 3);
+    assert.equal(server.calls[0].url, "https://sandbox.plaid.com/item/get");
+    assert.equal(server.calls[1].body.cursor, "");
+    assert.equal(server.calls[2].body.cursor, "cursor-1");
     assert.equal(server.rpcCalls.length, 1);
     assert.equal(server.rpcCalls[0].next_cursor, "cursor-2");
     assert.equal(server.rpcCalls[0].added[0].transaction_id, "txn-1");
@@ -209,9 +220,47 @@ test("a changed Plaid page restarts from the original cursor", async () => {
     });
 
     assert.equal(result.status, 200);
-    assert.deepEqual(server.calls.map(call => call.body.cursor), [
+    assert.deepEqual(server.calls.filter(call =>
+        call.url.endsWith("/transactions/sync")
+    ).map(call => call.body.cursor), [
         "", "cursor-1", "", "cursor-1"
     ]);
     assert.equal(server.rpcCalls.length, 1);
     assert.equal(server.rpcCalls[0].added.length, 1);
+});
+
+
+test("a reconnect token is only made for the owner's bank", async () => {
+    const server = makeServer();
+    const denied = await server.request({
+        action: "reconnect", connection_id: "someone-elses-connection"
+    });
+    const allowed = await server.request({
+        action: "reconnect", connection_id: "connection-1"
+    });
+
+    assert.equal(denied.status, 404);
+    assert.equal(allowed.body.link_token, "link-test");
+    assert.equal(server.calls.length, 1);
+    assert.equal(server.calls[0].body.access_token, "access-secret-test");
+    assert.equal(server.calls[0].body.products, undefined);
+    assert.equal(JSON.stringify(allowed.body).includes("access-secret-test"), false);
+});
+
+
+test("a bank that needs repair is listed but not synced", async () => {
+    const server = makeServer({ needsReconnect: true });
+    const list = await server.request({ action: "connections" });
+    const sync = await server.request({
+        action: "sync", connection_id: "connection-1"
+    });
+
+    assert.equal(list.status, 200);
+    assert.equal(list.body.connections[0].needs_reconnect, true);
+    assert.equal(JSON.stringify(list.body).includes("access-secret-test"), false);
+    assert.equal(sync.status, 409);
+    assert.equal(sync.body.needs_reconnect, true);
+    assert.equal(server.calls.some(call =>
+        call.url.endsWith("/transactions/sync")
+    ), false);
 });

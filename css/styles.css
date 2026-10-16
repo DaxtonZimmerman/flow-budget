@@ -1290,6 +1290,11 @@ button:active {
     color: var(--text-light);
 }
 
+.bank-list .bank-warning {
+    color: #ad3b2c;
+    font-weight: 700;
+}
+
 .bank-actions {
     display: flex;
     flex-wrap: wrap;

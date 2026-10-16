@@ -2,6 +2,7 @@
 
 let flowClient;
 let flowSyncing = false;
+let flowSyncAgain = false;
 
 function getFlowClient() {
     if (!flowCloudUrl || !flowCloudKey || typeof supabase === "undefined") {
@@ -81,7 +82,7 @@ function flowDataChanged() {
 
     localStorage.setItem("flow_pending", "1");
     showFlowStatus("Saving changes…");
-    flowSync();
+    return flowSync();
 }
 
 
@@ -117,7 +118,10 @@ async function flowSync() {
     const client = getFlowClient();
     const linkedUserId = localStorage.getItem("flow_user_id");
 
-    if (!client || !linkedUserId || flowSyncing) {
+    if (!client || !linkedUserId) return;
+
+    if (flowSyncing) {
+        flowSyncAgain = true;
         return;
     }
 
@@ -127,6 +131,7 @@ async function flowSync() {
     }
 
     flowSyncing = true;
+    let cloudReady = false;
 
     try {
         const userResult = await client.auth.getUser();
@@ -154,6 +159,7 @@ async function flowSync() {
             if (JSON.stringify(getFlowSnapshot()) === JSON.stringify(snapshot)) {
                 localStorage.removeItem("flow_pending");
                 showFlowStatus("All changes saved.");
+                cloudReady = true;
             } else {
                 showFlowStatus("Saving new changes…");
                 setTimeout(flowSync, 0);
@@ -167,12 +173,22 @@ async function flowSync() {
             showFlowStatus("Cloud data changed. Open Account to choose which copy to keep.");
         } else {
             showFlowStatus("All changes saved.");
+            cloudReady = true;
         }
 
     } catch (error) {
         showFlowStatus("Could not sync. Your changes are still saved on this device.");
     } finally {
         flowSyncing = false;
+
+        if (flowSyncAgain) {
+            flowSyncAgain = false;
+            setTimeout(flowSync, 0);
+        }
+
+        if (cloudReady) {
+            document.dispatchEvent(new Event("flow-cloud-ready"));
+        }
     }
 }
 

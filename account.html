@@ -13,6 +13,7 @@
     <script src="js/cloud-config.js" defer></script>
     <script src="js/cloud-sync.js" defer></script>
     <script src="js/bank-data.js" defer></script>
+    <script src="js/bank-auto-sync.js" defer></script>
     <script src="js/account.js" defer></script>
     <script src="js/bank-connections.js" defer></script>
 </head>
@@ -72,7 +73,7 @@
             <section id="bank-connections" class="card account-card" hidden>
                 <p class="small-label">Bank connections</p>
                 <h3>Bring in your transactions</h3>
-                <p>Connect a test bank in Plaid Sandbox, then sync its transactions. This does not use a live trial connection. Disconnect a bank here to remove its synced transactions.</p>
+                <p>Connect a test bank in Plaid Sandbox. Flow checks for new transactions when you open it, and you can sync here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.</p>
                 <button id="connect-bank" class="save-button" type="button">Connect test bank</button>
                 <p id="bank-message" class="account-status" aria-live="polite"></p>
                 <ul id="connected-banks" class="bank-list"></ul>

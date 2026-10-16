@@ -4,40 +4,6 @@ const bankMessage = document.querySelector("#bank-message");
 const bankList = document.querySelector("#connected-banks");
 
 
-async function bankRequest(action, values = {}) {
-    const result = await getFlowClient().functions.invoke("plaid", {
-        body: { action: action, ...values }
-    });
-
-    if (result.error) {
-        let message = result.error.message ||
-            "Bank connection is not ready. Check the server setup.";
-
-        if (result.error.context?.status) {
-            message += ` (HTTP ${result.error.context.status})`;
-        }
-
-        try {
-            const details = await result.error.context?.json();
-
-            if (typeof details?.error === "string") {
-                message = details.error;
-            }
-        } catch (_error) {
-            // use the general message if the server did not send one
-        }
-
-        throw new Error(message);
-    }
-
-    if (result.data.error) {
-        throw new Error(result.data.error);
-    }
-
-    return result.data;
-}
-
-
 async function showBankConnections() {
     const client = getFlowClient();
 
@@ -64,12 +30,16 @@ async function showBankConnections() {
             const actions = document.createElement("div");
 
             name.textContent = connection.institution_name;
-            updated.textContent = connection.last_synced_at
-                ? `Updated ${new Date(connection.last_synced_at).toLocaleString()}`
-                : "Not synced yet";
+            updated.textContent = connection.needs_reconnect
+                ? "Needs to be reconnected"
+                : connection.last_synced_at
+                    ? `Updated ${new Date(connection.last_synced_at).toLocaleString()}`
+                    : "Not synced yet";
+            if (connection.needs_reconnect) updated.className = "bank-warning";
             syncButton.type = "button";
             syncButton.className = "back-button";
             syncButton.textContent = "Sync";
+            syncButton.disabled = connection.needs_reconnect;
             removeButton.type = "button";
             removeButton.className = "delete-transaction-button";
             removeButton.textContent = "Disconnect";
@@ -79,27 +49,69 @@ async function showBankConnections() {
                 bankMessage.textContent = `Syncing ${connection.institution_name}…`;
 
                 try {
-                    const result = await bankRequest("sync", {
-                        connection_id: connection.id
-                    });
-                    const current = getFlowSnapshot().transactions;
-                    const merged = mergeBankSnapshot(
-                        current, connection.id, result.transactions
+                    const update = await syncBankConnection(connection.id);
+                    sessionStorage.setItem(
+                        `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`,
+                        String(Date.now())
                     );
-
-                    if (JSON.stringify(current) !== JSON.stringify(merged)) {
-                        localStorage.setItem("transactions", JSON.stringify(merged));
-                        flowDataChanged();
-                    }
-
-                    updated.textContent = `Updated ${new Date(result.last_synced_at).toLocaleString()}`;
+                    updated.textContent = `Updated ${new Date(update.last_synced_at).toLocaleString()}`;
                     bankMessage.textContent = `${connection.institution_name} is up to date.`;
                 } catch (error) {
                     bankMessage.textContent = error.message;
+                    if (error.needsReconnect) await showBankConnections();
                 } finally {
                     syncButton.disabled = false;
                 }
             });
+
+            if (connection.needs_reconnect) {
+                const reconnectButton = document.createElement("button");
+                reconnectButton.type = "button";
+                reconnectButton.className = "save-button";
+                reconnectButton.textContent = "Reconnect";
+
+                reconnectButton.addEventListener("click", async function() {
+                    reconnectButton.disabled = true;
+                    bankMessage.textContent = `Opening ${connection.institution_name}…`;
+
+                    try {
+                        if (typeof Plaid === "undefined") {
+                            throw new Error("Could not load Plaid. Reload and try again.");
+                        }
+
+                        const data = await bankRequest("reconnect", {
+                            connection_id: connection.id
+                        });
+                        const link = Plaid.create({
+                            token: data.link_token,
+                            onSuccess: async function() {
+                                bankMessage.textContent = "Checking your bank connection…";
+
+                                try {
+                                    await syncBankConnection(connection.id);
+                                    bankMessage.textContent =
+                                        `${connection.institution_name} is reconnected.`;
+                                    await showBankConnections();
+                                } catch (error) {
+                                    bankMessage.textContent = error.message;
+                                    reconnectButton.disabled = false;
+                                }
+                            },
+                            onExit: function() {
+                                reconnectButton.disabled = false;
+                                bankMessage.textContent = "Bank reconnection closed.";
+                            }
+                        });
+
+                        link.open();
+                    } catch (error) {
+                        bankMessage.textContent = error.message;
+                        reconnectButton.disabled = false;
+                    }
+                });
+
+                actions.appendChild(reconnectButton);
+            }
 
             removeButton.addEventListener("click", async function() {
                 if (!window.confirm(
@@ -117,7 +129,7 @@ async function showBankConnections() {
                     });
 
                     localStorage.setItem("transactions", JSON.stringify(remaining));
-                    flowDataChanged();
+                    await flowDataChanged();
                     item.remove();
                     bankMessage.textContent = `${connection.institution_name} disconnected.`;
                 } catch (error) {
@@ -161,8 +173,12 @@ bankButton.addEventListener("click", async function() {
                         public_token: publicToken,
                         institution_name: metadata?.institution?.name || "Bank"
                     });
-                    bankMessage.textContent = "Test bank connected. Transaction sync is next.";
+                    bankMessage.textContent = "Test bank connected. Checking transactions…";
                     await showBankConnections();
+                    sessionStorage.removeItem(
+                        `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`
+                    );
+                    await updateBanksAutomatically();
                 } catch (error) {
                     bankMessage.textContent = error.message;
                 }
@@ -183,4 +199,5 @@ bankButton.addEventListener("click", async function() {
 });
 
 
+document.addEventListener("flow-bank-updated", showBankConnections);
 showBankConnections();

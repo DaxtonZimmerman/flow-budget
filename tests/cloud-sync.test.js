@@ -42,10 +42,12 @@ function setupCloud() {
         document: {
             body: {},
             querySelector: selector => selector === "#flow-sync-status" ? status : null,
-            addEventListener: () => {}
+            addEventListener: () => {},
+            dispatchEvent: () => {}
         },
         window: { addEventListener: () => {}, location: { reload: () => { reloads++; } } },
-        setTimeout
+        setTimeout,
+        Event
     });
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "cloud-sync.js"), "utf8");
     vm.runInContext(source, context);
