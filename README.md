@@ -22,3 +22,9 @@ Run the checks with `node --test tests/*.test.js`.
 Open Transactions → Import CSV. Choose a bank export, match its date, description, and amount columns, then review every row before saving. Flow supports one signed amount column, positive spending amounts, or separate debit and credit columns. Dates can be year-month-day, month/day/year, or day/month/year. An optional category column keeps the bank's labels; otherwise spending goes to Other and income goes to Income.
 
 Flow skips exact matches by date, description, and amount. If two separate charges happen to match, use “Include anyway” in the preview. Rows with missing or invalid values must be fixed in the CSV before importing. The original file is not stored; imported transactions are saved in the same browser and account copy as manual transactions.
+
+## Review and category rules
+
+Open Transactions → Review to see imported transactions without a category and older transactions without a date. Choose a category and date, then save it once or save and remember. A remembered rule matches the exact transaction name and income/expense type on later imports or manual entries. Transactions show whether a category came from the CSV, your choice, or a rule. Removing a rule also undoes categories that rule assigned automatically.
+
+Flow suggests a monthly item when the two most recent payments with the same name have similar amounts about a month apart. You confirm or dismiss each suggestion. Confirmed items are tracking notes only; they do not add transactions or change totals. Rules and monthly choices are included in browser backups and account sync.

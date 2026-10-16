@@ -18,7 +18,9 @@ function countFlowData(data) {
         budgetCount += data.budgetsByMonth[month].length;
     }
 
-    return `${data.transactions.length} transactions and ${budgetCount} budgets`;
+    return `${data.transactions.length} transactions, ${budgetCount} budgets, ` +
+        `${(data.categoryRules || []).length} category rules, and ` +
+        `${(data.recurringItems || []).length} monthly decisions`;
 }
 
 
@@ -222,6 +224,8 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
         localStorage.removeItem("transactions");
         localStorage.removeItem("budgets");
         localStorage.removeItem("budgetsByMonth");
+        localStorage.removeItem("categoryRules");
+        localStorage.removeItem("recurringItems");
         localStorage.removeItem("flow_user_id");
         localStorage.removeItem("flow_revision");
     }
@@ -246,6 +250,7 @@ document.querySelector("#delete-account").addEventListener("click", async functi
 
     await client.auth.signOut();
     for (const key of ["transactions", "budgets", "budgetsByMonth",
+        "categoryRules", "recurringItems",
         "flow_user_id", "flow_revision", "flow_pending"]) {
         localStorage.removeItem(key);
     }

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review | Flow</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="js/cloud-config.js" defer></script>
+    <script src="js/cloud-sync.js" defer></script>
+    <script src="js/money-data.js" defer></script>
+    <script src="js/review-data.js" defer></script>
+    <script src="js/review.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <h1 class="logo">Flow</h1>
+                <nav class="nav" aria-label="Main navigation">
+                    <a href="index.html" class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i>Dashboard</a>
+                    <a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon"></i>Transactions</a>
+                    <a href="budgets.html" class="nav-link"><i data-lucide="wallet-cards" class="nav-icon"></i>Budgets</a>
+                    <a href="account.html" class="nav-link"><i data-lucide="user-round" class="nav-icon"></i>Account</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main review-main">
+            <header class="page-header">
+                <div>
+                    <p class="small-label">A few quick decisions</p>
+                    <h2>Review</h2>
+                    <p>Check what Flow could not sort, teach it a category, and confirm possible monthly payments.</p>
+                </div>
+                <a href="transactions.html" class="back-button">Back to transactions</a>
+            </header>
+
+            <p id="review-message" class="review-message" role="status" aria-live="polite"></p>
+
+            <section class="card review-card">
+                <div class="section-top">
+                    <div><p class="small-label">Inbox</p><h3>Needs your answer</h3></div>
+                    <span id="review-count" class="transaction-count"></span>
+                </div>
+                <p>Transactions that need a category or date appear here. Saving a category can teach Flow what to use next time.</p>
+                <div id="review-inbox" class="review-list"></div>
+                <p id="review-empty" class="budget-empty" hidden>All caught up. New items that need a decision will show here.</p>
+            </section>
+
+            <section class="card review-card">
+                <div class="section-top">
+                    <div><p class="small-label">Patterns</p><h3>Could be monthly</h3></div>
+                </div>
+                <p>Flow suggests a payment only after two similar amounts about a month apart. Suggestions never change your totals. Confirm the ones you want to track.</p>
+                <div id="recurring-suggestions" class="review-list"></div>
+                <p id="recurring-empty" class="budget-empty" hidden>No new monthly patterns yet.</p>
+            </section>
+
+            <section class="card review-card">
+                <div class="section-top">
+                    <div><p class="small-label">Your choices</p><h3>Monthly decisions</h3></div>
+                </div>
+                <div id="recurring-confirmed" class="review-list"></div>
+                <p id="confirmed-empty" class="budget-empty" hidden>No monthly decisions yet.</p>
+            </section>
+
+            <section class="card review-card">
+                <div class="section-top">
+                    <div><p class="small-label">Your choices</p><h3>Category rules</h3></div>
+                </div>
+                <p>Rules match the exact transaction name and type. Remove a rule to undo the categories it assigned automatically; categories you chose yourself stay as they are.</p>
+                <div id="category-rules" class="review-list"></div>
+                <p id="rules-empty" class="budget-empty" hidden>No rules yet. Use “Save and remember” above, or the checkbox when adding a transaction.</p>
+            </section>
+        </main>
+    </div>
+</body>
+
+</html>

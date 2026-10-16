@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const context = vm.createContext({ Date, Set });
 
-for (const file of ["money-data.js", "import-data.js"]) {
+for (const file of ["money-data.js", "review-data.js", "import-data.js"]) {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8");
     vm.runInContext(source, context);
 }
@@ -53,4 +53,15 @@ test("separate debit and credit columns, positive expenses, and invalid rows", (
     context.csv = run('parseCsv("Date,Name,Amount\\n2026-10-04,Gas,50.00")');
     const positive = run('buildImportRows(csv, { date: 0, name: 1, category: "", amount: 2 }, "iso", "positive-expense", [])');
     assert.equal(positive[0].transaction.amount, -50);
+});
+
+test("a saved name rule sorts only matching uncategorized imports", () => {
+    context.csv = run('parseCsv("Date,Name,Category,Amount\\n2026-10-01,Coffee,,-4.50\\n2026-10-02,Coffee,Travel,-4.50\\n2026-10-03,Other,,10.00")');
+    context.rules = [{ id: "rule-1", name: "coffee", type: "Expense", category: "Food" }];
+    const rows = run('buildImportRows(csv, { date: 0, name: 1, category: 2, amount: 3 }, "iso", "signed", [], rules)');
+    assert.equal(rows[0].transaction.category, "Food");
+    assert.equal(rows[0].transaction.categoryRuleId, "rule-1");
+    assert.match(rows[0].transaction.categoryReason, /rule/i);
+    assert.equal(rows[1].transaction.category, "Travel");
+    assert.equal(rows[2].transaction.category, "Income");
 });

@@ -6,10 +6,12 @@ The cloud copy is one `flow_data` row per signed-in user with a revision number.
 
 ## In the app today
 
-- `transactions`: a list of `{ id, type, name, category, amount, date, notes }`. Income is positive and expenses are negative. Dates use `YYYY-MM-DD`. A missing date appears in all-time totals but no monthly total. Every record has a stable ID; old records receive one when loaded.
+- `transactions`: a list of `{ id, type, name, category, amount, date, notes }`. Income is positive and expenses are negative. Dates use `YYYY-MM-DD`. A missing date appears in all-time totals but no monthly total. Every record has a stable ID; old records receive one when loaded. Imports can also have `source: "csv"`, `importKey`, `categoryReason`, `categoryRuleId`, and `reviewStatus`.
 - `budgets`: legacy category limits, used as a starting point for months without their own saved budgets. Each budget has `{ id, category, limit }` after it is loaded.
 - `budgetsByMonth`: monthly lists of budgets under `YYYY-MM` keys. Changing one month does not change another saved month.
-- Backup version `1` includes those same three stores. Old version 1 files without IDs still restore; Flow adds IDs during restore.
+- `categoryRules`: exact normalized name and transaction type mapped to a category. Each rule has a stable ID. Rules only auto-sort a transaction when its imported category is blank, or suggest a category on the manual form.
+- `recurringItems`: monthly suggestions that the user confirmed or dismissed. They do not count as posted transactions or change current totals.
+- Backup version `1` includes all five stores. Old version 1 files without IDs or the newer stores still restore; Flow adds IDs during restore.
 
 ## How totals work
 
@@ -22,7 +24,7 @@ The cloud copy is one `flow_data` row per signed-in user with a revision number.
 ## Records needed for later sections
 
 - Accounts: `{ id, name, type, balance, currency }`. A transaction will reference `accountId`. Transfers will reference source and destination accounts so the two sides can be matched.
-- Imported or bank transactions: keep a provider or file source ID as well as Flow's stable ID. Match on that source ID and account before saving updates so repeated imports do not create duplicates. Keep pending and posted state on the same record when the provider supplies a stable link.
-- Recurring items: `{ id, name, amount, category, nextDate, frequency, confirmed }`. These are plans, not posted transactions, so forecasts can use them without adding them to actual totals.
+- Bank-connected transactions: keep a provider source ID as well as Flow's stable ID. Match on that source ID and account before saving updates so repeated syncs do not create duplicates. Keep pending and posted state on the same record when the provider supplies a stable link. CSV imports currently use an exact date, name, and amount match and let the user include legitimate repeats.
+- Recurring plans can later use confirmed items as a starting point for forecasts. Confirmation alone never adds a posted transaction.
 
-Accounts, bank imports, recurring items, and their fields are planned here; Flow does not save or display them yet.
+Account balances, bank connections, and forecasts are planned; Flow does not save or display them yet.

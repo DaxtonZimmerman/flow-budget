@@ -129,7 +129,7 @@ function showPreview() {
 
     const dateFormat = document.querySelector("#import-date-format").value;
     previewRows = buildImportRows(csv, columns, dateFormat,
-        amountStyleInput.value, loadTransactions());
+        amountStyleInput.value, loadTransactions(), loadCategoryRules());
 
     const body = document.querySelector("#import-rows");
     body.replaceChildren();
@@ -238,14 +238,15 @@ saveButton.addEventListener("click", function() {
 
     const latest = buildImportRows(csv, getColumns(),
         document.querySelector("#import-date-format").value,
-        amountStyleInput.value, loadTransactions());
+        amountStyleInput.value, loadTransactions(), loadCategoryRules());
     const previewMatches = latest.length === previewRows.length &&
         latest.every(function(item, index) {
             const old = previewRows[index];
             return !item.error && !old.error &&
                 item.duplicate === old.duplicate &&
                 importKey(item.transaction) === importKey(old.transaction) &&
-                item.transaction.category === old.transaction.category;
+                item.transaction.category === old.transaction.category &&
+                item.transaction.categoryRuleId === old.transaction.categoryRuleId;
         });
 
     if (!previewMatches) {

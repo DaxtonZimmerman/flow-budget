@@ -93,7 +93,7 @@ function importKey(transaction) {
 }
 
 
-function buildImportRows(csv, columns, dateFormat, amountStyle, savedTransactions) {
+function buildImportRows(csv, columns, dateFormat, amountStyle, savedTransactions, rules = []) {
     const existing = new Set(savedTransactions.map(importKey));
     const seen = new Set();
 
@@ -130,6 +130,20 @@ function buildImportRows(csv, columns, dateFormat, amountStyle, savedTransaction
             notes: "",
             source: "csv"
         };
+        const rule = !category && typeof findCategoryRule === "function"
+            ? findCategoryRule(transaction, rules)
+            : null;
+
+        if (rule) {
+            transaction.category = rule.category;
+            transaction.categoryRuleId = rule.id;
+            transaction.categoryReason = `Rule for ${rule.label || rule.name}`;
+        } else if (category) {
+            transaction.categoryReason = "From your CSV";
+        } else {
+            transaction.reviewStatus = "needs-review";
+        }
+
         const key = importKey(transaction);
         transaction.importKey = key;
         const duplicate = existing.has(key) || seen.has(key);

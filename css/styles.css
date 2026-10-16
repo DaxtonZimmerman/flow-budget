@@ -1309,6 +1309,116 @@ button:active {
 
 /* transaction history */
 
+/* review */
+
+.category-suggestion {
+    margin: -0.5rem 0 0;
+    color: var(--text-light);
+    font-size: 0.75rem;
+}
+
+.category-suggestion:empty {
+    display: none;
+}
+
+.remember-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.remember-category input {
+    width: 1rem;
+    height: 1rem;
+}
+
+.category-reason {
+    display: block;
+    color: var(--text-light);
+    font-size: 0.6875rem;
+}
+
+.review-main {
+    max-width: 78rem;
+}
+
+.review-message {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.review-message:empty {
+    display: none;
+}
+
+.review-card {
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.review-card > p {
+    color: var(--text-light);
+    font-size: 0.8125rem;
+}
+
+.review-list {
+    display: grid;
+}
+
+.review-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+}
+
+.review-row > div:first-child {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 12rem;
+}
+
+.review-row span,
+.review-row small {
+    color: var(--text-light);
+    font-size: 0.75rem;
+}
+
+.review-controls,
+.review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.5rem;
+}
+
+.review-controls label {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.review-controls input,
+.review-controls select {
+    min-height: 2.75rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.review-row button {
+    min-height: 2.75rem;
+    cursor: pointer;
+}
+
+.review-card .budget-empty[hidden] {
+    display: none;
+}
+
 /* getting started and csv import */
 
 .start-options {
@@ -1939,6 +2049,22 @@ button:active {
 
 
 @media (max-width: 640px) {
+
+    .review-card {
+        padding: 1rem;
+    }
+
+    .review-row,
+    .review-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .review-row > div:first-child,
+    .review-row button,
+    .review-actions {
+        width: 100%;
+    }
 
     .import-fields {
         grid-template-columns: 1fr;

@@ -218,6 +218,12 @@ if (transactions.length === 0) {
         const categoryText = document.createElement("span");
 
         categoryText.textContent = transaction.category;
+        if (transaction.categoryReason) {
+            const reason = document.createElement("small");
+            reason.className = "category-reason";
+            reason.textContent = transaction.categoryReason;
+            categoryText.appendChild(reason);
+        }
 
 
         const dateText = document.createElement("span");

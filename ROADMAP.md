@@ -73,12 +73,14 @@ The import flow and automated checks are built. A real bank statement and phone 
 
 ### 5. Automation and review
 
-- [ ] Add simple rules so Flow remembers how you categorize a store or payment.
-- [ ] Find likely recurring bills and income, and let users confirm them.
-- [ ] Make a small inbox for transactions that need attention.
-- [ ] Show why Flow picked a category, and make mistakes easy to undo.
+- [x] Add simple rules so Flow remembers how you categorize a store or payment.
+- [x] Find likely recurring bills and income, and let users confirm them.
+- [x] Make a small inbox for transactions that need attention.
+- [x] Show why Flow picked a category, and make mistakes easy to undo.
 
 You're done when repeated transactions sort themselves and you can fix exceptions in a few taps. Commit idea: `Automate transaction sorting and review`.
+
+The review inbox, exact-name category rules, and monthly suggestions are built. A live browser pass with sample manual transactions passed. Real imported transactions and phone layout still need a live review before this section is fully verified.
 
 ### 6. Bank connections
 

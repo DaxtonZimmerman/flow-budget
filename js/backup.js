@@ -12,7 +12,9 @@ downloadBackup.addEventListener("click", function() {
         version: 1,
         transactions: loadTransactions(),
         budgets: JSON.parse(localStorage.getItem("budgets")) || [],
-        budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {}
+        budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {},
+        categoryRules: JSON.parse(localStorage.getItem("categoryRules")) || [],
+        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || []
     };
 
     const file = new Blob([JSON.stringify(backup, null, 2)], {
@@ -84,6 +86,27 @@ function validBackup(backup) {
         }
     }
 
+    if (backup.categoryRules !== undefined &&
+        (!Array.isArray(backup.categoryRules) || backup.categoryRules.some(rule =>
+            !rule || typeof rule.id !== "string" ||
+            typeof rule.name !== "string" ||
+            typeof rule.category !== "string" ||
+            !["Income", "Expense"].includes(rule.type)))) {
+        return false;
+    }
+
+    if (backup.recurringItems !== undefined &&
+        (!Array.isArray(backup.recurringItems) || backup.recurringItems.some(item =>
+            !item || typeof item.id !== "string" ||
+            typeof item.key !== "string" ||
+            typeof item.name !== "string" ||
+            !["confirmed", "dismissed"].includes(item.status) ||
+            (item.status === "confirmed" &&
+                (!Number.isFinite(item.amount) ||
+                    !["Income", "Expense"].includes(item.type)))))) {
+        return false;
+    }
+
     return true;
 
 }
@@ -116,7 +139,7 @@ restoreBackup.addEventListener("click", async function() {
     }
 
     const shouldRestore = window.confirm(
-        "Restore this backup? It will replace all transactions and budgets saved in this browser."
+        "Restore this backup? It will replace transactions, budgets, category rules, and monthly choices saved in this browser."
     );
 
     if (!shouldRestore) {
@@ -133,11 +156,15 @@ restoreBackup.addEventListener("click", async function() {
     const oldTransactions = localStorage.getItem("transactions");
     const oldBudgets = localStorage.getItem("budgets");
     const oldMonths = localStorage.getItem("budgetsByMonth");
+    const oldRules = localStorage.getItem("categoryRules");
+    const oldRecurring = localStorage.getItem("recurringItems");
 
     try {
         localStorage.setItem("transactions", JSON.stringify(backup.transactions));
         localStorage.setItem("budgets", JSON.stringify(backup.budgets));
         localStorage.setItem("budgetsByMonth", JSON.stringify(backup.budgetsByMonth));
+        localStorage.setItem("categoryRules", JSON.stringify(backup.categoryRules || []));
+        localStorage.setItem("recurringItems", JSON.stringify(backup.recurringItems || []));
         if (typeof flowDataChanged === "function") flowDataChanged();
     } catch (error) {
         if (oldTransactions === null) localStorage.removeItem("transactions");
@@ -148,6 +175,12 @@ restoreBackup.addEventListener("click", async function() {
 
         if (oldMonths === null) localStorage.removeItem("budgetsByMonth");
         else localStorage.setItem("budgetsByMonth", oldMonths);
+
+        if (oldRules === null) localStorage.removeItem("categoryRules");
+        else localStorage.setItem("categoryRules", oldRules);
+
+        if (oldRecurring === null) localStorage.removeItem("recurringItems");
+        else localStorage.setItem("recurringItems", oldRecurring);
 
         backupMessage.textContent = "Could not restore this backup. Your saved data is unchanged.";
         return;

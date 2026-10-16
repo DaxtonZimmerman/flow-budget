@@ -49,3 +49,42 @@ test("a version 1 backup without IDs restores and gains stable IDs", async () =>
     assert.ok(budgets[0].id);
     assert.ok(monthlyBudgets["2026-10"][0].id);
 });
+
+test("a backup keeps category rules and monthly choices", async () => {
+    const saved = new Map();
+    let restore;
+    const backup = {
+        version: 1,
+        transactions: [],
+        budgets: [],
+        budgetsByMonth: {},
+        categoryRules: [{ id: "rule-1", name: "rent", type: "Expense", category: "Bills" }],
+        recurringItems: [{ id: "monthly-1", key: "Expense|rent", name: "Rent",
+            type: "Expense", amount: -1000, status: "confirmed" }]
+    };
+    const elements = {
+        "#download-backup": { addEventListener: () => {} },
+        "#restore-backup": { addEventListener: (_, fn) => { restore = fn; } },
+        "#backup-file": { files: [{ text: async () => JSON.stringify(backup) }] },
+        "#backup-message": { textContent: "" }
+    };
+    const context = vm.createContext({
+        crypto: require("node:crypto"),
+        localStorage: {
+            getItem: key => saved.has(key) ? saved.get(key) : null,
+            setItem: (key, value) => saved.set(key, value),
+            removeItem: key => saved.delete(key)
+        },
+        document: { querySelector: selector => elements[selector] },
+        window: { confirm: () => true, location: { reload: () => {} } }
+    });
+
+    for (const file of ["money-data.js", "backup.js"]) {
+        vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8"), context);
+    }
+
+    await restore();
+    assert.equal(JSON.parse(saved.get("categoryRules"))[0].category, "Bills");
+    assert.equal(JSON.parse(saved.get("recurringItems"))[0].status, "confirmed");
+    assert.equal(vm.runInContext("validBackup({ ..." + JSON.stringify(backup) + ", recurringItems: [{ status: 'bad' }] })", context), false);
+});

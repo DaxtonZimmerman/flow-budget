@@ -20,7 +20,9 @@ function getFlowSnapshot() {
     return {
         transactions: JSON.parse(localStorage.getItem("transactions")) || [],
         budgets: JSON.parse(localStorage.getItem("budgets")) || [],
-        budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {}
+        budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {},
+        categoryRules: JSON.parse(localStorage.getItem("categoryRules")) || [],
+        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || []
     };
 }
 
@@ -29,13 +31,17 @@ function replaceFlowSnapshot(data) {
     const oldData = {
         transactions: localStorage.getItem("transactions"),
         budgets: localStorage.getItem("budgets"),
-        budgetsByMonth: localStorage.getItem("budgetsByMonth")
+        budgetsByMonth: localStorage.getItem("budgetsByMonth"),
+        categoryRules: localStorage.getItem("categoryRules"),
+        recurringItems: localStorage.getItem("recurringItems")
     };
 
     try {
         localStorage.setItem("transactions", JSON.stringify(data.transactions || []));
         localStorage.setItem("budgets", JSON.stringify(data.budgets || []));
         localStorage.setItem("budgetsByMonth", JSON.stringify(data.budgetsByMonth || {}));
+        localStorage.setItem("categoryRules", JSON.stringify(data.categoryRules || []));
+        localStorage.setItem("recurringItems", JSON.stringify(data.recurringItems || []));
     } catch (error) {
         for (const key of Object.keys(oldData)) {
             if (oldData[key] === null) localStorage.removeItem(key);

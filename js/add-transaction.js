@@ -12,6 +12,38 @@ const formTitle = document.querySelector("#form-title");
 const formDescription = document.querySelector("#form-description");
 const formBackLink = document.querySelector("#form-back-link");
 const saveButton = document.querySelector("#save-transaction-button");
+const categorySuggestion = document.querySelector("#category-suggestion");
+const rememberCategory = document.querySelector("#remember-category");
+let suggestedRule = null;
+
+
+/* fill a category when a saved rule matches */
+
+function suggestCategory() {
+    if (categoryInput.value && !suggestedRule) return;
+
+    const rule = findCategoryRule({
+        name: nameInput.value,
+        type: typeInput.value
+    }, loadCategoryRules());
+
+    if (rule && [...categoryInput.options].some(option => option.value === rule.category)) {
+        categoryInput.value = rule.category;
+        categorySuggestion.textContent = `Suggested from your rule for ${rule.label || rule.name}. You can change it.`;
+        suggestedRule = rule;
+    } else if (suggestedRule) {
+        categoryInput.value = "";
+        categorySuggestion.textContent = "";
+        suggestedRule = null;
+    }
+}
+
+nameInput.addEventListener("blur", suggestCategory);
+typeInput.addEventListener("change", suggestCategory);
+categoryInput.addEventListener("change", function() {
+    suggestedRule = null;
+    categorySuggestion.textContent = "";
+});
 
 const pageParameters = new URLSearchParams(window.location.search);
 const editId = pageParameters.get("edit");
@@ -88,6 +120,10 @@ if (editId !== null) {
         typeInput.value = transaction.type ||
             (transaction.amount > 0 ? "Income" : "Expense");
         nameInput.value = transaction.name;
+        if (transaction.category &&
+            ![...categoryInput.options].some(option => option.value === transaction.category)) {
+            categoryInput.add(new Option(transaction.category, transaction.category));
+        }
         categoryInput.value = transaction.category;
         amountInput.value = Math.abs(transaction.amount);
         dateInput.value = transaction.date || "";
@@ -111,6 +147,9 @@ transactionForm.addEventListener("submit", function(event) {
     const amount = Number(amountInput.value);
     const date = dateInput.value;
     const notes = notesInput.value.trim();
+    const matchedSuggestion = suggestedRule &&
+        suggestedRule.name === normalizedName(name) &&
+        suggestedRule.type === type && suggestedRule.category === category;
 
 
     formMessage.textContent = "";
@@ -155,6 +194,31 @@ transactionForm.addEventListener("submit", function(event) {
 
 
     let transactions = loadTransactions();
+    const rules = loadCategoryRules();
+    let rememberedRule = null;
+
+    if (rememberCategory.checked) {
+        rememberedRule = findCategoryRule({ name: name, type: type }, rules);
+        if (rememberedRule) {
+            rememberedRule.category = category;
+        } else {
+            rememberedRule = {
+                id: makeRecordId(rules),
+                name: normalizedName(name),
+                label: name,
+                type: type,
+                category: category
+            };
+            rules.push(rememberedRule);
+        }
+
+        for (const item of transactions) {
+            if (item.categoryRuleId === rememberedRule.id) {
+                item.category = category;
+                item.categoryReason = `Rule for ${rememberedRule.label || rememberedRule.name}`;
+            }
+        }
+    }
 
 
     if (editId !== null) {
@@ -168,14 +232,21 @@ transactionForm.addEventListener("submit", function(event) {
             return;
         }
 
+        const oldTransaction = transactions[transactionIndex];
+        const sameCategory = oldTransaction.category === category &&
+            oldTransaction.name === name && oldTransaction.type === type;
+
         transactions[transactionIndex] = {
-            id: transactions[transactionIndex].id,
+            ...oldTransaction,
             type: type,
             name: name,
             category: category,
             amount: finalAmount,
             date: date,
-            notes: notes
+            notes: notes,
+            reviewStatus: "reviewed",
+            categoryReason: sameCategory ? oldTransaction.categoryReason : "Chosen by you",
+            categoryRuleId: sameCategory ? oldTransaction.categoryRuleId : undefined
         };
 
     } else {
@@ -187,7 +258,11 @@ transactionForm.addEventListener("submit", function(event) {
             category: category,
             amount: finalAmount,
             date: date,
-            notes: notes
+            notes: notes,
+            categoryReason: matchedSuggestion
+                ? `Rule for ${suggestedRule.label || suggestedRule.name}` : "Chosen by you",
+            categoryRuleId: matchedSuggestion
+                ? suggestedRule.id : undefined
         };
 
         transactions.push(newTransaction);
@@ -195,10 +270,22 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    localStorage.setItem(
-        "transactions",
-        JSON.stringify(transactions)
-    );
+    const oldTransactions = localStorage.getItem("transactions");
+    const oldRules = localStorage.getItem("categoryRules");
+
+    try {
+        localStorage.setItem("transactions", JSON.stringify(transactions));
+        if (rememberCategory.checked) {
+            localStorage.setItem("categoryRules", JSON.stringify(rules));
+        }
+    } catch (error) {
+        if (oldTransactions === null) localStorage.removeItem("transactions");
+        else localStorage.setItem("transactions", oldTransactions);
+        if (oldRules === null) localStorage.removeItem("categoryRules");
+        else localStorage.setItem("categoryRules", oldRules);
+        showError("Flow could not save. Check browser storage and try again.");
+        return;
+    }
     flowDataChanged();
 
 

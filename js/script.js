@@ -93,19 +93,17 @@ if (budgets.length === 0) {
 
 const attentionList = document.querySelector("#attention-list");
 const overBudgetCategories = [];
-let undatedCount = 0;
+const reviewCount = transactions.filter(needsTransactionReview).length;
+const reviewToday = new Date();
+const reviewDate = `${reviewToday.getFullYear()}-${String(reviewToday.getMonth() + 1).padStart(2, "0")}-${String(reviewToday.getDate()).padStart(2, "0")}`;
+const monthlySuggestions = recurringSuggestions(transactions, loadRecurringItems(),
+    reviewDate);
 
 for (const budget of budgets) {
     const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
 
     if (spent > budget.limit) {
         overBudgetCategories.push(budget.category);
-    }
-}
-
-for (const transaction of transactions) {
-    if (!transaction.date) {
-        undatedCount++;
     }
 }
 
@@ -157,11 +155,19 @@ if (overBudgetCategories.length > 0) {
     );
 }
 
-if (undatedCount > 0) {
+if (reviewCount > 0) {
     addAttention(
-        `${undatedCount} transaction${undatedCount === 1 ? "" : "s"} without a date`,
-        "Add dates so monthly totals include them.",
-        `transactions.html?month=${selectedMonth}`
+        `${reviewCount} transaction${reviewCount === 1 ? "" : "s"} need review`,
+        "Choose a category or date, and teach Flow what to use next time.",
+        "review.html"
+    );
+}
+
+if (monthlySuggestions.length > 0) {
+    addAttention(
+        `${monthlySuggestions.length} possible monthly item${monthlySuggestions.length === 1 ? "" : "s"}`,
+        "Confirm recurring payments you want to track.",
+        "review.html"
     );
 }
 
