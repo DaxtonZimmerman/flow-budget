@@ -234,21 +234,31 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
 });
 
 
-document.querySelector("#delete-account").addEventListener("click", async function() {
+document.querySelector("#delete-account").addEventListener("click", async function(event) {
     const answer = window.prompt(
         "Type DELETE to permanently remove your account and cloud data. Download a backup first if you need one."
     );
 
     if (answer !== "DELETE") return;
 
-    const result = await client.rpc("delete_flow_account");
+    const button = event.currentTarget;
+    button.disabled = true;
+    accountMessage.textContent = "Disconnecting banks and deleting your account…";
 
-    if (result.error) {
-        accountMessage.textContent = "Could not delete your account. Try again.";
+    try {
+        await bankRequest("delete-account");
+    } catch (error) {
+        accountMessage.textContent = error.message ||
+            "Could not delete your account. Try again.";
+        button.disabled = false;
         return;
     }
 
-    await client.auth.signOut();
+    try {
+        await client.auth.signOut();
+    } catch (_error) {
+        // The deleted account can no longer access cloud data.
+    }
     for (const key of ["transactions", "budgets", "budgetsByMonth",
         "categoryRules", "recurringItems",
         "flow_user_id", "flow_revision", "flow_pending"]) {

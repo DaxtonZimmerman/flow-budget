@@ -13,10 +13,12 @@ function makeServer(options = {}) {
     const calls = [];
     const saved = [];
     const rpcCalls = [];
+    const deletedUsers = [];
     const connection = {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
         access_token: "access-secret-test", cursor: null
     };
+    let connections = [connection, ...(options.extraConnections || [])];
     const needsReconnect = options.needsReconnect;
     const environment = {
         SUPABASE_URL: "https://example.supabase.co",
@@ -37,7 +39,8 @@ function makeServer(options = {}) {
                 return {
                     auth: {
                         getUser: async token => ({
-                            data: { user: token === "valid-token" ? { id: "user-1" } : null },
+                            data: { user: token === "valid-token" ? { id: "user-1" }
+                                : token === "other-token" ? { id: "user-2" } : null },
                             error: null
                         })
                     }
@@ -45,34 +48,57 @@ function makeServer(options = {}) {
             }
 
             return {
+                auth: { admin: { deleteUser: async id => {
+                    deletedUsers.push(id);
+                    return { error: options.deleteUserError || null };
+                } } },
                 from: function(table) {
                     const filters = {};
+                    let deleting = false;
+                    let limit = Infinity;
                     const query = {
                         select: () => query,
                         order: () => query,
+                        limit: value => { limit = value; return query; },
+                        delete: () => { deleting = true; return query; },
                         eq: (field, value) => {
                             filters[field] = value;
                             return query;
                         },
                         maybeSingle: async () => ({
-                            data: table === "plaid_connections" &&
-                                filters.id === connection.id &&
-                                filters.user_id === connection.user_id
-                                ? connection : null,
+                            data: table === "plaid_connections"
+                                ? connections.find(row => Object.entries(filters).every(
+                                    ([field, value]) => row[field] === value
+                                )) || null : null,
                             error: null
                         }),
                         insert: async row => {
                             saved.push(row);
                             return { error: null };
                         },
-                        then: resolve => resolve({
-                            data: table === "plaid_transactions"
-                                ? [{ data: { transaction_id: "txn-1" } }]
-                                : table === "plaid_connections" &&
-                                    filters.user_id === connection.user_id
-                                    ? [connection] : [],
-                            error: null
-                        })
+                        then: resolve => {
+                            if (deleting && table === "plaid_connections") {
+                                if (options.deleteRowError) {
+                                    return resolve({ error: options.deleteRowError });
+                                }
+                                connections = connections.filter(row =>
+                                    !Object.entries(filters).every(
+                                        ([field, value]) => row[field] === value
+                                    )
+                                );
+                                return resolve({ error: null });
+                            }
+
+                            return resolve({
+                                data: table === "plaid_transactions"
+                                    ? [{ data: { transaction_id: "txn-1" } }]
+                                    : table === "plaid_connections"
+                                        ? connections.filter(row => Object.entries(filters).every(
+                                            ([field, value]) => row[field] === value
+                                        )).slice(0, limit) : [],
+                                error: null
+                            });
+                        }
                     };
                     return query;
                 },
@@ -82,12 +108,23 @@ function makeServer(options = {}) {
                 }
             };
         },
-        fetch: async function(url, options) {
-            const body = JSON.parse(options.body);
+        fetch: async function(url, requestOptions) {
+            const body = JSON.parse(requestOptions.body);
             calls.push({ url, body });
             const exchange = url.endsWith("/item/public_token/exchange");
             const itemGet = url.endsWith("/item/get");
             const sync = url.endsWith("/transactions/sync");
+            const remove = url.endsWith("/item/remove");
+
+            if (remove && options.removeErrorCode) {
+                return {
+                    ok: false,
+                    json: async () => ({
+                        error_code: options.removeErrorCode,
+                        error_message: "Could not remove Item"
+                    })
+                };
+            }
 
             if (sync && body.cursor === "cursor-1" &&
                 context.mutateOnce && !context.mutated) {
@@ -148,7 +185,7 @@ function makeServer(options = {}) {
         return { status: response.status, body: await response.json() };
     }
 
-    return { request, calls, saved, rpcCalls };
+    return { request, calls, saved, rpcCalls, deletedUsers };
 }
 
 
@@ -263,4 +300,71 @@ test("a bank that needs repair is listed but not synced", async () => {
     assert.equal(server.calls.some(call =>
         call.url.endsWith("/transactions/sync")
     ), false);
+});
+
+
+test("account deletion removes the owner's Plaid Item before deleting the user", async () => {
+    const server = makeServer();
+    const result = await server.request({ action: "delete-account" });
+
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.body, { deleted: true });
+    assert.equal(server.calls.length, 1);
+    assert.equal(server.calls[0].url, "https://sandbox.plaid.com/item/remove");
+    assert.equal(server.calls[0].body.access_token, "access-secret-test");
+    assert.deepEqual(server.deletedUsers, ["user-1"]);
+    assert.equal(JSON.stringify(result.body).includes("access-secret-test"), false);
+});
+
+
+test("account deletion cannot remove another user's bank", async () => {
+    const server = makeServer();
+    const result = await server.request({ action: "delete-account" }, "other-token");
+
+    assert.equal(result.status, 200);
+    assert.equal(server.calls.length, 0);
+    assert.deepEqual(server.deletedUsers, ["user-2"]);
+});
+
+
+test("account deletion keeps the user when Plaid revocation fails", async () => {
+    const server = makeServer({ removeErrorCode: "INTERNAL_SERVER_ERROR" });
+    const result = await server.request({ action: "delete-account" });
+
+    assert.equal(result.status, 502);
+    assert.deepEqual(server.deletedUsers, []);
+    assert.equal(JSON.stringify(result.body).includes("access-secret-test"), false);
+});
+
+
+test("account deletion can finish when Plaid Item was already removed", async () => {
+    const server = makeServer({ removeErrorCode: "ITEM_NOT_FOUND" });
+    const result = await server.request({ action: "delete-account" });
+
+    assert.equal(result.status, 200);
+    assert.deepEqual(server.deletedUsers, ["user-1"]);
+});
+
+
+test("account deletion revokes every Item before removing the user", async () => {
+    const server = makeServer({ extraConnections: [{
+        id: "connection-2", user_id: "user-1", item_id: "item-2",
+        access_token: "access-secret-second", cursor: null
+    }] });
+    const result = await server.request({ action: "delete-account" });
+
+    assert.equal(result.status, 200);
+    assert.deepEqual(server.calls.map(call => call.body.access_token), [
+        "access-secret-test", "access-secret-second"
+    ]);
+    assert.deepEqual(server.deletedUsers, ["user-1"]);
+});
+
+
+test("account deletion keeps the user if revoked Item cleanup fails", async () => {
+    const server = makeServer({ deleteRowError: new Error("database unavailable") });
+    const result = await server.request({ action: "delete-account" });
+
+    assert.equal(result.status, 500);
+    assert.deepEqual(server.deletedUsers, []);
 });

@@ -66,21 +66,5 @@ revoke all on public.flow_data from anon;
 grant select, insert, update on public.flow_data to authenticated;
 grant execute on function public.save_flow_data(bigint, jsonb) to authenticated;
 
--- the signed-in person can remove their account and its Flow data
-create or replace function public.delete_flow_account()
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-    if (select auth.uid()) is null then
-        raise exception 'Sign in first';
-    end if;
-
-    delete from auth.users where id = (select auth.uid());
-end;
-$$;
-
-revoke all on function public.delete_flow_account() from public, anon;
-grant execute on function public.delete_flow_account() to authenticated;
+-- Account deletion runs in the Plaid Edge Function so bank access is revoked first.
+drop function if exists public.delete_flow_account();

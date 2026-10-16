@@ -49,6 +49,16 @@ async function plaidRequest(path, data) {
 }
 
 
+async function removePlaidItem(accessToken) {
+    try {
+        await plaidRequest("/item/remove", { access_token: accessToken });
+    } catch (error) {
+        // A prior attempt may have removed the Item before local cleanup finished.
+        if (error.code !== "ITEM_NOT_FOUND") throw error;
+    }
+}
+
+
 function keepTransaction(item) {
     return {
         transaction_id: item.transaction_id,
@@ -200,6 +210,11 @@ Deno.serve(async function(request) {
             });
 
             if (error) {
+                try {
+                    await removePlaidItem(result.access_token);
+                } catch (removeError) {
+                    console.error("Could not revoke an unsaved Plaid Item:", removeError);
+                }
                 return reply({ error: "Could not save the connection. Try again." }, 500);
             }
 
@@ -316,9 +331,7 @@ Deno.serve(async function(request) {
                 return reply({ error: "Bank connection not found." }, 404);
             }
 
-            await plaidRequest("/item/remove", {
-                access_token: connection.access_token
-            });
+            await removePlaidItem(connection.access_token);
 
             const { error } = await database.from("plaid_connections")
                 .delete()
@@ -330,6 +343,51 @@ Deno.serve(async function(request) {
             }
 
             return reply({ disconnected: true });
+        }
+
+        if (body.action === "delete-account") {
+            while (true) {
+                const { data: connections, error: listError } = await database
+                    .from("plaid_connections")
+                    .select("id,access_token")
+                    .eq("user_id", userData.user.id)
+                    .limit(100);
+
+                if (listError) {
+                    return reply({ error: "Could not check bank connections. Try again." }, 500);
+                }
+
+                if (connections.length === 0) break;
+
+                for (const connection of connections) {
+                    try {
+                        await removePlaidItem(connection.access_token);
+                    } catch (error) {
+                        console.error("Could not revoke a Plaid Item during account deletion:", error);
+                        return reply({ error: "Could not disconnect every bank. Your account was kept; try again." }, 502);
+                    }
+
+                    const { error: removeError } = await database
+                        .from("plaid_connections")
+                        .delete()
+                        .eq("id", connection.id)
+                        .eq("user_id", userData.user.id);
+
+                    if (removeError) {
+                        console.error("Could not clear a revoked Plaid Item:", removeError);
+                        return reply({ error: "Could not finish disconnecting a bank. Your account was kept; try again." }, 500);
+                    }
+                }
+            }
+
+            const { error } = await database.auth.admin.deleteUser(userData.user.id);
+
+            if (error) {
+                console.error("Could not delete Flow account:", error);
+                return reply({ error: "Could not delete the account. Try again." }, 500);
+            }
+
+            return reply({ deleted: true });
         }
 
         return reply({ error: "Unknown action." }, 400);
