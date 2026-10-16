@@ -62,12 +62,14 @@ Supabase with email sign-in links is selected. The private table rules, Account 
 
 ### 4. Fast setup and file import
 
-- [ ] Give new users two clear ways to start: enter transactions or import a bank file.
-- [ ] Add CSV import with a preview of dates, amounts, and matched columns.
-- [ ] Check for duplicates and show exactly what will be saved before importing.
-- [ ] Keep manual entry quick for cash purchases and corrections.
+- [x] Give new users two clear ways to start: enter transactions or import a bank file.
+- [x] Add CSV import with a preview of dates, amounts, and matched columns.
+- [x] Check for duplicates and show exactly what will be saved before importing.
+- [x] Keep manual entry quick for cash purchases and corrections.
 
 You're done when you can import a real statement and check the results in minutes. Commit idea: `Add guided setup and transaction import`.
+
+The import flow and automated checks are built. A real bank statement and phone layout still need a live review before calling this section fully verified.
 
 ### 5. Automation and review
 

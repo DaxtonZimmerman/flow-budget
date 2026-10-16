@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Transactions | Flow</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="js/cloud-config.js" defer></script>
+    <script src="js/cloud-sync.js" defer></script>
+    <script src="js/money-data.js" defer></script>
+    <script src="js/import-data.js" defer></script>
+    <script src="js/import.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <h1 class="logo">Flow</h1>
+                <nav class="nav" aria-label="Main navigation">
+                    <a href="index.html" class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard</a>
+                    <a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon"></i> Transactions</a>
+                    <a href="budgets.html" class="nav-link"><i data-lucide="wallet-cards" class="nav-icon"></i> Budgets</a>
+                    <a href="account.html" class="nav-link"><i data-lucide="user-round" class="nav-icon"></i> Account</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main import-main">
+            <header class="page-header">
+                <div>
+                    <p class="small-label">Fast setup</p>
+                    <h2>Import transactions</h2>
+                    <p>Bring in a CSV statement from your bank. Your file stays in this browser until you save.</p>
+                </div>
+                <a href="transactions.html" class="back-button">Back to transactions</a>
+            </header>
+
+            <section class="card import-card">
+                <p class="small-label">Step 1</p>
+                <h3>Choose a CSV file</h3>
+                <p>Export a transaction CSV from your bank. Keep its header row. Flow reads up to 10,000 rows in a 5 MB file.</p>
+                <label for="import-file" class="import-file-label">Bank CSV file</label>
+                <input id="import-file" type="file" accept=".csv,text/csv">
+            </section>
+
+            <section id="import-map" class="card import-card" hidden>
+                <p class="small-label">Step 2</p>
+                <h3>Match your columns</h3>
+                <p>Check the columns Flow found. Choose how your bank writes dates and amounts.</p>
+                <div class="import-fields">
+                    <div class="form-group"><label for="import-date">Date column</label><select id="import-date"></select></div>
+                    <div class="form-group"><label for="import-name">Description column</label><select id="import-name"></select></div>
+                    <div class="form-group"><label for="import-category">Category column (optional)</label><select id="import-category"></select></div>
+                    <div class="form-group"><label for="import-date-format">Date format</label><select id="import-date-format"><option value="mdy">Month / day / year</option><option value="iso">Year-month-day</option><option value="dmy">Day / month / year</option></select></div>
+                    <div class="form-group"><label for="import-amount-style">Amount columns</label><select id="import-amount-style"><option value="signed">One amount: negative is spending</option><option value="positive-expense">One amount: positive is spending</option><option value="separate">Separate debit and credit columns</option></select></div>
+                    <div class="form-group" id="import-amount-group"><label for="import-amount">Amount column</label><select id="import-amount"></select></div>
+                    <div class="form-group" id="import-debit-group" hidden><label for="import-debit">Debit column (spending)</label><select id="import-debit"></select></div>
+                    <div class="form-group" id="import-credit-group" hidden><label for="import-credit">Credit column (income)</label><select id="import-credit"></select></div>
+                </div>
+                <button id="preview-import" class="save-button" type="button">Preview transactions</button>
+            </section>
+
+            <section id="import-preview" class="card import-card" hidden>
+                <p class="small-label">Step 3</p>
+                <h3>Review before saving</h3>
+                <p id="import-summary"></p>
+                <p class="import-hint">Exact matches already in Flow and repeated rows in this file are skipped by default. Include a repeat if it is a separate real charge. Fix any “Check row” entries in your CSV, then choose the file again.</p>
+                <div class="import-table-wrap">
+                    <table class="import-table">
+                        <thead><tr><th>CSV row</th><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
+                        <tbody id="import-rows"></tbody>
+                    </table>
+                </div>
+                <button id="save-import" class="save-button" type="button">Import transactions</button>
+            </section>
+
+            <p id="import-message" class="import-message" role="status" aria-live="polite"></p>
+            <a id="import-done-link" href="transactions.html" class="add-transaction-link" hidden>View transactions</a>
+        </main>
+    </div>
+</body>
+
+</html>

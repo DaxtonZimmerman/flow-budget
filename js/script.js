@@ -4,6 +4,8 @@ if (typeof lucide !== "undefined") {
 
 const transactions = loadTransactions();
 
+document.querySelector("#start-options").hidden = transactions.length > 0;
+
 
 const selectedMonth = getSelectedMonth();
 const budgets = loadBudgets(selectedMonth);

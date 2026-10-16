@@ -1309,6 +1309,125 @@ button:active {
 
 /* transaction history */
 
+/* getting started and csv import */
+
+.start-options {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+}
+
+.start-options h3,
+.import-card h3 {
+    margin: 0.25rem 0 0.5rem;
+    font-family: Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.start-options p,
+.import-card p {
+    color: var(--text-light);
+}
+
+.start-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.import-main {
+    max-width: 76rem;
+}
+
+.import-card {
+    margin-bottom: 1rem;
+    padding: 1.5rem;
+}
+
+.import-card input[type="file"] {
+    display: block;
+    max-width: 100%;
+    margin-top: 0.5rem;
+}
+
+.import-file-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.import-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.import-fields select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.import-table-wrap {
+    max-height: 30rem;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.import-table {
+    width: 100%;
+    min-width: 40rem;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.import-table th,
+.import-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.import-table th {
+    position: sticky;
+    top: 0;
+    background: var(--card);
+}
+
+.import-row-duplicate {
+    color: var(--text-light);
+    background: #f5f3eb;
+}
+
+.import-row-error {
+    color: var(--red);
+    background: var(--red-light);
+}
+
+.import-message {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.import-card[hidden],
+.start-options[hidden],
+.import-fields .form-group[hidden],
+#import-done-link[hidden] {
+    display: none;
+}
+
+.import-card .save-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .budget-header-actions {
     display: flex;
     align-items: center;
@@ -1820,6 +1939,24 @@ button:active {
 
 
 @media (max-width: 640px) {
+
+    .import-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .start-links,
+    .start-links a {
+        width: 100%;
+    }
+
+    .start-links a {
+        text-align: center;
+    }
+
+    .start-options,
+    .import-card {
+        padding: 1rem;
+    }
 
     .transaction-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
