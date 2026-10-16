@@ -1,6 +1,8 @@
 # Flow data model
 
-Flow currently stores data in this browser. Amounts remain signed dollar numbers in saved files so existing Flow backups still work. Calculations convert each amount to whole cents before adding it.
+Flow stores a device copy in this browser. When an account is connected, Supabase stores a private cloud copy of the same data. Amounts remain signed dollar numbers in saved files so existing Flow backups still work. Calculations convert each amount to whole cents before adding it.
+
+The cloud copy is one `flow_data` row per signed-in user with a revision number. Every save checks the expected revision. When two devices changed the same revision, Flow leaves both copies alone and asks the user which one to keep. The database only lets a signed-in user read or change their own row.
 
 ## In the app today
 

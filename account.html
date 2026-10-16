@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account | Flow</title>
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="js/cloud-config.js" defer></script>
+    <script src="js/cloud-sync.js" defer></script>
+    <script src="js/account.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <h1 class="logo">Flow</h1>
+                <nav class="nav" aria-label="Main navigation">
+                    <a href="index.html" class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i>Dashboard</a>
+                    <a href="transactions.html" class="nav-link"><i data-lucide="arrow-left-right" class="nav-icon"></i>Transactions</a>
+                    <a href="budgets.html" class="nav-link"><i data-lucide="wallet-cards" class="nav-icon"></i>Budgets</a>
+                    <a href="account.html" class="nav-link active" aria-current="page"><i data-lucide="user-round" class="nav-icon"></i>Account</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main account-main">
+            <header class="welcome">
+                <div>
+                    <p class="small-label">Your space</p>
+                    <h2>One clear view, wherever you are.</h2>
+                    <p>Keep your Flow data private and in sync across your devices.</p>
+                </div>
+            </header>
+
+            <p id="flow-sync-status" class="account-status" aria-live="polite"></p>
+
+            <section id="account-setup" class="card account-card" hidden>
+                <p class="small-label">Setup needed</p>
+                <h3>Connect Flow to your project</h3>
+                <p>Flow still works on this device. Add your Supabase Project URL and publishable key to <code>js/cloud-config.js</code> to turn on accounts and syncing.</p>
+            </section>
+
+            <section id="account-sign-in" class="card account-card" hidden>
+                <p class="small-label">Sign in</p>
+                <h3>Use your email</h3>
+                <p>We’ll send you a sign-in link. Open it on this device to connect your data.</p>
+                <form id="sign-in-form" class="account-form">
+                    <label for="account-email">Email address</label>
+                    <input id="account-email" type="email" autocomplete="email" required>
+                    <button class="save-button" type="submit">Send sign-in link</button>
+                </form>
+            </section>
+
+            <section id="account-connected" class="card account-card" hidden>
+                <p class="small-label">Signed in</p>
+                <h3 id="account-address"></h3>
+                <p>Flow keeps a copy on this device so you can still enter transactions while offline.</p>
+                <div class="account-actions">
+                    <button id="sync-now" class="save-button" type="button">Sync now</button>
+                    <button id="sign-out" class="back-button" type="button">Sign out on this device</button>
+                </div>
+            </section>
+
+            <section id="account-choose" class="card account-card" hidden>
+                <p class="small-label">Connect this device</p>
+                <h3>Choose the copy to keep</h3>
+                <p id="copy-preview"></p>
+                <p>Download either copy before replacing it. Flow will never combine two copies without showing you what will happen.</p>
+                <div class="account-actions">
+                    <button id="download-local" class="back-button" type="button">Download device backup</button>
+                    <button id="download-cloud" class="back-button" type="button">Download cloud backup</button>
+                    <button id="use-device" class="save-button" type="button">Use this device’s data</button>
+                    <button id="use-cloud" class="back-button" type="button">Use cloud data</button>
+                </div>
+            </section>
+
+            <section id="account-delete" class="card account-card" hidden>
+                <p class="small-label">Privacy</p>
+                <h3>Your data is yours</h3>
+                <p>Download a backup from the Dashboard whenever you want. Deleting your account removes your cloud data and signs you out here.</p>
+                <button id="delete-account" class="delete-transaction-button" type="button">Delete account and cloud data</button>
+            </section>
+
+            <p id="account-message" class="form-message" aria-live="polite"></p>
+        </main>
+    </div>
+</body>
+
+</html>

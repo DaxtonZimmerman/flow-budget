@@ -51,12 +51,14 @@ You're done when a transaction cannot silently count twice and your old Flow dat
 
 ### 3. Accounts and cross-device storage
 
-- [ ] Choose an online database and sign-in method you can understand and maintain.
-- [ ] Save each person's data privately. Show a preview before moving their existing browser data online.
+- [x] Choose an online database and sign-in method you can understand and maintain.
+- [x] Save each person's data privately. Show a preview before moving their existing browser data online.
 - [ ] Make changes sync between phone and desktop. Show clear messages when offline or when saving fails.
 - [ ] Add data export and account deletion. Review security before inviting real users.
 
 You're done when you can sign in on another device and see the same data without duplicates or lost changes. Commit idea: `Add secure accounts and data sync`.
+
+Supabase with email sign-in links is selected. The private table rules, Account page, local-data choice, conflict check, export, and deletion flow are built. Live email sign-in worked, and the existing 7 transactions and 4 budgets were saved to the private table. Anonymous access is blocked. A separate browser storage copy downloaded the same cloud data, and both copies reported all changes saved. Phone-to-desktop sync and account deletion still need live testing before this section is done.
 
 ### 4. Fast setup and file import
 

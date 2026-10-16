@@ -307,6 +307,7 @@ if (transactions.length === 0) {
                 "transactions",
                 JSON.stringify(transactions)
             );
+            flowDataChanged();
 
             window.location.reload();
 

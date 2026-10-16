@@ -408,43 +408,56 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
 const budgetList = document.querySelector("#budget-list");
 
 if (budgets.length === 0) {
-    budgetList.innerHTML =
-        '<p class="budget-empty">No budgets yet. Add one on the Budgets page.</p>';
+    const emptyBudget = document.createElement("p");
+    emptyBudget.classList.add("budget-empty");
+    emptyBudget.textContent = "No budgets yet. Add one on the Budgets page.";
+    budgetList.appendChild(emptyBudget);
 }
 
 for (const budget of budgets) {
 
     const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
     const percentage = (spent / budget.limit) * 100;
-    const barWidth = Math.min(percentage, 100);
-    const barColor = spent > budget.limit ? "over-budget" : "";
+    const barWidth = Math.max(0, Math.min(percentage, 100));
+    const row = document.createElement("div");
+    row.classList.add("budget-row");
 
-    budgetList.innerHTML += `
-        <div class="budget-row">
+    const info = document.createElement("div");
+    info.classList.add("budget-info");
 
-            <div class="budget-info">
-                <strong>${budget.category}</strong>
+    const category = document.createElement("strong");
+    category.textContent = budget.category;
 
-                <span>
-                    $${spent.toFixed(2)} / $${budget.limit.toFixed(2)}
-                </span>
-            </div>
+    const amounts = document.createElement("span");
+    amounts.textContent = `$${spent.toFixed(2)} / $${budget.limit.toFixed(2)}`;
 
-            <div class="budget-progress">
+    info.appendChild(category);
+    info.appendChild(amounts);
 
-                <div class="progress-bar">
-                    <div
-                        class="progress-fill ${barColor}"
-                        style="width: ${barWidth}%"
-                    ></div>
-                </div>
+    const progress = document.createElement("div");
+    progress.classList.add("budget-progress");
 
-                <strong>${percentage.toFixed(0)}%</strong>
+    const bar = document.createElement("div");
+    bar.classList.add("progress-bar");
 
-            </div>
+    const fill = document.createElement("div");
+    fill.classList.add("progress-fill");
+    fill.style.width = `${barWidth}%`;
 
-        </div>
-    `;
+    if (spent > budget.limit) {
+        fill.classList.add("over-budget");
+    }
+
+    bar.appendChild(fill);
+
+    const percent = document.createElement("strong");
+    percent.textContent = `${percentage.toFixed(0)}%`;
+
+    progress.appendChild(bar);
+    progress.appendChild(percent);
+    row.appendChild(info);
+    row.appendChild(progress);
+    budgetList.appendChild(row);
 }
 
 

@@ -51,6 +51,10 @@ function loadTransactions() {
 
     if (addMissingIds(transactions)) {
         localStorage.setItem("transactions", JSON.stringify(transactions));
+
+        if (typeof flowDataChanged === "function") {
+            flowDataChanged();
+        }
     }
 
     return transactions;

@@ -138,6 +138,7 @@ restoreBackup.addEventListener("click", async function() {
         localStorage.setItem("transactions", JSON.stringify(backup.transactions));
         localStorage.setItem("budgets", JSON.stringify(backup.budgets));
         localStorage.setItem("budgetsByMonth", JSON.stringify(backup.budgetsByMonth));
+        if (typeof flowDataChanged === "function") flowDataChanged();
     } catch (error) {
         if (oldTransactions === null) localStorage.removeItem("transactions");
         else localStorage.setItem("transactions", oldTransactions);

@@ -199,6 +199,7 @@ transactionForm.addEventListener("submit", function(event) {
         "transactions",
         JSON.stringify(transactions)
     );
+    flowDataChanged();
 
 
     window.location.href = returnPage;

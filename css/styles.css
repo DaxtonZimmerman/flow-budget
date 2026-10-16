@@ -1215,6 +1215,62 @@ button:active {
 
 /* backup */
 
+.account-main {
+    max-width: 60rem;
+}
+
+.account-card {
+    margin: 1rem 0;
+}
+
+.account-card h3 {
+    font-family: Georgia, serif;
+    font-size: 1.5rem;
+}
+
+.account-card p {
+    color: var(--text-light);
+}
+
+.account-form {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 24rem;
+}
+
+.account-form input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--card);
+}
+
+.account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.account-status {
+    margin: 0 0 1rem;
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.account-status:empty {
+    display: none;
+}
+
+.account-card code {
+    overflow-wrap: anywhere;
+}
+
+
+/* backup */
+
 .backup-card {
     margin-top: 1rem;
 }
@@ -1615,7 +1671,7 @@ button:active {
     }
 
     .transaction-summary-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .transaction-history-card {

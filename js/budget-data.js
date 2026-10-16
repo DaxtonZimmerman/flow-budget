@@ -10,6 +10,8 @@ function loadBudgets(month) {
 
         if (addMissingIds(budgets)) {
             localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
+
+            if (typeof flowDataChanged === "function") flowDataChanged();
         }
 
         return budgets;
@@ -22,6 +24,8 @@ function loadBudgets(month) {
 
         if (addMissingIds(budgets)) {
             localStorage.setItem("budgets", JSON.stringify(budgets));
+
+            if (typeof flowDataChanged === "function") flowDataChanged();
         }
 
         return budgets;
@@ -42,6 +46,7 @@ function saveBudgets(month, budgets) {
     budgetsByMonth[month] = budgets;
 
     localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
+    if (typeof flowDataChanged === "function") flowDataChanged();
 
 }
 
