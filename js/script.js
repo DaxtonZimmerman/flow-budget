@@ -2,8 +2,7 @@ if (typeof lucide !== "undefined") {
     lucide.createIcons();
 }
 
-const savedTransactions = localStorage.getItem("transactions");
-const transactions = JSON.parse(savedTransactions) || [];
+const transactions = loadTransactions();
 
 
 const selectedMonth = getSelectedMonth();
@@ -18,59 +17,14 @@ const selectedYear = Number(selectedMonth.slice(0, 4));
 const selectedMonthNumber = Number(selectedMonth.slice(5, 7));
 const daysInMonth = new Date(selectedYear, selectedMonthNumber, 0).getDate();
 
-const weeklySpending = Array(Math.ceil(daysInMonth / 7)).fill(0);
-const categorySpending = {};
-
-let totalIncome = 0;
-let totalSpending = 0;
-let monthlyIncome = 0;
-let monthlySpending = 0;
-
-
-for (const transaction of transactions) {
-
-    const isSelectedMonth = transaction.date &&
-        transaction.date.slice(0, 7) === selectedMonth;
-
-    if (transaction.amount > 0) {
-
-        totalIncome += transaction.amount;
-
-        if (isSelectedMonth) {
-            monthlyIncome += transaction.amount;
-        }
-
-    }
-
-    if (transaction.amount < 0) {
-
-        const amount = Math.abs(transaction.amount);
-
-        totalSpending += amount;
-
-        if (isSelectedMonth) {
-
-            monthlySpending += amount;
-
-            const category = transaction.category || "Other";
-            categorySpending[category] =
-                (categorySpending[category] || 0) + amount;
-
-            const day = Number(transaction.date.slice(8, 10));
-
-            if (day >= 1 && day <= daysInMonth) {
-                const week = Math.floor((day - 1) / 7);
-                weeklySpending[week] += amount;
-            }
-
-        }
-
-    }
-
-}
-
-
-const totalBalance = totalIncome - totalSpending;
+const allTotals = getMoneyTotals(transactions);
+const monthlyTotals = getMoneyTotals(transactions, selectedMonth);
+const breakdown = getSpendingBreakdown(transactions, selectedMonth, daysInMonth);
+const weeklySpending = breakdown.weeklySpending;
+const categorySpending = breakdown.categorySpending;
+const monthlyIncome = monthlyTotals.income;
+const monthlySpending = monthlyTotals.spending;
+const totalBalance = allTotals.net;
 
 const monthlyIncomeText = document.querySelector("#monthly-income");
 const monthlySpendingText = document.querySelector("#monthly-spending");
@@ -108,15 +62,15 @@ document.querySelector("#search-month").value = selectedMonth;
 document.querySelector('a[href="add-transaction.html"]').href =
     `add-transaction.html?from=dashboard&month=${selectedMonth}`;
 
-let remainingBudget = 0;
+let remainingBudgetCents = 0;
 
 for (const budget of budgets) {
 
     const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
-    const amountLeft = budget.limit - spent;
+    const amountLeft = moneyToCents(budget.limit) - moneyToCents(spent);
 
     if (amountLeft > 0) {
-        remainingBudget += amountLeft;
+        remainingBudgetCents += amountLeft;
     }
 
 }
@@ -129,7 +83,7 @@ if (budgets.length === 0) {
     budgetRoomNote.textContent =
         "Set category limits to see your monthly budget room.";
 } else {
-    budgetRoomText.textContent = `$${remainingBudget.toFixed(2)}`;
+    budgetRoomText.textContent = `$${centsToMoney(remainingBudgetCents).toFixed(2)}`;
 }
 
 
@@ -230,7 +184,7 @@ const categoryList = document.querySelector("#category-list");
 categoryTotal.textContent = `$${monthlySpending.toFixed(2)}`;
 
 
-if (monthlySpending === 0) {
+if (monthlySpending <= 0) {
 
     spendingChart.hidden = true;
     chartEmpty.hidden = false;

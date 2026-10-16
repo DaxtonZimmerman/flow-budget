@@ -71,8 +71,7 @@ if (editId !== null) {
     saveButton.textContent = "Save changes";
 
 
-    const savedTransactions = localStorage.getItem("transactions");
-    const transactions = JSON.parse(savedTransactions) || [];
+    const transactions = loadTransactions();
 
     const transaction = transactions.find(function(item) {
         return String(item.id) === editId;
@@ -135,8 +134,9 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-        showError("Please enter an amount greater than $0.");
+    if (!Number.isFinite(amount) || amount <= 0 ||
+        !/^\d+(\.\d{1,2})?$/.test(amountInput.value)) {
+        showError("Please enter an amount greater than $0 with up to two decimals.");
         return;
     }
 
@@ -147,16 +147,14 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    let finalAmount = amount;
+    let finalAmount = centsToMoney(moneyToCents(amount));
 
     if (type === "Expense") {
-        finalAmount = -amount;
+        finalAmount = -finalAmount;
     }
 
 
-    const savedTransactions = localStorage.getItem("transactions");
-
-    let transactions = JSON.parse(savedTransactions) || [];
+    let transactions = loadTransactions();
 
 
     if (editId !== null) {
@@ -182,18 +180,8 @@ transactionForm.addEventListener("submit", function(event) {
 
     } else {
 
-        /* avoid duplicate ids */
-
-        let newId = Date.now();
-
-        while (transactions.some(function(item) {
-            return String(item.id) === String(newId);
-        })) {
-            newId++;
-        }
-
         const newTransaction = {
-            id: newId,
+            id: makeRecordId(transactions),
             type: type,
             name: name,
             category: category,

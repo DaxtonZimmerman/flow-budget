@@ -10,7 +10,7 @@ downloadBackup.addEventListener("click", function() {
 
     const backup = {
         version: 1,
-        transactions: JSON.parse(localStorage.getItem("transactions")) || [],
+        transactions: loadTransactions(),
         budgets: JSON.parse(localStorage.getItem("budgets")) || [],
         budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {}
     };
@@ -121,6 +121,13 @@ restoreBackup.addEventListener("click", async function() {
 
     if (!shouldRestore) {
         return;
+    }
+
+    addMissingIds(backup.transactions);
+    addMissingIds(backup.budgets);
+
+    for (const month in backup.budgetsByMonth) {
+        addMissingIds(backup.budgetsByMonth[month]);
     }
 
     const oldTransactions = localStorage.getItem("transactions");

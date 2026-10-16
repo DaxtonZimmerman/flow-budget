@@ -3,8 +3,7 @@ if (typeof lucide !== "undefined") {
 }
 
 
-const savedTransactions = localStorage.getItem("transactions");
-const transactions = JSON.parse(savedTransactions) || [];
+const transactions = loadTransactions();
 
 const selectedMonth = getSelectedMonth();
 let budgets = loadBudgets(selectedMonth);
@@ -55,9 +54,9 @@ function showBudgets() {
         const remaining = Math.max(0, budget.limit - spent);
         const percentage = (spent / budget.limit) * 100;
 
-        totalLimit += budget.limit;
-        totalSpent += spent;
-        totalRemaining += remaining;
+        totalLimit += moneyToCents(budget.limit);
+        totalSpent += moneyToCents(spent);
+        totalRemaining += moneyToCents(remaining);
 
 
         const row = document.createElement("div");
@@ -153,9 +152,9 @@ function showBudgets() {
     }
 
 
-    budgetTotal.textContent = `$${totalLimit.toFixed(2)}`;
-    budgetSpent.textContent = `$${totalSpent.toFixed(2)}`;
-    budgetRemaining.textContent = `$${totalRemaining.toFixed(2)}`;
+    budgetTotal.textContent = `$${centsToMoney(totalLimit).toFixed(2)}`;
+    budgetSpent.textContent = `$${centsToMoney(totalSpent).toFixed(2)}`;
+    budgetRemaining.textContent = `$${centsToMoney(totalRemaining).toFixed(2)}`;
 
 }
 
@@ -176,8 +175,9 @@ budgetForm.addEventListener("submit", function(event) {
         return;
     }
 
-    if (!Number.isFinite(limit) || limit <= 0) {
-        budgetMessage.textContent = "Please enter a limit greater than $0.";
+    if (!Number.isFinite(limit) || limit <= 0 ||
+        !/^\d+(\.\d{1,2})?$/.test(limitInput.value)) {
+        budgetMessage.textContent = "Please enter a limit greater than $0 with up to two decimals.";
         return;
     }
 
@@ -186,9 +186,13 @@ budgetForm.addEventListener("submit", function(event) {
     });
 
     if (existingBudget) {
-        existingBudget.limit = limit;
+        existingBudget.limit = centsToMoney(moneyToCents(limit));
     } else {
-        budgets.push({ category: category, limit: limit });
+        budgets.push({
+            id: makeRecordId(budgets),
+            category: category,
+            limit: centsToMoney(moneyToCents(limit))
+        });
     }
 
     saveBudgets(selectedMonth, budgets);

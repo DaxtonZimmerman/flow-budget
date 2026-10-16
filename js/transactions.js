@@ -3,31 +3,7 @@ if (typeof lucide !== "undefined") {
 }
 
 
-const savedTransactions = localStorage.getItem("transactions");
-
-let transactions = JSON.parse(savedTransactions) || [];
-
-
-/* give old transactions an id */
-
-let nextId = Date.now();
-
-for (const transaction of transactions) {
-
-    if (!transaction.id) {
-
-        while (transactions.some(item => item.id === nextId)) {
-            nextId++;
-        }
-
-        transaction.id = nextId;
-        nextId++;
-
-    }
-
-}
-
-localStorage.setItem("transactions", JSON.stringify(transactions));
+let transactions = loadTransactions();
 
 
 const transactionHistory = document.querySelector("#transaction-history");
@@ -139,29 +115,10 @@ for (const category of categories) {
 }
 
 
-let totalIncome = 0;
-let totalExpenses = 0;
-
-
-for (const transaction of transactions) {
-
-    if (selectedMonth && (!transaction.date ||
-        transaction.date.slice(0, 7) !== selectedMonth)) {
-        continue;
-    }
-
-    if (transaction.amount > 0) {
-        totalIncome += transaction.amount;
-    }
-
-    if (transaction.amount < 0) {
-        totalExpenses += Math.abs(transaction.amount);
-    }
-
-}
-
-
-const balance = totalIncome - totalExpenses;
+const totals = getMoneyTotals(transactions, selectedMonth);
+const totalIncome = totals.income;
+const totalExpenses = totals.spending;
+const balance = totals.net;
 
 
 historyIncome.textContent = `$${totalIncome.toFixed(2)}`;

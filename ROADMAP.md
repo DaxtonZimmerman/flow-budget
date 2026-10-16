@@ -42,10 +42,10 @@ The main number now shows unspent budget limits and says clearly that it is not 
 
 ### 2. Trustworthy money model
 
-- [ ] Write down how Flow stores accounts, transactions, transfers, refunds, pending charges, budgets, and recurring items.
-- [ ] Put money calculations in small shared functions. Test totals, months, transfers, refunds, and rounding.
-- [ ] Give every record a stable ID and update existing saved data safely.
-- [ ] Check that your current backup files still restore correctly.
+- [x] Write down how Flow stores accounts, transactions, transfers, refunds, pending charges, budgets, and recurring items.
+- [x] Put money calculations in small shared functions. Test totals, months, transfers, refunds, and rounding.
+- [x] Give every current record a stable ID and update existing saved data safely.
+- [x] Check that your current backup files still restore correctly.
 
 You're done when a transaction cannot silently count twice and your old Flow data still loads. Commit idea: `Make Flow's money calculations reliable`.
 

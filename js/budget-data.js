@@ -6,13 +6,25 @@ function loadBudgets(month) {
     const budgetsByMonth = JSON.parse(savedMonths) || {};
 
     if (budgetsByMonth[month]) {
-        return budgetsByMonth[month];
+        const budgets = budgetsByMonth[month];
+
+        if (addMissingIds(budgets)) {
+            localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
+        }
+
+        return budgets;
     }
 
     const savedBudgets = localStorage.getItem("budgets");
 
     if (savedBudgets !== null) {
-        return JSON.parse(savedBudgets) || [];
+        const budgets = JSON.parse(savedBudgets) || [];
+
+        if (addMissingIds(budgets)) {
+            localStorage.setItem("budgets", JSON.stringify(budgets));
+        }
+
+        return budgets;
     }
 
     localStorage.setItem("budgets", "[]");
@@ -60,21 +72,35 @@ function getSelectedMonth() {
 
 function getBudgetSpending(category, transactions, month) {
 
-    let spent = 0;
+    let spentCents = 0;
+    const seenIds = new Set();
 
     for (const transaction of transactions) {
 
         if (
             transaction.category === category &&
-            transaction.amount < 0 &&
             transaction.date &&
-            transaction.date.slice(0, 7) === month
+            transaction.date.slice(0, 7) === month &&
+            transaction.status !== "pending" &&
+            transaction.type !== "Transfer"
         ) {
-            spent += Math.abs(transaction.amount);
+            const id = String(transaction.id);
+
+            if (transaction.id !== undefined && seenIds.has(id)) {
+                continue;
+            }
+
+            seenIds.add(id);
+
+            if (transaction.type === "Refund") {
+                spentCents -= moneyToCents(transaction.amount);
+            } else if (transaction.amount < 0) {
+                spentCents += Math.abs(moneyToCents(transaction.amount));
+            }
         }
 
     }
 
-    return spent;
+    return centsToMoney(spentCents);
 
 }
