@@ -13,10 +13,40 @@ const formDescription = document.querySelector("#form-description");
 const formBackLink = document.querySelector("#form-back-link");
 const saveButton = document.querySelector("#save-transaction-button");
 
-const editId = new URLSearchParams(window.location.search).get("edit");
+const pageParameters = new URLSearchParams(window.location.search);
+const editId = pageParameters.get("edit");
+const monthFromPage = pageParameters.get("month");
+const selectedMonth = monthFromPage && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthFromPage)
+    ? monthFromPage
+    : "";
+const fromPage = pageParameters.get("from");
+
+let returnPage = "index.html";
+let returnLabel = "Back to dashboard";
+
+if (fromPage === "budgets") {
+    returnPage = "budgets.html";
+    returnLabel = "Back to budgets";
+}
+
+if (fromPage === "transactions" || editId !== null) {
+    returnPage = "transactions.html";
+    returnLabel = "Back to transactions";
+}
+
+if (selectedMonth) {
+    returnPage += `?month=${selectedMonth}`;
+
+    for (const link of document.querySelectorAll('.nav-link[href$=".html"]')) {
+        link.href += `?month=${selectedMonth}`;
+    }
+}
+
+formBackLink.href = returnPage;
+formBackLink.textContent = returnLabel;
 
 
-/* set today's date */
+/* set the starting date */
 
 const today = new Date();
 
@@ -24,7 +54,11 @@ const year = today.getFullYear();
 const month = String(today.getMonth() + 1).padStart(2, "0");
 const day = String(today.getDate()).padStart(2, "0");
 
-dateInput.value = `${year}-${month}-${day}`;
+const currentMonth = `${year}-${month}`;
+
+dateInput.value = selectedMonth && selectedMonth !== currentMonth
+    ? `${selectedMonth}-01`
+    : `${currentMonth}-${day}`;
 
 
 /* fill the form when editing */
@@ -34,8 +68,6 @@ if (editId !== null) {
     document.title = "Edit Transaction | Flow";
     formTitle.textContent = "Edit transaction";
     formDescription.textContent = "Update this income or expense.";
-    formBackLink.href = "transactions.html";
-    formBackLink.textContent = "Back to transactions";
     saveButton.textContent = "Save changes";
 
 
@@ -171,7 +203,7 @@ transactionForm.addEventListener("submit", function(event) {
     );
 
 
-    window.location.href = editId !== null ? "transactions.html" : "index.html";
+    window.location.href = returnPage;
 
 });
 

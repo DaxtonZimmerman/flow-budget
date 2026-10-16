@@ -14,6 +14,8 @@ budgetMonth.value = selectedMonth;
 dashboardLink.href = `index.html?month=${selectedMonth}`;
 document.querySelector('a[href="transactions.html"]').href =
     `transactions.html?month=${selectedMonth}`;
+document.querySelector('a[href="add-transaction.html"]').href =
+    `add-transaction.html?from=budgets&month=${selectedMonth}`;
 
 budgetMonth.addEventListener("change", function() {
     if (budgetMonth.value) {

@@ -134,6 +134,8 @@ for (const link of document.querySelectorAll('a[href="transactions.html"]')) {
 }
 
 document.querySelector("#search-month").value = selectedMonth;
+document.querySelector('a[href="add-transaction.html"]').href =
+    `add-transaction.html?from=dashboard&month=${selectedMonth}`;
 
 let remainingBudget = 0;
 

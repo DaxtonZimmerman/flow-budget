@@ -55,6 +55,16 @@ const historyTitle = document.querySelector("#history-title");
 historyMonth.value = selectedMonth;
 allMonthsButton.hidden = selectedMonth === "";
 
+let addTransactionLink = "add-transaction.html?from=transactions";
+
+if (selectedMonth) {
+    addTransactionLink += `&month=${selectedMonth}`;
+}
+
+for (const link of document.querySelectorAll('a[href="add-transaction.html"]')) {
+    link.href = addTransactionLink;
+}
+
 if (selectedMonth) {
     const year = Number(selectedMonth.slice(0, 4));
     const month = Number(selectedMonth.slice(5, 7));
@@ -294,6 +304,10 @@ if (transactions.length === 0) {
 
         editLink.href =
             `add-transaction.html?edit=${encodeURIComponent(transaction.id)}`;
+
+        if (selectedMonth) {
+            editLink.href += `&month=${selectedMonth}`;
+        }
         editLink.classList.add("edit-transaction-link");
         editLink.textContent = "Edit";
         editLink.setAttribute("aria-label", `Edit ${transaction.name}`);
