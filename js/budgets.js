@@ -4,9 +4,8 @@ lucide.createIcons();
 const savedTransactions = localStorage.getItem("transactions");
 const transactions = JSON.parse(savedTransactions) || [];
 
-let budgets = loadBudgets();
-
 const selectedMonth = getSelectedMonth();
+let budgets = loadBudgets(selectedMonth);
 const budgetMonth = document.querySelector("#budget-month");
 const dashboardLink = document.querySelector("#dashboard-link");
 
@@ -133,7 +132,7 @@ function showBudgets() {
                 return item.category !== budget.category;
             });
 
-            localStorage.setItem("budgets", JSON.stringify(budgets));
+            saveBudgets(selectedMonth, budgets);
             showBudgets();
 
         });
@@ -188,7 +187,7 @@ budgetForm.addEventListener("submit", function(event) {
         budgets.push({ category: category, limit: limit });
     }
 
-    localStorage.setItem("budgets", JSON.stringify(budgets));
+    saveBudgets(selectedMonth, budgets);
 
     categoryInput.value = "";
     limitInput.value = "";

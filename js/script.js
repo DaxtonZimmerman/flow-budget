@@ -41,12 +41,11 @@ if (savedTransactions) {
 }
 
 
-const budgets = loadBudgets();
+const selectedMonth = getSelectedMonth();
+const budgets = loadBudgets(selectedMonth);
 
 
 /* calculate totals */
-
-const selectedMonth = getSelectedMonth();
 const selectedYear = Number(selectedMonth.slice(0, 4));
 const selectedMonthNumber = Number(selectedMonth.slice(5, 7));
 const daysInMonth = new Date(selectedYear, selectedMonthNumber, 0).getDate();

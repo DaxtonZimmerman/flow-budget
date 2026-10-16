@@ -8,7 +8,14 @@ const defaultBudgets = [
 ];
 
 
-function loadBudgets() {
+function loadBudgets(month) {
+
+    const savedMonths = localStorage.getItem("budgetsByMonth");
+    const budgetsByMonth = JSON.parse(savedMonths) || {};
+
+    if (budgetsByMonth[month]) {
+        return budgetsByMonth[month];
+    }
 
     const savedBudgets = localStorage.getItem("budgets");
 
@@ -18,7 +25,21 @@ function loadBudgets() {
 
     localStorage.setItem("budgets", JSON.stringify(defaultBudgets));
 
-    return defaultBudgets;
+    return defaultBudgets.map(function(budget) {
+        return { category: budget.category, limit: budget.limit };
+    });
+
+}
+
+
+function saveBudgets(month, budgets) {
+
+    const savedMonths = localStorage.getItem("budgetsByMonth");
+    const budgetsByMonth = JSON.parse(savedMonths) || {};
+
+    budgetsByMonth[month] = budgets;
+
+    localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
 
 }
 
