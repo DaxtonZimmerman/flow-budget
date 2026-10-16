@@ -91,7 +91,7 @@ The review inbox, exact-name category rules, and monthly suggestions are built. 
 
 You're done when test accounts stay accurate through reconnects and several sync cycles. Show when data was last updated. Commit idea: `Add reliable bank transaction sync`.
 
-Plaid is the first provider for US personal accounts. Easton's free Trial is active with 0 of 10 live Items used. A public launch needs a paid-rate review. `BANK_CONNECTIONS.md` records the comparison and server setup. Sandbox Link, private token storage, transaction sync, and disconnect are coded and locally tested but not deployed or tested with Plaid yet. Automatic updates and reconnect handling remain.
+Plaid is the first provider for US personal accounts. Easton's free Trial is active with 0 of 10 live Items used. A public launch needs a paid-rate review. `BANK_CONNECTIONS.md` records the comparison and server setup. Sandbox Link, private token storage, transaction sync, and disconnect are deployed. First Platypus Bank synced 55 test transactions; a repeated sync kept the count at 55. Flow checks for updates when opened and offers reconnect when Plaid reports a login problem. The live Sandbox reconnect path, background updates while Flow is closed, and real-bank testing remain.
 
 ### 7. Planning that answers real questions
 

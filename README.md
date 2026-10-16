@@ -17,6 +17,19 @@ The app saves edits on this device first. It syncs when online and checks again 
 
 Run the checks with `node --test tests/*.test.js`.
 
+## Prepare a test website
+
+Flow's HTML, CSS, and browser JavaScript can be hosted as a static website. Run `node scripts/build-site.mjs` to make a `dist/` folder with only those public app files. The Supabase project URL and publishable key in `js/cloud-config.js` are designed for browser use. Database passwords, Plaid secrets, and service-role keys must stay in Supabase Secrets.
+
+`.github/workflows/pages.yml` is a manual GitHub Pages publish action. It does not run on a push. After reviewing and committing this setup:
+
+1. In the GitHub repository, open **Settings → Pages** and choose **GitHub Actions** as the source.
+2. In Supabase **Authentication → URL Configuration**, add the exact published `account.html` URL as an allowed redirect. Keep the local development URL allowed. Set the Site URL to the published account URL when you are ready to use it as Flow's main sign-in destination.
+3. In GitHub **Actions → Publish Flow website**, select **Run workflow** on `main`. Its result shows the real website URL.
+4. Open the published Account page, send a new sign-in link, and check a sync from another device. Use only Plaid Sandbox test banks while the server still targets Sandbox.
+
+A GitHub Pages site is public. Signed-in Flow data remains in the owner's browser and private Supabase table, but anyone can visit the app and create an account unless signups are restricted separately. The first site is for a small test, not a paid public launch. Live bank connections, a reconnect test, background updates, and a security review remain before that launch.
+
 ## Import a bank CSV
 
 Open Transactions → Import CSV. Choose a bank export, match its date, description, and amount columns, then review every row before saving. Flow supports one signed amount column, positive spending amounts, or separate debit and credit columns. Dates can be year-month-day, month/day/year, or day/month/year. An optional category column keeps the bank's labels; otherwise spending goes to Other and income goes to Income.
