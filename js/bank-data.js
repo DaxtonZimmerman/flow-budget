@@ -1,0 +1,145 @@
+/* turn bank updates into Flow transactions */
+
+function bankTransactionFromPlaid(item, accountId, previous) {
+    const amount = Math.round(Number(item.amount) * 100) / -100;
+    const type = amount < 0 ? "Expense" : "Income";
+    const name = item.merchant_name || item.name || "Bank transaction";
+
+    return {
+        id: previous && previous.bankTransactionId === item.transaction_id
+            ? previous.id : `bank-${accountId}-${item.transaction_id}`,
+        source: "bank",
+        accountId: accountId,
+        bankTransactionId: item.transaction_id,
+        status: item.pending ? "pending" : "posted",
+        type: type,
+        name: name,
+        amount: amount,
+        date: item.date,
+        category: previous ? previous.category : (type === "Income" ? "Income" : "Other"),
+        notes: previous ? previous.notes : "",
+        categoryReason: previous ? previous.categoryReason : "",
+        reviewStatus: previous ? previous.reviewStatus : "needs-review"
+    };
+}
+
+
+function applyBankChanges(transactions, accountId, changes) {
+    const updated = transactions.slice();
+    const original = transactions.slice();
+    const removedIds = new Set((changes.removed || []).map(function(item) {
+        return item.transaction_id;
+    }));
+    let addedCount = 0;
+    let updatedCount = 0;
+    let removedCount = 0;
+
+    for (let index = updated.length - 1; index >= 0; index--) {
+        const transaction = updated[index];
+
+        if (transaction.source === "bank" && transaction.accountId === accountId &&
+            removedIds.has(transaction.bankTransactionId)) {
+            updated.splice(index, 1);
+            removedCount++;
+        }
+    }
+
+    for (const item of [...(changes.added || []), ...(changes.modified || [])]) {
+        if (!item.transaction_id || !item.date || !Number.isFinite(Number(item.amount))) {
+            continue;
+        }
+
+        const index = updated.findIndex(function(transaction) {
+            return transaction.source === "bank" &&
+                transaction.accountId === accountId &&
+                transaction.bankTransactionId === item.transaction_id;
+        });
+
+        const previous = index >= 0 ? updated[index] : original.find(function(transaction) {
+            return transaction.source === "bank" &&
+                transaction.accountId === accountId &&
+                transaction.bankTransactionId === item.pending_transaction_id;
+        });
+
+        const next = bankTransactionFromPlaid(item, accountId, previous);
+
+        if (index >= 0) {
+            updated[index] = next;
+            updatedCount++;
+        } else {
+            if (previous && item.pending_transaction_id) {
+                const pendingIndex = updated.findIndex(function(transaction) {
+                    return transaction.source === "bank" &&
+                        transaction.accountId === accountId &&
+                        transaction.bankTransactionId === item.pending_transaction_id;
+                });
+
+                if (pendingIndex >= 0) {
+                    updated.splice(pendingIndex, 1);
+                    removedCount++;
+                }
+            }
+
+            updated.push(next);
+            addedCount++;
+        }
+    }
+
+    return {
+        transactions: updated,
+        addedCount: addedCount,
+        updatedCount: updatedCount,
+        removedCount: removedCount
+    };
+}
+
+
+/* match one bank's saved snapshot */
+
+function mergeBankSnapshot(transactions, connectionId, bankItems) {
+    const oldBankItems = transactions.filter(function(item) {
+        return item.source === "bank" && item.bankConnectionId === connectionId;
+    });
+    const available = new Map();
+
+    for (const item of bankItems) {
+        if (!item.transaction_id || !item.account_id || !item.date ||
+            !Number.isFinite(Number(item.amount))) {
+            continue;
+        }
+
+        available.set(item.transaction_id, item);
+    }
+
+    const updated = [];
+
+    for (const saved of transactions) {
+        if (saved.source !== "bank" || saved.bankConnectionId !== connectionId) {
+            updated.push(saved);
+            continue;
+        }
+
+        const item = available.get(saved.bankTransactionId);
+
+        if (item) {
+            const next = bankTransactionFromPlaid(item, item.account_id, saved);
+            next.bankConnectionId = connectionId;
+            updated.push(next);
+            available.delete(item.transaction_id);
+        }
+    }
+
+    for (const item of available.values()) {
+        const previous = oldBankItems.find(function(saved) {
+            return saved.accountId === item.account_id &&
+                saved.bankTransactionId === item.pending_transaction_id;
+        });
+        const next = bankTransactionFromPlaid(item, item.account_id, previous);
+
+        next.id = `bank-${connectionId}-${item.transaction_id}`;
+        next.bankConnectionId = connectionId;
+        updated.push(next);
+    }
+
+    return updated;
+}

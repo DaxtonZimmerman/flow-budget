@@ -321,7 +321,9 @@ if (transactions.length === 0) {
 
 
         actions.appendChild(editLink);
-        actions.appendChild(deleteButton);
+        if (transaction.source !== "bank") {
+            actions.appendChild(deleteButton);
+        }
 
         transactionRow.appendChild(actions);
 

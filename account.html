@@ -9,9 +9,12 @@
 
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js" defer></script>
     <script src="js/cloud-config.js" defer></script>
     <script src="js/cloud-sync.js" defer></script>
+    <script src="js/bank-data.js" defer></script>
     <script src="js/account.js" defer></script>
+    <script src="js/bank-connections.js" defer></script>
 </head>
 
 <body>
@@ -64,6 +67,15 @@
                     <button id="sync-now" class="save-button" type="button">Sync now</button>
                     <button id="sign-out" class="back-button" type="button">Sign out on this device</button>
                 </div>
+            </section>
+
+            <section id="bank-connections" class="card account-card" hidden>
+                <p class="small-label">Bank connections</p>
+                <h3>Bring in your transactions</h3>
+                <p>Connect a test bank in Plaid Sandbox, then sync its transactions. This does not use a live trial connection. Disconnect a bank here to remove its synced transactions.</p>
+                <button id="connect-bank" class="save-button" type="button">Connect test bank</button>
+                <p id="bank-message" class="account-status" aria-live="polite"></p>
+                <ul id="connected-banks" class="bank-list"></ul>
             </section>
 
             <section id="account-choose" class="card account-card" hidden>

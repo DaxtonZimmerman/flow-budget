@@ -129,6 +129,15 @@ if (editId !== null) {
         dateInput.value = transaction.date || "";
         notesInput.value = transaction.notes || "";
 
+        if (transaction.source === "bank") {
+            formDescription.textContent =
+                "This came from your bank. You can change its category and notes.";
+            typeInput.disabled = true;
+            nameInput.disabled = true;
+            amountInput.disabled = true;
+            dateInput.disabled = true;
+        }
+
     }
 
 }
@@ -150,6 +159,9 @@ transactionForm.addEventListener("submit", function(event) {
     const matchedSuggestion = suggestedRule &&
         suggestedRule.name === normalizedName(name) &&
         suggestedRule.type === type && suggestedRule.category === category;
+    const bankEdit = editId !== null && loadTransactions().some(function(item) {
+        return String(item.id) === editId && item.source === "bank";
+    });
 
 
     formMessage.textContent = "";
@@ -173,8 +185,8 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    if (!Number.isFinite(amount) || amount <= 0 ||
-        !/^\d+(\.\d{1,2})?$/.test(amountInput.value)) {
+    if (!bankEdit && (!Number.isFinite(amount) || amount <= 0 ||
+        !/^\d+(\.\d{1,2})?$/.test(amountInput.value))) {
         showError("Please enter an amount greater than $0 with up to two decimals.");
         return;
     }
@@ -236,18 +248,27 @@ transactionForm.addEventListener("submit", function(event) {
         const sameCategory = oldTransaction.category === category &&
             oldTransaction.name === name && oldTransaction.type === type;
 
-        transactions[transactionIndex] = {
-            ...oldTransaction,
-            type: type,
-            name: name,
-            category: category,
-            amount: finalAmount,
-            date: date,
-            notes: notes,
-            reviewStatus: "reviewed",
-            categoryReason: sameCategory ? oldTransaction.categoryReason : "Chosen by you",
-            categoryRuleId: sameCategory ? oldTransaction.categoryRuleId : undefined
-        };
+        transactions[transactionIndex] = oldTransaction.source === "bank"
+            ? {
+                ...oldTransaction,
+                category: category,
+                notes: notes,
+                reviewStatus: "reviewed",
+                categoryReason: sameCategory ? oldTransaction.categoryReason : "Chosen by you",
+                categoryRuleId: sameCategory ? oldTransaction.categoryRuleId : undefined
+            }
+            : {
+                ...oldTransaction,
+                type: type,
+                name: name,
+                category: category,
+                amount: finalAmount,
+                date: date,
+                notes: notes,
+                reviewStatus: "reviewed",
+                categoryReason: sameCategory ? oldTransaction.categoryReason : "Chosen by you",
+                categoryRuleId: sameCategory ? oldTransaction.categoryRuleId : undefined
+            };
 
     } else {
 

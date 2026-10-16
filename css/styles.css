@@ -1268,6 +1268,34 @@ button:active {
     overflow-wrap: anywhere;
 }
 
+.bank-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.bank-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border);
+}
+
+.bank-list small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-light);
+}
+
+.bank-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 
 /* backup */
 

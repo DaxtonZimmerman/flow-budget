@@ -84,12 +84,14 @@ The review inbox, exact-name category rules, and monthly suggestions are built. 
 
 ### 6. Bank connections
 
-- [ ] Compare bank connection providers for the countries you plan to support, including coverage and cost.
+- [x] Compare bank connection providers for the countries you plan to support, including coverage and cost.
 - [ ] Connect accounts through your server. Keep secret keys and long-lived tokens out of browser code.
 - [ ] Handle new, changed, removed, pending, and posted transactions without duplicates.
 - [ ] Show when each account last updated, how to reconnect it, and how to import a file if syncing fails.
 
 You're done when test accounts stay accurate through reconnects and several sync cycles. Show when data was last updated. Commit idea: `Add reliable bank transaction sync`.
+
+Plaid is the first provider for US personal accounts. Easton's free Trial is active with 0 of 10 live Items used. A public launch needs a paid-rate review. `BANK_CONNECTIONS.md` records the comparison and server setup. Sandbox Link, private token storage, transaction sync, and disconnect are coded and locally tested but not deployed or tested with Plaid yet. Automatic updates and reconnect handling remain.
 
 ### 7. Planning that answers real questions
 
