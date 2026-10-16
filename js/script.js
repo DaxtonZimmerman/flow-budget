@@ -121,15 +121,100 @@ for (const budget of budgets) {
 
 }
 
-let safeToSpend = totalBalance - remainingBudget;
+const budgetRoomText = document.querySelector("#budget-room");
+const budgetRoomNote = document.querySelector("#budget-room-note");
 
-if (safeToSpend < 0) {
-    safeToSpend = 0;
+if (budgets.length === 0) {
+    budgetRoomText.textContent = "No budget yet";
+    budgetRoomNote.textContent =
+        "Set category limits to see your monthly budget room.";
+} else {
+    budgetRoomText.textContent = `$${remainingBudget.toFixed(2)}`;
 }
 
-const safeToSpendText = document.querySelector("#safe-to-spend");
 
-safeToSpendText.textContent = `$${safeToSpend.toFixed(2)}`;
+/* show what needs a look */
+
+const attentionList = document.querySelector("#attention-list");
+const overBudgetCategories = [];
+let undatedCount = 0;
+
+for (const budget of budgets) {
+    const spent = getBudgetSpending(budget.category, transactions, selectedMonth);
+
+    if (spent > budget.limit) {
+        overBudgetCategories.push(budget.category);
+    }
+}
+
+for (const transaction of transactions) {
+    if (!transaction.date) {
+        undatedCount++;
+    }
+}
+
+function addAttention(title, description, page) {
+    const link = document.createElement("a");
+    link.classList.add("attention-item");
+    link.href = page;
+
+    const text = document.createElement("span");
+    const heading = document.createElement("strong");
+    const detail = document.createElement("small");
+
+    heading.textContent = title;
+    detail.textContent = description;
+
+    text.appendChild(heading);
+    text.appendChild(detail);
+    link.appendChild(text);
+
+    const arrow = document.createElement("span");
+    arrow.classList.add("attention-arrow");
+    arrow.textContent = "↗";
+    link.appendChild(arrow);
+
+    attentionList.appendChild(link);
+}
+
+if (budgets.length === 0) {
+    addAttention(
+        "Set your first budget",
+        "Choose a category and a monthly limit that fits your life.",
+        `budgets.html?month=${selectedMonth}`
+    );
+}
+
+if (transactions.length === 0) {
+    addAttention(
+        "Start with a transaction",
+        "Add one expense or income entry to see your own numbers here.",
+        `add-transaction.html?from=dashboard&month=${selectedMonth}`
+    );
+}
+
+if (overBudgetCategories.length > 0) {
+    addAttention(
+        "Budget over its limit",
+        overBudgetCategories.join(", "),
+        `budgets.html?month=${selectedMonth}`
+    );
+}
+
+if (undatedCount > 0) {
+    addAttention(
+        `${undatedCount} transaction${undatedCount === 1 ? "" : "s"} without a date`,
+        "Add dates so monthly totals include them.",
+        `transactions.html?month=${selectedMonth}`
+    );
+}
+
+if (attentionList.children.length === 0) {
+    const clearMessage = document.createElement("p");
+    clearMessage.classList.add("attention-clear");
+    clearMessage.textContent = "Nothing needs a look right now.";
+    attentionList.appendChild(clearMessage);
+}
 
 
 /* show spending charts */

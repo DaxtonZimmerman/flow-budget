@@ -25,7 +25,7 @@
 
                 <h1 class="logo">Flow</h1>
 
-                <nav class="nav">
+                <nav class="nav" aria-label="Main navigation">
 
                     <a href="index.html" class="nav-link active" aria-current="page">
                         <i data-lucide="layout-dashboard" class="nav-icon"></i>
@@ -43,16 +43,6 @@
                     </a>
 
                 </nav>
-
-            </div>
-
-            <div class="profile">
-
-                <span class="profile-icon">DZ</span>
-
-                <span class="profile-text">
-                    <strong>Daxton</strong>
-                </span>
 
             </div>
 
@@ -86,8 +76,9 @@
             <header class="welcome">
 
                 <div>
-                    <h2>Your financial overview</h2>
-                    <p>Track your balance, spending, and budgets.</p>
+                    <p class="small-label">Your money, in focus</p>
+                    <h2>A clearer view of this month.</h2>
+                    <p>See what you recorded and where your budget stands.</p>
                 </div>
 
                 <div class="welcome-actions">
@@ -109,7 +100,7 @@
 
                     <div class="summary-top">
 
-                        <p>Total balance</p>
+                        <p>Recorded net</p>
 
                         <span class="card-icon green-icon">
                             <i data-lucide="wallet"></i>
@@ -120,17 +111,17 @@
                     <h3 id="total-balance">$0.00</h3>
 
                     <p class="small-text">
-                        Across all saved transactions
+                        All saved income minus spending. This is not a bank balance.
                     </p>
 
                 </div>
 
 
-                <div class="summary-card">
+                <div class="summary-card feature-card">
 
                     <div class="summary-top">
 
-                        <p>Safe to spend</p>
+                        <p>Budget room this month</p>
 
                         <span class="card-icon blue-icon">
                             <i data-lucide="shield-check"></i>
@@ -138,11 +129,25 @@
 
                     </div>
 
-                    <h3 id="safe-to-spend">$0.00</h3>
+                    <h3 id="budget-room">$0.00</h3>
 
-                    <p class="small-text">
-                        After selected month's remaining budgets
+                    <p id="budget-room-note" class="small-text">
+                        The unspent part of your category limits. This is not cash available.
                     </p>
+
+                </div>
+
+
+                <div class="card attention-card" aria-labelledby="attention-heading">
+
+                    <div class="section-top">
+                        <div>
+                            <p class="small-label">Right now</p>
+                            <h3 id="attention-heading">Worth a look</h3>
+                        </div>
+                    </div>
+
+                    <div id="attention-list" class="attention-list"></div>
 
                 </div>
 

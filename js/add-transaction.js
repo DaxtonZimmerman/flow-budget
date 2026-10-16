@@ -223,3 +223,8 @@ function showError(message) {
     formMessage.textContent = message;
 
 }
+
+
+if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}

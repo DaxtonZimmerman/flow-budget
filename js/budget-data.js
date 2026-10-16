@@ -1,13 +1,5 @@
 /* shared budget data */
 
-const defaultBudgets = [
-    { category: "Food", limit: 500 },
-    { category: "Transport", limit: 300 },
-    { category: "Entertainment", limit: 200 },
-    { category: "Shopping", limit: 400 }
-];
-
-
 function loadBudgets(month) {
 
     const savedMonths = localStorage.getItem("budgetsByMonth");
@@ -23,11 +15,9 @@ function loadBudgets(month) {
         return JSON.parse(savedBudgets) || [];
     }
 
-    localStorage.setItem("budgets", JSON.stringify(defaultBudgets));
+    localStorage.setItem("budgets", "[]");
 
-    return defaultBudgets.map(function(budget) {
-        return { category: budget.category, limit: budget.limit };
-    });
+    return [];
 
 }
 

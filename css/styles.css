@@ -1,30 +1,30 @@
 :root {
-    --background: #f6f8fb;
-    --card: #ffffff;
+    --background: #f5f2e9;
+    --card: #fffdf8;
 
-    --text: #111827;
-    --text-light: #64748b;
+    --text: #20352e;
+    --text-light: #596b61;
 
-    --sidebar: #111c2e;
-    --sidebar-hover: #182a3f;
-    --sidebar-active: #21364f;
+    --sidebar: #183b32;
+    --sidebar-hover: #285447;
+    --sidebar-active: #f0ead7;
 
-    --blue: #4f66f8;
-    --blue-light: #e7ebff;
+    --blue: #236a55;
+    --blue-light: #e4f0e7;
 
-    --green: #14b87a;
-    --green-light: #dff8ee;
+    --green: #237653;
+    --green-light: #e2f1e4;
 
-    --red: #ef4444;
-    --red-light: #fee2e2;
+    --red: #ad4f3c;
+    --red-light: #fae9e1;
 
-    --orange: #f59e0b;
-    --orange-light: #fff1d6;
+    --orange: #b77b31;
+    --orange-light: #f8edcf;
 
-    --purple: #8b5cf6;
-    --pink: #ec4899;
+    --purple: #826b8d;
+    --pink: #b96f71;
 
-    --border: #e2e8f0;
+    --border: #d9ddd0;
 }
 
 
@@ -40,6 +40,7 @@ body {
 
     background: var(--background);
     color: var(--text);
+    line-height: 1.45;
 
     font-family:
         -apple-system,
@@ -78,11 +79,17 @@ button:active {
 }
 
 
+:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+}
+
+
 /* app */
 
 .app {
     display: grid;
-    grid-template-columns: 11rem 1fr;
+    grid-template-columns: 12.5rem minmax(0, 1fr);
 
     min-height: 100vh;
 }
@@ -93,11 +100,11 @@ button:active {
 .sidebar {
     height: 100vh;
 
-    padding: 1.5rem 0.75rem;
+    padding: 1.75rem 1rem;
 
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
 
     position: sticky;
     top: 0;
@@ -108,9 +115,13 @@ button:active {
 
 
 .logo {
-    margin: 0 0 2rem;
+    margin: 0 0 2.5rem 0.75rem;
 
-    font-size: 1.75rem;
+    font-family: Georgia, serif;
+    font-size: 2rem;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: -0.08rem;
 }
 
 
@@ -123,6 +134,7 @@ button:active {
 
 
 .nav-link {
+    min-height: 2.75rem;
     padding: 0.75rem;
 
     display: flex;
@@ -130,11 +142,11 @@ button:active {
 
     gap: 0.75rem;
 
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
 
-    color: #aebdce;
+    color: #d3e0d7;
 
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     font-weight: 600;
 
     transition: 0.2s;
@@ -149,7 +161,7 @@ button:active {
 
 .nav-link.active {
     background: var(--sidebar-active);
-    color: white;
+    color: var(--text);
 }
 
 
@@ -163,61 +175,6 @@ button:active {
 }
 
 
-.profile {
-    padding: 0.5rem;
-
-    display: flex;
-    align-items: center;
-
-    gap: 0.75rem;
-
-    background: none;
-    border: none;
-
-    color: white;
-}
-
-
-.profile-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex-shrink: 0;
-
-    background: var(--blue);
-
-    border: none;
-    border-radius: 50%;
-
-    color: white;
-
-    font-weight: 700;
-}
-
-
-.profile-text {
-    display: flex;
-    flex-direction: column;
-
-    align-items: flex-start;
-
-    color: #94a3b8;
-
-    font-size: 0.75rem;
-}
-
-
-.profile-text strong {
-    color: white;
-
-    font-size: 0.75rem;
-}
-
-
 /* main */
 
 .main {
@@ -227,7 +184,7 @@ button:active {
 
     margin: 0 auto;
 
-    padding: 1.5rem 2rem 2rem;
+    padding: 2rem 2.5rem 3rem;
 }
 
 
@@ -254,9 +211,9 @@ button:active {
 
     gap: 0.5rem;
 
-    background: #eaf0f7;
+    background: #eeeae0;
 
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
 
     color: var(--text-light);
 }
@@ -307,14 +264,14 @@ button:active {
 
 
 .search input::placeholder {
-    color: #94a3b8;
+    color: var(--text-light);
 }
 
 
 /* welcome */
 
 .welcome {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.75rem;
 
     display: flex;
     align-items: center;
@@ -325,9 +282,12 @@ button:active {
 
 
 .welcome h2 {
-    margin: 0 0 0.25rem;
+    margin: 0.2rem 0 0.35rem;
 
-    font-size: 1.5rem;
+    font-family: Georgia, serif;
+    font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+    font-weight: 500;
+    letter-spacing: -0.05rem;
 }
 
 
@@ -336,7 +296,7 @@ button:active {
 
     color: var(--text-light);
 
-    font-size: 0.75rem;
+    font-size: 0.875rem;
 }
 
 
@@ -349,14 +309,15 @@ button:active {
 
 
 .add-transaction-link {
+    min-height: 2.75rem;
     padding: 0.75rem 1rem;
 
     background: var(--blue);
     color: white;
 
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
 
-    font-size: 0.75rem;
+    font-size: 0.875rem;
     font-weight: 600;
 }
 
@@ -370,10 +331,10 @@ button:active {
 .small-button {
     padding: 0.75rem 1rem;
 
-    background: white;
+    background: var(--card);
 
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
 
     color: var(--text);
 }
@@ -396,10 +357,10 @@ button:active {
 /* cards */
 
 .summary-grid {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 
     gap: 1rem;
 }
@@ -411,13 +372,42 @@ button:active {
 
     border: 1px solid var(--border);
     border-radius: 0.75rem;
-
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 
 .summary-card {
-    padding: 1rem;
+    min-width: 0;
+    padding: 1.25rem;
+}
+
+
+.summary-grid .feature-card {
+    grid-column: 1 / span 2;
+    grid-row: 1;
+    order: -2;
+
+    background: var(--sidebar);
+    border-color: var(--sidebar);
+    color: white;
+}
+
+
+.feature-card .summary-top p,
+.feature-card .small-text {
+    color: #e3ece2;
+}
+
+
+.feature-card .card-icon {
+    background: #326650;
+    color: #fff8e7;
+}
+
+
+.summary-card.feature-card h3 {
+    font-family: Georgia, serif;
+    font-size: clamp(2rem, 3vw, 3rem);
+    font-weight: 500;
 }
 
 
@@ -520,7 +510,7 @@ button:active {
 
 
 .card {
-    padding: 1rem;
+    padding: 1.25rem;
 }
 
 
@@ -538,7 +528,9 @@ button:active {
 .section-top h3 {
     margin: 0.25rem 0 0;
 
-    font-size: 1.25rem;
+    font-family: Georgia, serif;
+    font-size: 1.4rem;
+    font-weight: 500;
 }
 
 
@@ -557,6 +549,82 @@ button:active {
 
     font-size: 0.75rem;
     font-weight: 600;
+    letter-spacing: 0.06rem;
+    text-transform: uppercase;
+}
+
+
+/* attention */
+
+.attention-card {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    order: -1;
+}
+
+
+.attention-card .section-top {
+    margin-bottom: 0.5rem;
+}
+
+
+.attention-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+
+.attention-item {
+    min-width: 0;
+    min-height: 4.5rem;
+    padding: 0.85rem 1rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+
+    background: #f5f3e9;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+
+.attention-item:hover {
+    border-color: var(--blue);
+}
+
+
+.attention-item span:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+
+.attention-item strong {
+    font-size: 0.875rem;
+}
+
+
+.attention-item small,
+.attention-clear {
+    color: var(--text-light);
+    font-size: 0.75rem;
+}
+
+
+.attention-arrow {
+    color: var(--blue);
+    font-size: 1.25rem;
+}
+
+
+.attention-clear {
+    margin: 0;
+    padding: 0.75rem 0;
 }
 
 
@@ -649,7 +717,7 @@ button:active {
 
     position: relative;
 
-    background: var(--blue);
+    background: var(--green);
 
     border-radius: 0.5rem 0.5rem 0 0;
 }
@@ -810,7 +878,7 @@ button:active {
 
 
 .transaction-row:hover {
-    background: #f8fafc;
+    background: #f5f3e9;
 }
 
 
@@ -1015,7 +1083,9 @@ button:active {
 .form-header h2 {
     margin: 0.25rem 0;
 
-    font-size: 1.5rem;
+    font-family: Georgia, serif;
+    font-size: 1.75rem;
+    font-weight: 500;
 }
 
 
@@ -1052,7 +1122,6 @@ button:active {
     border: 1px solid var(--border);
     border-radius: 0.75rem;
 
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .form-message {
@@ -1205,7 +1274,9 @@ button:active {
 .page-header h2 {
     margin: 0.25rem 0;
 
-    font-size: 1.5rem;
+    font-family: Georgia, serif;
+    font-size: 1.75rem;
+    font-weight: 500;
 }
 
 
@@ -1342,7 +1413,7 @@ button:active {
 .history-header {
     padding: 0.75rem;
 
-    background: #f8fafc;
+    background: #f5f3e9;
 
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
@@ -1501,7 +1572,7 @@ button:active {
 @media (max-width: 1280px) {
 
     .app {
-        grid-template-columns: 10rem 1fr;
+        grid-template-columns: 11.5rem minmax(0, 1fr);
     }
 
     .main {
@@ -1522,7 +1593,17 @@ button:active {
 @media (max-width: 1024px) {
 
     .summary-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-grid .feature-card,
+    .summary-grid .summary-card:first-child {
+        grid-column: 1 / -1;
+        grid-row: auto;
+    }
+
+    .attention-list {
+        grid-template-columns: 1fr;
     }
 
     .chart-grid {
@@ -1534,9 +1615,8 @@ button:active {
     }
 
     .transaction-summary-grid {
-    grid-template-columns: 1fr;
-}
-
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 
     .transaction-history-card {
         overflow-x: auto;
@@ -1561,50 +1641,64 @@ button:active {
         width: 100%;
         height: auto;
 
-        padding: 1rem;
+        padding: 0.75rem 1rem;
 
-        position: static;
+        position: sticky;
+        top: 0;
+        z-index: 10;
 
-        flex-direction: row;
-        align-items: center;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
     }
 
     .sidebar-top {
         width: 100%;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        gap: 1rem;
     }
 
     .logo {
         margin: 0;
 
-        font-size: 1.5rem;
+        font-size: 1.75rem;
     }
 
     .nav {
-        flex-direction: row;
+        width: 100%;
+        padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom));
 
-        overflow-x: auto;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 20;
+
+        background: var(--sidebar);
     }
 
     .nav-link {
+        min-width: 0;
+        min-height: 3.75rem;
+        padding: 0.35rem 0.25rem;
+
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.2rem;
+
+        text-align: center;
         white-space: nowrap;
+        font-size: 0.6875rem;
     }
 
     .nav-icon {
-        display: none;
-    }
-
-    .profile {
-        display: none;
+        width: 1.2rem;
+        height: 1.2rem;
     }
 
     .main {
-        padding: 1rem;
+        padding: 1.25rem 1rem 7.5rem;
     }
 
     .top-bar {
@@ -1615,10 +1709,86 @@ button:active {
         width: 100%;
     }
 
+    .transaction-history-card {
+        overflow: visible;
+    }
+
+    .history-header {
+        display: none;
+    }
+
+    .history-row {
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.35rem 0.75rem;
+    }
+
+    .history-name {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .history-name strong {
+        white-space: normal;
+    }
+
+    .history-amount {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .history-row > span:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .history-row > span:nth-child(3) {
+        grid-column: 2;
+        grid-row: 2;
+        text-align: right;
+    }
+
+    .history-row > span:nth-child(4) {
+        grid-column: 1 / -1;
+        grid-row: 3;
+    }
+
+    .history-actions {
+        grid-column: 1 / -1;
+        grid-row: 4;
+        justify-content: flex-end;
+        margin-top: 0.4rem;
+    }
+
 }
 
 
 @media (max-width: 640px) {
+
+    .transaction-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .transaction-summary-grid .summary-card:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .transaction-summary-grid .summary-card h3 {
+        font-size: clamp(1.2rem, 5vw, 1.5rem);
+    }
+
+    .summary-card {
+        padding: 1rem;
+    }
+
+    .attention-item {
+        width: 100%;
+    }
+
+    .backup-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
 
     .budget-form,
     .budget-detail-row {
@@ -1634,23 +1804,17 @@ button:active {
     .history-filters {
         flex-direction: column;
         align-items: stretch;
+        padding: 0 0 1rem;
+    }
+
+    .history-filter,
+    .history-filter:first-child {
+        width: 100%;
+        flex: none;
     }
 
     .history-month-control input {
         min-width: 0;
-    }
-
-    .sidebar {
-        align-items: flex-start;
-    }
-
-    .sidebar-top {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .nav {
-        width: 100%;
     }
 
     .welcome {
@@ -1711,9 +1875,9 @@ button:active {
     }
 
     .page-header {
-    align-items: flex-start;
-    flex-direction: column;
-}
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
 
     .budget-header-actions {
