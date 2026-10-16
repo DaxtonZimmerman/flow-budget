@@ -10,7 +10,24 @@ async function bankRequest(action, values = {}) {
     });
 
     if (result.error) {
-        throw new Error("Bank connection is not ready. Check the server setup.");
+        let message = result.error.message ||
+            "Bank connection is not ready. Check the server setup.";
+
+        if (result.error.context?.status) {
+            message += ` (HTTP ${result.error.context.status})`;
+        }
+
+        try {
+            const details = await result.error.context?.json();
+
+            if (typeof details?.error === "string") {
+                message = details.error;
+            }
+        } catch (_error) {
+            // use the general message if the server did not send one
+        }
+
+        throw new Error(message);
     }
 
     if (result.data.error) {
