@@ -165,7 +165,8 @@ Deno.serve(async function(request) {
                 client_name: "Flow",
                 country_codes: ["US"],
                 language: "en",
-                user: { client_user_id: userData.user.id }
+                user: { client_user_id: userData.user.id },
+                webhook: `${projectUrl}/functions/v1/plaid-webhook`
             };
 
             if (body.action === "reconnect") {

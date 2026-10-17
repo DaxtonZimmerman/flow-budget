@@ -13,6 +13,7 @@ function makeApp(needsReconnect = false, editing = false) {
     let reloads = 0;
     let cloudSaves = 0;
     let transactions = [];
+    let serverSyncedAt = null;
 
     const context = vm.createContext({
         localStorage: {
@@ -34,7 +35,7 @@ function makeApp(needsReconnect = false, editing = false) {
                 if (request.body.action === "connections") {
                     return { data: { connections: [{
                         id: "bank-1", needs_reconnect: needsReconnect,
-                        last_synced_at: null
+                        last_synced_at: serverSyncedAt
                     }] }, error: null };
                 }
 
@@ -44,7 +45,7 @@ function makeApp(needsReconnect = false, editing = false) {
                         amount: 12.5, date: "2026-10-16", name: "Test Market",
                         pending: false
                     }],
-                    last_synced_at: "2026-10-16T22:00:00Z"
+                    last_synced_at: new Date().toISOString()
                 }, error: null };
             } }
         }),
@@ -73,7 +74,8 @@ function makeApp(needsReconnect = false, editing = false) {
         messages,
         getTransactions: () => JSON.parse(saved.get("transactions") || "[]"),
         getCloudSaves: () => cloudSaves,
-        getReloads: () => reloads
+        getReloads: () => reloads,
+        setServerSyncedAt: value => { serverSyncedAt = value; }
     };
 }
 
@@ -84,7 +86,7 @@ test("opening Flow updates a stale bank once and keeps the result", async () => 
     await app.run();
     await app.run();
 
-    assert.deepEqual(app.actions, ["connections", "sync"]);
+    assert.deepEqual(app.actions, ["connections", "sync", "connections"]);
     assert.equal(app.getTransactions().length, 1);
     assert.equal(app.getTransactions()[0].name, "Test Market");
     assert.equal(app.getCloudSaves(), 1);
@@ -111,4 +113,15 @@ test("a bank update keeps an open form on screen", async () => {
     assert.equal(app.getTransactions().length, 1);
     assert.equal(app.getCloudSaves(), 1);
     assert.equal(app.getReloads(), 0);
+});
+
+
+test("a newer webhook snapshot is pulled despite the normal poll delay", async () => {
+    const app = makeApp();
+    await app.run();
+    app.setServerSyncedAt(new Date(Date.now() + 10_000).toISOString());
+
+    await app.run();
+
+    assert.deepEqual(app.actions, ["connections", "sync", "connections", "sync"]);
 });

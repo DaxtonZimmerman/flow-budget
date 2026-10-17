@@ -47,6 +47,11 @@ async function syncBankConnection(connectionId) {
         await flowDataChanged();
     }
 
+    localStorage.setItem(
+        `flow_bank_applied_at_${localStorage.getItem("flow_user_id")}_${connectionId}`,
+        String(Date.parse(result.last_synced_at) || Date.now())
+    );
+
     return { ...result, changed: changed };
 }
 
@@ -59,8 +64,6 @@ async function updateBanksAutomatically() {
 
     const checkKey = `flow_bank_checked_at_${userId}`;
     const checkedAt = Number(sessionStorage.getItem(checkKey) || 0);
-
-    if (Date.now() - checkedAt < 15 * 60 * 1000) return;
 
     bankRefreshing = true;
     let changed = false;
@@ -80,8 +83,15 @@ async function updateBanksAutomatically() {
             }
 
             const lastSync = Date.parse(connection.last_synced_at || "") || 0;
+            const appliedAt = Number(localStorage.getItem(
+                `flow_bank_applied_at_${userId}_${connection.id}`
+            ) || 0);
 
-            if (Date.now() - lastSync < 15 * 60 * 1000) continue;
+            // A webhook can update the server while this browser is open. Fetch that
+            // snapshot even when the normal 15-minute Plaid poll is not due.
+            if (lastSync <= appliedAt &&
+                (Date.now() - lastSync < 15 * 60 * 1000 ||
+                    Date.now() - checkedAt < 15 * 60 * 1000)) continue;
 
             try {
                 const result = await syncBankConnection(connection.id);

@@ -1,0 +1,6 @@
+[functions.plaid]
+verify_jwt = true
+
+# Plaid cannot send a Flow user JWT. The handler verifies Plaid's signed payload.
+[functions.plaid-webhook]
+verify_jwt = false

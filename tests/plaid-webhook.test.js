@@ -1,0 +1,142 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+const { stripTypeScriptTypes } = require("node:module");
+const { webcrypto } = require("node:crypto");
+
+const source = stripTypeScriptTypes(fs.readFileSync(
+    path.join(__dirname, "..", "supabase", "functions", "plaid-webhook", "index.ts"), "utf8"
+).replace(/^import .*;\n/, ""));
+
+async function makeServer() {
+    const keyPair = await webcrypto.subtle.generateKey({
+        name: "ECDSA", namedCurve: "P-256"
+    }, true, ["sign", "verify"]);
+    const publicKey = await webcrypto.subtle.exportKey("jwk", keyPair.publicKey);
+    Object.assign(publicKey, { kid: "key-1", alg: "ES256", expired_at: null });
+    let handler;
+    let connectionExists = true;
+    let databaseError = false;
+    let verificationUnavailable = false;
+    const calls = [];
+    const saved = [];
+    const context = {
+        Response, TextEncoder, TextDecoder, atob, crypto: webcrypto,
+        console: { error: () => {} },
+        Deno: {
+            env: { get: key => ({
+                SUPABASE_URL: "https://example.supabase.co",
+                SUPABASE_SERVICE_ROLE_KEY: "service-test",
+                PLAID_CLIENT_ID: "client-test",
+                PLAID_SANDBOX_SECRET: "sandbox-test"
+            })[key] },
+            serve: fn => { handler = fn; }
+        },
+        createClient: () => ({
+            from: () => ({
+                select() { return this; },
+                eq(_field, value) { this.itemId = value; return this; },
+                async maybeSingle() {
+                    return { data: connectionExists && this.itemId === "item-1"
+                        ? { id: "connection-1", access_token: "access-test", cursor: null }
+                        : null, error: null };
+                }
+            }),
+            rpc: async (_name, data) => {
+                saved.push(data);
+                return { error: databaseError ? new Error("retry") : null };
+            }
+        }),
+        fetch: async (url, options) => {
+            calls.push({ url, body: JSON.parse(options.body) });
+            if (verificationUnavailable && url.endsWith("verification_key/get")) {
+                throw new Error("Plaid unavailable");
+            }
+            return { ok: true, json: async () => url.endsWith("verification_key/get")
+                ? { key: publicKey }
+                : { added: [{ transaction_id: "txn-1", account_id: "account-1",
+                    amount: 3, date: "2026-10-16", name: "Coffee" }],
+                    modified: [], removed: [], next_cursor: "cursor-1", has_more: false }
+            };
+        }
+    };
+    vm.runInNewContext(source, context);
+
+    async function signedRequest(body, overrides = {}) {
+        const raw = JSON.stringify(body);
+        const digest = Buffer.from(await webcrypto.subtle.digest("SHA-256",
+            new TextEncoder().encode(raw))).toString("hex");
+        const header = Buffer.from(JSON.stringify({ alg: "ES256", kid: "key-1" }))
+            .toString("base64url");
+        const payload = Buffer.from(JSON.stringify({
+            iat: Math.floor(Date.now() / 1000) + (overrides.timeOffset || 0),
+            request_body_sha256: digest
+        })).toString("base64url");
+        const signed = `${header}.${payload}`;
+        const signature = Buffer.from(await webcrypto.subtle.sign({
+            name: "ECDSA", hash: "SHA-256"
+        }, keyPair.privateKey, new TextEncoder().encode(signed))).toString("base64url");
+        const token = `${signed}.${signature}`;
+        const response = await handler(new Request("https://example.test/webhook", {
+            method: "POST",
+            headers: { "Plaid-Verification": overrides.token || token },
+            body: overrides.rawBody || raw
+        }));
+        return response.status;
+    }
+
+    return { signedRequest, calls, saved,
+        setConnectionExists: value => { connectionExists = value; },
+        setDatabaseError: value => { databaseError = value; },
+        setVerificationUnavailable: value => { verificationUnavailable = value; } };
+}
+
+const event = {
+    webhook_type: "TRANSACTIONS",
+    webhook_code: "SYNC_UPDATES_AVAILABLE",
+    item_id: "item-1"
+};
+
+test("signed transaction webhook fetches and saves changes", async () => {
+    const server = await makeServer();
+    assert.equal(await server.signedRequest(event), 200);
+    assert.equal(server.calls[0].url,
+        "https://sandbox.plaid.com/webhook_verification_key/get");
+    assert.equal(server.calls[1].url,
+        "https://sandbox.plaid.com/transactions/sync");
+    assert.equal(server.saved[0].connection_id, "connection-1");
+    assert.equal(server.saved[0].added[0].transaction_id, "txn-1");
+});
+
+test("tampered and expired webhooks cannot touch bank data", async () => {
+    const server = await makeServer();
+    assert.equal(await server.signedRequest(event, {
+        rawBody: JSON.stringify({ ...event, item_id: "item-2" })
+    }), 401);
+    assert.equal(await server.signedRequest(event, { timeOffset: -360 }), 401);
+    assert.equal(await server.signedRequest(event, { token: "bad.token.value" }), 401);
+    assert.equal(server.saved.length, 0);
+    assert.equal(server.calls.some(call => call.url.endsWith("transactions/sync")), false);
+});
+
+test("unknown Item is ignored without syncing", async () => {
+    const server = await makeServer();
+    server.setConnectionExists(false);
+    assert.equal(await server.signedRequest(event), 200);
+    assert.equal(server.saved.length, 0);
+});
+
+test("database failure asks Plaid to retry", async () => {
+    const server = await makeServer();
+    server.setDatabaseError(true);
+    assert.equal(await server.signedRequest(event), 503);
+});
+
+test("verification outage asks Plaid to retry", async () => {
+    const server = await makeServer();
+    server.setVerificationUnavailable(true);
+    assert.equal(await server.signedRequest(event), 503);
+    assert.equal(server.saved.length, 0);
+});

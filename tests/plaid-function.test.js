@@ -210,6 +210,8 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
     assert.equal(link.body.link_token, "link-test");
     assert.equal(server.calls[0].url, "https://sandbox.plaid.com/link/token/create");
     assert.equal(server.calls[0].body.user.client_user_id, "user-1");
+    assert.equal(server.calls[0].body.webhook,
+        "https://example.supabase.co/functions/v1/plaid-webhook");
     assert.equal(server.calls[1].url, "https://sandbox.plaid.com/item/public_token/exchange");
     assert.equal(server.saved[0].access_token, "access-secret-test");
     assert.equal(server.saved[0].user_id, "user-1");

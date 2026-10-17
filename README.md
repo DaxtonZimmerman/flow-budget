@@ -9,8 +9,8 @@ From this folder, run `python3 -m http.server 8000`, then open `http://localhost
 ## Connect Supabase
 
 1. The Flow Supabase Free project is connected in [cloud-config.js](js/cloud-config.js). This file contains only its public project URL and publishable key. Never paste the database password, secret key, or service-role key into browser files.
-2. [setup.sql](supabase/setup.sql) has been run in the project SQL Editor. It creates the private data table, owner-only access rules, save function, and account deletion function.
-3. Authentication → URL Configuration allows `http://localhost:8000/account.html` and `http://127.0.0.1:5500/account.html`. The first is the current Site URL. Add the published Flow account URL and update the Site URL when Flow is deployed.
+2. [setup.sql](supabase/setup.sql) has been run in the project SQL Editor. It creates the private data table, owner-only access rules, and save function. Account deletion runs in the server-only Plaid function so bank access is revoked first.
+3. Authentication → URL Configuration allows the local account URLs and the [published account page](https://daxtonzimmerman.github.io/flow-budget/account.html). The published account page is the Site URL.
 4. Open Flow’s Account page, send yourself a sign-in link, and choose whether to keep this device’s data or the cloud data. Download a backup first if both have information you need.
 
 The app saves edits on this device first. It syncs when online and checks again when you return to the tab. If two devices edit the same copy before syncing, Flow keeps both versions and asks you to choose on the Account page.
@@ -28,7 +28,13 @@ Flow's HTML, CSS, and browser JavaScript can be hosted as a static website. Run 
 3. In GitHub **Actions → Publish Flow website**, select **Run workflow** on `main`. Its result shows the real website URL.
 4. Open the published Account page, send a new sign-in link, and check a sync from another device. Use only Plaid Sandbox test banks while the server still targets Sandbox.
 
-A GitHub Pages site is public. Signed-in Flow data remains in the owner's browser and private Supabase table, but anyone can visit the app and create an account unless signups are restricted separately. The first site is for a small test, not a paid public launch. Live bank connections, a reconnect test, background updates, and a security review remain before that launch.
+A GitHub Pages site is public. Signed-in Flow data remains in the owner's browser and private Supabase table, but anyone can visit the app and create an account unless signups are restricted separately. The current site is for a small Sandbox test, not a real-bank or paid public launch. See [production readiness](docs/production-readiness.md) for the remaining gates.
+
+## Plaid Sandbox webhook
+
+The `plaid` function now includes a signed webhook URL when creating a new Plaid Link token. Deploy [plaid-webhook](supabase/functions/plaid-webhook/index.ts) as a separate Supabase Edge Function before deploying this `plaid` update. Only the webhook function has JWT verification disabled in [config.toml](supabase/config.toml); it verifies Plaid's `Plaid-Verification` signature, timestamp, and exact request body before reading or writing bank data. If deploying in the Supabase Dashboard instead of the CLI, turn off JWT verification in the **plaid-webhook function settings** manually; `config.toml` is not applied by pasting code into the Dashboard. Keep JWT verification enabled for the existing `plaid` function.
+
+New Sandbox Items receive the webhook URL at Link creation. Existing Items need `/item/webhook/update` or a fresh Sandbox connection to test notifications. The webhook updates the private bank transaction table. When the user next opens Flow, the browser pulls any newer server snapshot into its local and cloud copies. An unprocessed webhook is retried by Plaid if the server returns a temporary error. See [production readiness](docs/production-readiness.md) before connecting real accounts.
 
 ## Import a bank CSV
 
