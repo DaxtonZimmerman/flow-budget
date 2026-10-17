@@ -136,6 +136,16 @@ function makeServer(options = {}) {
                 };
             }
 
+            if (itemGet && options.itemGetErrorCode) {
+                return {
+                    ok: false,
+                    json: async () => ({
+                        error_code: options.itemGetErrorCode,
+                        error_message: "Could not load Item"
+                    })
+                };
+            }
+
             if (sync && body.cursor === "cursor-1" &&
                 context.mutateOnce && !context.mutated) {
                 context.mutated = true;
@@ -397,6 +407,21 @@ test("a bank that needs repair is listed but not synced", async () => {
     assert.equal(server.calls.some(call =>
         call.url.endsWith("/transactions/sync")
     ), false);
+});
+
+
+test("a revoked Item stays visible so disconnect can finish database cleanup", async () => {
+    const server = makeServer({ itemGetErrorCode: "ITEM_NOT_FOUND",
+        removeErrorCode: "ITEM_NOT_FOUND" });
+    const list = await server.request({ action: "connections" });
+    const disconnect = await server.request({
+        action: "disconnect", connection_id: "connection-1"
+    });
+
+    assert.equal(list.status, 200);
+    assert.equal(list.body.connections[0].needs_reconnect, true);
+    assert.equal(disconnect.status, 200);
+    assert.equal(server.rpcCalls[0].name, "disconnect_plaid_connection");
 });
 
 

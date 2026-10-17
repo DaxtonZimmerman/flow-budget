@@ -329,7 +329,8 @@ Deno.serve(async function(request) {
                     needsReconnect = needsReconnect ||
                         item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
                 } catch (error) {
-                    if (error.code !== "ITEM_LOGIN_REQUIRED") throw error;
+                    if (error.code !== "ITEM_LOGIN_REQUIRED" &&
+                        error.code !== "ITEM_NOT_FOUND") throw error;
                     needsReconnect = true;
                 }
 
