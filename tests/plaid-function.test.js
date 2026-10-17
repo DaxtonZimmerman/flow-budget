@@ -18,6 +18,7 @@ function makeServer(options = {}) {
     const connection = {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
         access_token: "access-secret-test", cursor: null,
+        environment: options.connectionEnvironment || "sandbox",
         reconnect_required: options.reconnectRequired || false
     };
     let connections = [connection, ...(options.extraConnections || [])];
@@ -27,7 +28,10 @@ function makeServer(options = {}) {
         SUPABASE_ANON_KEY: "publishable-test",
         SUPABASE_SERVICE_ROLE_KEY: "service-test",
         PLAID_CLIENT_ID: "client-test",
-        PLAID_SANDBOX_SECRET: "sandbox-secret-test"
+        PLAID_SANDBOX_SECRET: "sandbox-secret-test",
+        PLAID_PRODUCTION_SECRET: "production-secret-test",
+        PLAID_PILOT_USER_ID: "user-1",
+        PLAID_PILOT_ENABLED: options.pilotEnabled ? "true" : "false"
     };
 
     const context = {
@@ -105,9 +109,11 @@ function makeServer(options = {}) {
                     };
                     return query;
                 },
-                rpc: async (_name, values) => {
-                    rpcCalls.push(values);
-                    return { error: null };
+                rpc: async (name, values) => {
+                    rpcCalls.push({ name, ...values });
+                    return { data: name === "disconnect_plaid_connection"
+                        ? { revision: 2, data: { transactions: [] } } : null,
+                    error: null };
                 }
             };
         },
@@ -220,6 +226,63 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
     assert.equal(server.saved[0].user_id, "user-1");
     assert.deepEqual(exchange.body, { connected: true });
     assert.equal(JSON.stringify(exchange.body).includes("access-secret-test"), false);
+});
+
+
+test("only the named pilot user receives a production Link token", async () => {
+    const server = makeServer({ pilotEnabled: true });
+    const pilot = await server.request({ action: "create-link-token" });
+    const other = await server.request({ action: "create-link-token" }, "other-token");
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(pilot.status, 200);
+    assert.equal(other.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/link/token/create");
+    assert.equal(server.calls[0].body.webhook,
+        "https://example.supabase.co/functions/v1/plaid-production-webhook");
+    assert.equal(server.calls[0].body.secret, "production-secret-test");
+    assert.equal(server.calls[1].url, "https://sandbox.plaid.com/link/token/create");
+    assert.equal(server.calls[2].url,
+        "https://production.plaid.com/item/public_token/exchange");
+    assert.equal(server.saved[0].environment, "production");
+    assert.equal(JSON.stringify(exchange.body).includes("production-secret-test"), false);
+});
+
+
+test("a second production Item is blocked before using a Trial connection", async () => {
+    const server = makeServer({ pilotEnabled: true, connectionEnvironment: "production" });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.equal(server.calls.length, 0);
+});
+
+
+test("existing production Items continue using production after pilot creation is disabled", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const result = await server.request({ action: "sync", connection_id: "connection-1" });
+
+    assert.equal(result.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/item/get");
+    assert.equal(server.calls[1].url, "https://production.plaid.com/transactions/sync");
+});
+
+
+test("disconnect revokes an existing production Item in Production", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const result = await server.request({ action: "disconnect", connection_id: "connection-1" });
+
+    assert.equal(result.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/item/remove");
+    assert.equal(server.rpcCalls[0].name, "disconnect_plaid_connection");
+    assert.equal(server.rpcCalls[0].owner_id, "user-1");
+    assert.equal(result.body.revision, 2);
 });
 
 

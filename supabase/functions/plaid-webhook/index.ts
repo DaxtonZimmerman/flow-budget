@@ -180,7 +180,8 @@ Deno.serve(async request => {
         if (needsReconnect || loginRepaired) {
             const updated = await database.from("plaid_connections")
                 .update({ reconnect_required: needsReconnect })
-                .eq("item_id", event.item_id);
+                .eq("item_id", event.item_id)
+                .eq("environment", "sandbox");
             if (updated.error) throw updated.error;
             return reply(200, "Item status saved.");
         }
@@ -188,6 +189,7 @@ Deno.serve(async request => {
         const { data: connection, error } = await database.from("plaid_connections")
             .select("id,access_token,cursor")
             .eq("item_id", event.item_id)
+            .eq("environment", "sandbox")
             .maybeSingle();
         if (error) throw error;
         if (!connection) return reply(200, "Ignored.");
