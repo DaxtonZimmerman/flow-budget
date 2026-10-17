@@ -21,7 +21,8 @@ function makeServer(options = {}) {
         environment: options.connectionEnvironment || "sandbox",
         reconnect_required: options.reconnectRequired || false
     };
-    let connections = [connection, ...(options.extraConnections || [])];
+    let connections = options.noConnections ? []
+        : [connection, ...(options.extraConnections || [])];
     const needsReconnect = options.needsReconnect;
     const environment = {
         SUPABASE_URL: "https://example.supabase.co",
@@ -230,7 +231,7 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
 
 
 test("only the named pilot user receives a production Link token", async () => {
-    const server = makeServer({ pilotEnabled: true });
+    const server = makeServer({ pilotEnabled: true, noConnections: true });
     const pilot = await server.request({ action: "create-link-token" });
     const other = await server.request({ action: "create-link-token" }, "other-token");
     const exchange = await server.request({
@@ -248,6 +249,20 @@ test("only the named pilot user receives a production Link token", async () => {
         "https://production.plaid.com/item/public_token/exchange");
     assert.equal(server.saved[0].environment, "production");
     assert.equal(JSON.stringify(exchange.body).includes("production-secret-test"), false);
+});
+
+
+test("a test bank must be removed before the pilot can link a real bank", async () => {
+    const server = makeServer({ pilotEnabled: true });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.match(link.body.error, /disconnect the test bank/i);
+    assert.equal(server.calls.length, 0);
 });
 
 

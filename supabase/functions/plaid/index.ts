@@ -212,6 +212,16 @@ Deno.serve(async function(request) {
                     if (existing) return reply({
                         error: "One real bank is already connected for this private pilot."
                     }, 409);
+                    const { data: testBanks, error: testError } = await database
+                        .from("plaid_connections")
+                        .select("id")
+                        .eq("user_id", userData.user.id)
+                        .eq("environment", "sandbox")
+                        .limit(1);
+                    if (testError) return reply({ error: "Could not check test banks." }, 500);
+                    if (testBanks.length) return reply({
+                        error: "Back up your Flow data and disconnect the test bank before connecting a real one."
+                    }, 409);
                 }
                 Object.assign(options, { products: ["transactions"] });
             }
@@ -238,6 +248,16 @@ Deno.serve(async function(request) {
                 if (error) return reply({ error: "Could not check bank connections." }, 500);
                 if (existing) return reply({
                     error: "One real bank is already connected for this private pilot."
+                }, 409);
+                const { data: testBanks, error: testError } = await database
+                    .from("plaid_connections")
+                    .select("id")
+                    .eq("user_id", userData.user.id)
+                    .eq("environment", "sandbox")
+                    .limit(1);
+                if (testError) return reply({ error: "Could not check test banks." }, 500);
+                if (testBanks.length) return reply({
+                    error: "Back up your Flow data and disconnect the test bank before connecting a real one."
                 }, 409);
             }
             const result = await plaidRequest("/item/public_token/exchange", {

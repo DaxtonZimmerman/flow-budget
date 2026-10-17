@@ -23,10 +23,13 @@ async function showBankConnections() {
         const realBankConnected = productionPilot && data.connections.some(
             connection => connection.environment === "production"
         );
+        const testBankConnected = productionPilot && data.connections.some(
+            connection => connection.environment === "sandbox"
+        );
         bankButton.textContent = productionPilot ? "Connect my bank" : "Connect test bank";
-        bankButton.disabled = realBankConnected;
+        bankButton.disabled = realBankConnected || testBankConnected;
         bankIntro.textContent = productionPilot
-            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. You can reconnect, sync, or disconnect here. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
+            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
             : "Connect a test bank in Plaid Sandbox. Flow checks for new transactions when you open it, and you can sync here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
         bankList.replaceChildren();
 
@@ -158,6 +161,7 @@ async function showBankConnections() {
                     );
                     item.remove();
                     bankMessage.textContent = `${connection.institution_name} disconnected.`;
+                    await showBankConnections();
                 } catch (error) {
                     bankMessage.textContent = error.message;
                     removeButton.disabled = false;
