@@ -18,16 +18,21 @@ function makeServer(options = {}) {
     const connection = {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
         access_token: "access-secret-test", cursor: null,
+        environment: options.connectionEnvironment || "sandbox",
         reconnect_required: options.reconnectRequired || false
     };
-    let connections = [connection, ...(options.extraConnections || [])];
+    let connections = options.noConnections ? []
+        : [connection, ...(options.extraConnections || [])];
     const needsReconnect = options.needsReconnect;
     const environment = {
         SUPABASE_URL: "https://example.supabase.co",
         SUPABASE_ANON_KEY: "publishable-test",
         SUPABASE_SERVICE_ROLE_KEY: "service-test",
         PLAID_CLIENT_ID: "client-test",
-        PLAID_SANDBOX_SECRET: "sandbox-secret-test"
+        PLAID_SANDBOX_SECRET: "sandbox-secret-test",
+        PLAID_PRODUCTION_SECRET: "production-secret-test",
+        PLAID_PILOT_USER_ID: "user-1",
+        PLAID_PILOT_ENABLED: options.pilotEnabled ? "true" : "false"
     };
 
     const context = {
@@ -105,9 +110,11 @@ function makeServer(options = {}) {
                     };
                     return query;
                 },
-                rpc: async (_name, values) => {
-                    rpcCalls.push(values);
-                    return { error: null };
+                rpc: async (name, values) => {
+                    rpcCalls.push({ name, ...values });
+                    return { data: name === "disconnect_plaid_connection"
+                        ? { revision: 2, data: { transactions: [] } } : null,
+                    error: null };
                 }
             };
         },
@@ -125,6 +132,16 @@ function makeServer(options = {}) {
                     json: async () => ({
                         error_code: options.removeErrorCode,
                         error_message: "Could not remove Item"
+                    })
+                };
+            }
+
+            if (itemGet && options.itemGetErrorCode) {
+                return {
+                    ok: false,
+                    json: async () => ({
+                        error_code: options.itemGetErrorCode,
+                        error_message: "Could not load Item"
                     })
                 };
             }
@@ -223,6 +240,91 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
 });
 
 
+test("only the named pilot user receives a production Link token", async () => {
+    const server = makeServer({ pilotEnabled: true, noConnections: true });
+    const pilot = await server.request({ action: "create-link-token" });
+    const other = await server.request({ action: "create-link-token" }, "other-token");
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(pilot.status, 200);
+    assert.equal(other.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/link/token/create");
+    assert.equal(server.calls[0].body.webhook,
+        "https://example.supabase.co/functions/v1/plaid-production-webhook");
+    assert.equal(server.calls[0].body.secret, "production-secret-test");
+    assert.equal(server.calls[1].url, "https://sandbox.plaid.com/link/token/create");
+    assert.equal(server.calls[2].url,
+        "https://production.plaid.com/item/public_token/exchange");
+    assert.equal(server.saved[0].environment, "production");
+    assert.equal(JSON.stringify(exchange.body).includes("production-secret-test"), false);
+});
+
+
+test("a test bank must be removed before the pilot can link a real bank", async () => {
+    const server = makeServer({ pilotEnabled: true });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.match(link.body.error, /disconnect the test bank/i);
+    assert.equal(server.calls.length, 0);
+});
+
+
+test("a second production Item is blocked before using a Trial connection", async () => {
+    const server = makeServer({ pilotEnabled: true, connectionEnvironment: "production" });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-production-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.equal(server.calls.length, 0);
+});
+
+
+test("existing production Items continue using production after pilot creation is disabled", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const result = await server.request({ action: "sync", connection_id: "connection-1" });
+
+    assert.equal(result.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/item/get");
+    assert.equal(server.calls[1].url, "https://production.plaid.com/transactions/sync");
+});
+
+
+test("a paused pilot cannot add a test bank beside an existing real bank", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-sandbox-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.match(link.body.error, /disconnect your real bank/i);
+    assert.equal(server.calls.length, 0);
+});
+
+
+test("disconnect revokes an existing production Item in Production", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const result = await server.request({ action: "disconnect", connection_id: "connection-1" });
+
+    assert.equal(result.status, 200);
+    assert.equal(server.calls[0].url, "https://production.plaid.com/item/remove");
+    assert.equal(server.rpcCalls[0].name, "disconnect_plaid_connection");
+    assert.equal(server.rpcCalls[0].owner_id, "user-1");
+    assert.equal(result.body.revision, 2);
+});
+
+
 test("sync gathers every page before saving changes and cursor", async () => {
     const server = makeServer();
     const result = await server.request({
@@ -305,6 +407,21 @@ test("a bank that needs repair is listed but not synced", async () => {
     assert.equal(server.calls.some(call =>
         call.url.endsWith("/transactions/sync")
     ), false);
+});
+
+
+test("a revoked Item stays visible so disconnect can finish database cleanup", async () => {
+    const server = makeServer({ itemGetErrorCode: "ITEM_NOT_FOUND",
+        removeErrorCode: "ITEM_NOT_FOUND" });
+    const list = await server.request({ action: "connections" });
+    const disconnect = await server.request({
+        action: "disconnect", connection_id: "connection-1"
+    });
+
+    assert.equal(list.status, 200);
+    assert.equal(list.body.connections[0].needs_reconnect, true);
+    assert.equal(disconnect.status, 200);
+    assert.equal(server.rpcCalls[0].name, "disconnect_plaid_connection");
 });
 
 

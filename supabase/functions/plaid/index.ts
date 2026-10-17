@@ -24,15 +24,27 @@ function supabaseKey(name, oldName) {
 }
 
 
-async function plaidRequest(path, data) {
+function pilotEnvironment(userId) {
+    return Deno.env.get("PLAID_PILOT_ENABLED") === "true" &&
+        Deno.env.get("PLAID_PILOT_USER_ID") === userId ? "production" : "sandbox";
+}
+
+
+function connectionEnvironment(connection) {
+    return connection.environment === "production" ? "production" : "sandbox";
+}
+
+
+async function plaidRequest(path, data, environment = "sandbox") {
     const clientId = Deno.env.get("PLAID_CLIENT_ID");
-    const secret = Deno.env.get("PLAID_SANDBOX_SECRET");
+    const production = environment === "production";
+    const secret = Deno.env.get(production ? "PLAID_PRODUCTION_SECRET" : "PLAID_SANDBOX_SECRET");
 
     if (!clientId || !secret) {
-        throw new Error("Plaid Sandbox keys are not set.");
+        throw new Error("Bank connection is not configured.");
     }
 
-    const response = await fetch(`https://sandbox.plaid.com${path}`, {
+    const response = await fetch(`https://${production ? "production" : "sandbox"}.plaid.com${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ client_id: clientId, secret, ...data })
@@ -49,9 +61,9 @@ async function plaidRequest(path, data) {
 }
 
 
-async function removePlaidItem(accessToken) {
+async function removePlaidItem(accessToken, environment = "sandbox") {
     try {
-        await plaidRequest("/item/remove", { access_token: accessToken });
+        await plaidRequest("/item/remove", { access_token: accessToken }, environment);
     } catch (error) {
         // A prior attempt may have removed the Item before local cleanup finished.
         if (error.code !== "ITEM_NOT_FOUND") throw error;
@@ -91,7 +103,7 @@ async function getPlaidChanges(connection) {
                     access_token: connection.access_token,
                     cursor: cursor || "",
                     count: 500
-                });
+                }, connectionEnvironment(connection));
 
                 changes.added.push(...page.added.map(keepTransaction));
                 changes.modified.push(...page.modified.map(keepTransaction));
@@ -161,6 +173,7 @@ Deno.serve(async function(request) {
 
     try {
         if (body.action === "create-link-token" || body.action === "reconnect") {
+            let environment = pilotEnvironment(userData.user.id);
             const options = {
                 client_name: "Flow",
                 country_codes: ["US"],
@@ -176,7 +189,7 @@ Deno.serve(async function(request) {
 
                 const { data: connection, error } = await database
                     .from("plaid_connections")
-                    .select("access_token")
+                    .select("access_token,environment")
                     .eq("id", body.connection_id)
                     .eq("user_id", userData.user.id)
                     .maybeSingle();
@@ -185,12 +198,48 @@ Deno.serve(async function(request) {
                     return reply({ error: "Bank connection not found." }, 404);
                 }
 
+                environment = connectionEnvironment(connection);
                 Object.assign(options, { access_token: connection.access_token });
             } else {
+                if (environment === "production") {
+                    const { data: existing, error } = await database
+                        .from("plaid_connections")
+                        .select("id")
+                        .eq("user_id", userData.user.id)
+                        .eq("environment", "production")
+                        .maybeSingle();
+                    if (error) return reply({ error: "Could not check bank connections." }, 500);
+                    if (existing) return reply({
+                        error: "One real bank is already connected for this private pilot."
+                    }, 409);
+                    const { data: testBanks, error: testError } = await database
+                        .from("plaid_connections")
+                        .select("id")
+                        .eq("user_id", userData.user.id)
+                        .eq("environment", "sandbox")
+                        .limit(1);
+                    if (testError) return reply({ error: "Could not check test banks." }, 500);
+                    if (testBanks.length) return reply({
+                        error: "Back up your Flow data and disconnect the test bank before connecting a real one."
+                    }, 409);
+                } else {
+                    const { data: realBanks, error: realError } = await database
+                        .from("plaid_connections")
+                        .select("id")
+                        .eq("user_id", userData.user.id)
+                        .eq("environment", "production")
+                        .limit(1);
+                    if (realError) return reply({ error: "Could not check real banks." }, 500);
+                    if (realBanks.length) return reply({
+                        error: "Disconnect your real bank before connecting a test bank."
+                    }, 409);
+                }
                 Object.assign(options, { products: ["transactions"] });
             }
 
-            const result = await plaidRequest("/link/token/create", options);
+            options.webhook = `${projectUrl}/functions/v1/${environment === "production"
+                ? "plaid-production-webhook" : "plaid-webhook"}`;
+            const result = await plaidRequest("/link/token/create", options, environment);
             return reply({ link_token: result.link_token });
         }
 
@@ -199,20 +248,55 @@ Deno.serve(async function(request) {
                 return reply({ error: "Invalid bank connection." }, 400);
             }
 
+            const environment = pilotEnvironment(userData.user.id);
+            if (environment === "production") {
+                const { data: existing, error } = await database
+                    .from("plaid_connections")
+                    .select("id")
+                    .eq("user_id", userData.user.id)
+                    .eq("environment", "production")
+                    .maybeSingle();
+                if (error) return reply({ error: "Could not check bank connections." }, 500);
+                if (existing) return reply({
+                    error: "One real bank is already connected for this private pilot."
+                }, 409);
+                const { data: testBanks, error: testError } = await database
+                    .from("plaid_connections")
+                    .select("id")
+                    .eq("user_id", userData.user.id)
+                    .eq("environment", "sandbox")
+                    .limit(1);
+                if (testError) return reply({ error: "Could not check test banks." }, 500);
+                if (testBanks.length) return reply({
+                    error: "Back up your Flow data and disconnect the test bank before connecting a real one."
+                }, 409);
+            } else {
+                const { data: realBanks, error: realError } = await database
+                    .from("plaid_connections")
+                    .select("id")
+                    .eq("user_id", userData.user.id)
+                    .eq("environment", "production")
+                    .limit(1);
+                if (realError) return reply({ error: "Could not check real banks." }, 500);
+                if (realBanks.length) return reply({
+                    error: "Disconnect your real bank before connecting a test bank."
+                }, 409);
+            }
             const result = await plaidRequest("/item/public_token/exchange", {
                 public_token: body.public_token
-            });
+            }, environment);
             const { error } = await database.from("plaid_connections").insert({
                 user_id: userData.user.id,
                 item_id: result.item_id,
                 access_token: result.access_token,
+                environment,
                 institution_name: typeof body.institution_name === "string"
                     ? body.institution_name.slice(0, 100) : "Bank"
             });
 
             if (error) {
                 try {
-                    await removePlaidItem(result.access_token);
+                    await removePlaidItem(result.access_token, environment);
                 } catch (removeError) {
                     console.error("Could not revoke an unsaved Plaid Item:", removeError);
                 }
@@ -224,7 +308,7 @@ Deno.serve(async function(request) {
 
         if (body.action === "connections") {
             const { data, error } = await database.from("plaid_connections")
-                .select("id,institution_name,access_token,created_at,last_synced_at,reconnect_required")
+                .select("id,institution_name,access_token,environment,created_at,last_synced_at,reconnect_required")
                 .eq("user_id", userData.user.id)
                 .order("created_at", { ascending: false });
 
@@ -241,11 +325,12 @@ Deno.serve(async function(request) {
                 try {
                     const item = await plaidRequest("/item/get", {
                         access_token: connection.access_token
-                    });
+                    }, connectionEnvironment(connection));
                     needsReconnect = needsReconnect ||
                         item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
                 } catch (error) {
-                    if (error.code !== "ITEM_LOGIN_REQUIRED") throw error;
+                    if (error.code !== "ITEM_LOGIN_REQUIRED" &&
+                        error.code !== "ITEM_NOT_FOUND") throw error;
                     needsReconnect = true;
                 }
 
@@ -254,11 +339,12 @@ Deno.serve(async function(request) {
                     institution_name: connection.institution_name,
                     created_at: connection.created_at,
                     last_synced_at: connection.last_synced_at,
-                    needs_reconnect: needsReconnect
+                    needs_reconnect: needsReconnect,
+                    environment: connectionEnvironment(connection)
                 });
             }
 
-            return reply({ connections });
+            return reply({ connections, new_connection_environment: pilotEnvironment(userData.user.id) });
         }
 
         if (body.action === "reconnect-complete") {
@@ -268,7 +354,7 @@ Deno.serve(async function(request) {
 
             const { data: connection, error } = await database
                 .from("plaid_connections")
-                .select("id,access_token")
+                .select("id,access_token,environment")
                 .eq("id", body.connection_id)
                 .eq("user_id", userData.user.id)
                 .maybeSingle();
@@ -279,7 +365,7 @@ Deno.serve(async function(request) {
 
             const item = await plaidRequest("/item/get", {
                 access_token: connection.access_token
-            });
+            }, connectionEnvironment(connection));
 
             if (item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED") {
                 return reply({
@@ -307,7 +393,7 @@ Deno.serve(async function(request) {
 
             const { data: connection, error: connectionError } = await database
                 .from("plaid_connections")
-                .select("id,item_id,access_token,cursor")
+                .select("id,item_id,access_token,cursor,environment")
                 .eq("id", body.connection_id)
                 .eq("user_id", userData.user.id)
                 .maybeSingle();
@@ -318,7 +404,7 @@ Deno.serve(async function(request) {
 
             const item = await plaidRequest("/item/get", {
                 access_token: connection.access_token
-            });
+            }, connectionEnvironment(connection));
 
             if (item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED") {
                 return reply({
@@ -363,7 +449,7 @@ Deno.serve(async function(request) {
 
             const { data: connection, error: connectionError } = await database
                 .from("plaid_connections")
-                .select("id,access_token")
+                .select("id,access_token,environment")
                 .eq("id", body.connection_id)
                 .eq("user_id", userData.user.id)
                 .maybeSingle();
@@ -372,25 +458,25 @@ Deno.serve(async function(request) {
                 return reply({ error: "Bank connection not found." }, 404);
             }
 
-            await removePlaidItem(connection.access_token);
+            await removePlaidItem(connection.access_token, connectionEnvironment(connection));
 
-            const { error } = await database.from("plaid_connections")
-                .delete()
-                .eq("id", connection.id)
-                .eq("user_id", userData.user.id);
+            const { data: saved, error } = await database.rpc("disconnect_plaid_connection", {
+                connection_id: connection.id,
+                owner_id: userData.user.id
+            });
 
             if (error) {
                 return reply({ error: "Bank disconnected, but cleanup failed." }, 500);
             }
 
-            return reply({ disconnected: true });
+            return reply({ disconnected: true, revision: saved.revision, data: saved.data });
         }
 
         if (body.action === "delete-account") {
             while (true) {
                 const { data: connections, error: listError } = await database
                     .from("plaid_connections")
-                    .select("id,access_token")
+                    .select("id,access_token,environment")
                     .eq("user_id", userData.user.id)
                     .limit(100);
 
@@ -402,7 +488,7 @@ Deno.serve(async function(request) {
 
                 for (const connection of connections) {
                     try {
-                        await removePlaidItem(connection.access_token);
+                        await removePlaidItem(connection.access_token, connectionEnvironment(connection));
                     } catch (error) {
                         console.error("Could not revoke a Plaid Item during account deletion:", error);
                         return reply({ error: "Could not disconnect every bank. Your account was kept; try again." }, 502);
