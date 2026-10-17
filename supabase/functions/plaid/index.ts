@@ -222,6 +222,17 @@ Deno.serve(async function(request) {
                     if (testBanks.length) return reply({
                         error: "Back up your Flow data and disconnect the test bank before connecting a real one."
                     }, 409);
+                } else {
+                    const { data: realBanks, error: realError } = await database
+                        .from("plaid_connections")
+                        .select("id")
+                        .eq("user_id", userData.user.id)
+                        .eq("environment", "production")
+                        .limit(1);
+                    if (realError) return reply({ error: "Could not check real banks." }, 500);
+                    if (realBanks.length) return reply({
+                        error: "Disconnect your real bank before connecting a test bank."
+                    }, 409);
                 }
                 Object.assign(options, { products: ["transactions"] });
             }
@@ -258,6 +269,17 @@ Deno.serve(async function(request) {
                 if (testError) return reply({ error: "Could not check test banks." }, 500);
                 if (testBanks.length) return reply({
                     error: "Back up your Flow data and disconnect the test bank before connecting a real one."
+                }, 409);
+            } else {
+                const { data: realBanks, error: realError } = await database
+                    .from("plaid_connections")
+                    .select("id")
+                    .eq("user_id", userData.user.id)
+                    .eq("environment", "production")
+                    .limit(1);
+                if (realError) return reply({ error: "Could not check real banks." }, 500);
+                if (realBanks.length) return reply({
+                    error: "Disconnect your real bank before connecting a test bank."
                 }, 409);
             }
             const result = await plaidRequest("/item/public_token/exchange", {

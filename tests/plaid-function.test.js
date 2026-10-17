@@ -289,6 +289,20 @@ test("existing production Items continue using production after pilot creation i
 });
 
 
+test("a paused pilot cannot add a test bank beside an existing real bank", async () => {
+    const server = makeServer({ connectionEnvironment: "production" });
+    const link = await server.request({ action: "create-link-token" });
+    const exchange = await server.request({
+        action: "exchange-public-token", public_token: "public-sandbox-test"
+    });
+
+    assert.equal(link.status, 409);
+    assert.equal(exchange.status, 409);
+    assert.match(link.body.error, /disconnect your real bank/i);
+    assert.equal(server.calls.length, 0);
+});
+
+
 test("disconnect revokes an existing production Item in Production", async () => {
     const server = makeServer({ connectionEnvironment: "production" });
     const result = await server.request({ action: "disconnect", connection_id: "connection-1" });
