@@ -157,9 +157,18 @@ Deno.serve(async request => {
     } catch (_error) {
         return reply(400, "Invalid webhook body.");
     }
-    if (event.webhook_type !== "TRANSACTIONS" ||
-        event.webhook_code !== "SYNC_UPDATES_AVAILABLE" ||
-        typeof event.item_id !== "string") return reply(200, "Ignored.");
+    if (typeof event.item_id !== "string") return reply(200, "Ignored.");
+    const syncNotice = event.webhook_type === "TRANSACTIONS" &&
+        event.webhook_code === "SYNC_UPDATES_AVAILABLE";
+    const needsReconnect = event.webhook_type === "ITEM" && (
+        event.webhook_code === "PENDING_DISCONNECT" ||
+        event.webhook_code === "PENDING_EXPIRATION" ||
+        (event.webhook_code === "ERROR" &&
+            event.error?.error_code === "ITEM_LOGIN_REQUIRED")
+    );
+    const loginRepaired = event.webhook_type === "ITEM" &&
+        event.webhook_code === "LOGIN_REPAIRED";
+    if (!syncNotice && !needsReconnect && !loginRepaired) return reply(200, "Ignored.");
 
     const projectUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
@@ -168,6 +177,14 @@ Deno.serve(async request => {
     const database = createClient(projectUrl, serviceKey);
 
     try {
+        if (needsReconnect || loginRepaired) {
+            const updated = await database.from("plaid_connections")
+                .update({ reconnect_required: needsReconnect })
+                .eq("item_id", event.item_id);
+            if (updated.error) throw updated.error;
+            return reply(200, "Item status saved.");
+        }
+
         const { data: connection, error } = await database.from("plaid_connections")
             .select("id,access_token,cursor")
             .eq("item_id", event.item_id)

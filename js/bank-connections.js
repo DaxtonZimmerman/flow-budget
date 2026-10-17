@@ -88,6 +88,9 @@ async function showBankConnections() {
                                 bankMessage.textContent = "Checking your bank connection…";
 
                                 try {
+                                    await bankRequest("reconnect-complete", {
+                                        connection_id: connection.id
+                                    });
                                     await syncBankConnection(connection.id);
                                     bankMessage.textContent =
                                         `${connection.institution_name} is reconnected.`;

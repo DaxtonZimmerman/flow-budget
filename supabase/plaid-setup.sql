@@ -8,9 +8,14 @@ create table if not exists public.plaid_connections (
     access_token text not null,
     institution_name text not null default 'Bank',
     cursor text,
+    reconnect_required boolean not null default false,
     last_synced_at timestamptz,
     created_at timestamptz not null default now()
 );
+
+-- Existing projects need this additive change too.
+alter table public.plaid_connections
+    add column if not exists reconnect_required boolean not null default false;
 
 alter table public.plaid_connections enable row level security;
 revoke all on public.plaid_connections from anon, authenticated;

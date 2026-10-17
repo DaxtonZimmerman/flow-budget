@@ -22,6 +22,7 @@ async function makeServer() {
     let verificationUnavailable = false;
     const calls = [];
     const saved = [];
+    const warningUpdates = [];
     const context = {
         Response, TextEncoder, TextDecoder, atob, crypto: webcrypto,
         console: { error: () => {} },
@@ -37,7 +38,12 @@ async function makeServer() {
         createClient: () => ({
             from: () => ({
                 select() { return this; },
+                update(values) { this.values = values; return this; },
                 eq(_field, value) { this.itemId = value; return this; },
+                then(resolve) {
+                    warningUpdates.push({ itemId: this.itemId, values: this.values });
+                    return resolve({ error: databaseError ? new Error("retry") : null });
+                },
                 async maybeSingle() {
                     return { data: connectionExists && this.itemId === "item-1"
                         ? { id: "connection-1", access_token: "access-test", cursor: null }
@@ -87,7 +93,7 @@ async function makeServer() {
         return response.status;
     }
 
-    return { signedRequest, calls, saved,
+    return { signedRequest, calls, saved, warningUpdates,
         setConnectionExists: value => { connectionExists = value; },
         setDatabaseError: value => { databaseError = value; },
         setVerificationUnavailable: value => { verificationUnavailable = value; } };
@@ -108,6 +114,32 @@ test("signed transaction webhook fetches and saves changes", async () => {
         "https://sandbox.plaid.com/transactions/sync");
     assert.equal(server.saved[0].connection_id, "connection-1");
     assert.equal(server.saved[0].added[0].transaction_id, "txn-1");
+});
+
+test("signed Item warnings request reconnection and repair clears it", async () => {
+    const server = await makeServer();
+    const warning = { webhook_type: "ITEM", webhook_code: "PENDING_DISCONNECT",
+        item_id: "item-1" };
+    const repaired = { webhook_type: "ITEM", webhook_code: "LOGIN_REPAIRED",
+        item_id: "item-1" };
+
+    assert.equal(await server.signedRequest(warning), 200);
+    assert.equal(await server.signedRequest(repaired), 200);
+    assert.deepEqual(server.warningUpdates.map(update => update.values.reconnect_required),
+        [true, false]);
+    assert.equal(server.warningUpdates[0].itemId, "item-1");
+    assert.equal(server.saved.length, 0);
+});
+
+test("a tampered Item warning cannot request reconnection", async () => {
+    const server = await makeServer();
+    const warning = { webhook_type: "ITEM", webhook_code: "PENDING_EXPIRATION",
+        item_id: "item-1" };
+
+    assert.equal(await server.signedRequest(warning, { rawBody: JSON.stringify({
+        ...warning, item_id: "item-2"
+    }) }), 401);
+    assert.equal(server.warningUpdates.length, 0);
 });
 
 test("tampered and expired webhooks cannot touch bank data", async () => {

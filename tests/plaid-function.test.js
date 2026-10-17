@@ -14,9 +14,11 @@ function makeServer(options = {}) {
     const saved = [];
     const rpcCalls = [];
     const deletedUsers = [];
+    const updates = [];
     const connection = {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
-        access_token: "access-secret-test", cursor: null
+        access_token: "access-secret-test", cursor: null,
+        reconnect_required: options.reconnectRequired || false
     };
     let connections = [connection, ...(options.extraConnections || [])];
     const needsReconnect = options.needsReconnect;
@@ -61,6 +63,7 @@ function makeServer(options = {}) {
                         order: () => query,
                         limit: value => { limit = value; return query; },
                         delete: () => { deleting = true; return query; },
+                        update: values => { updates.push({ table, values, filters }); return query; },
                         eq: (field, value) => {
                             filters[field] = value;
                             return query;
@@ -185,7 +188,7 @@ function makeServer(options = {}) {
         return { status: response.status, body: await response.json() };
     }
 
-    return { request, calls, saved, rpcCalls, deletedUsers };
+    return { request, calls, saved, rpcCalls, deletedUsers, updates };
 }
 
 
@@ -302,6 +305,24 @@ test("a bank that needs repair is listed but not synced", async () => {
     assert.equal(server.calls.some(call =>
         call.url.endsWith("/transactions/sync")
     ), false);
+});
+
+
+test("an advance warning offers reconnection and a successful repair clears it", async () => {
+    const server = makeServer({ reconnectRequired: true });
+    const list = await server.request({ action: "connections" });
+    const denied = await server.request({
+        action: "reconnect-complete", connection_id: "someone-elses-connection"
+    });
+    const repaired = await server.request({
+        action: "reconnect-complete", connection_id: "connection-1"
+    });
+
+    assert.equal(list.body.connections[0].needs_reconnect, true);
+    assert.equal(denied.status, 404);
+    assert.equal(repaired.status, 200);
+    assert.equal(server.updates[0].values.reconnect_required, false);
+    assert.equal(server.updates[0].filters.user_id, "user-1");
 });
 
 

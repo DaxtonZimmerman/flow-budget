@@ -224,7 +224,7 @@ Deno.serve(async function(request) {
 
         if (body.action === "connections") {
             const { data, error } = await database.from("plaid_connections")
-                .select("id,institution_name,access_token,created_at,last_synced_at")
+                .select("id,institution_name,access_token,created_at,last_synced_at,reconnect_required")
                 .eq("user_id", userData.user.id)
                 .order("created_at", { ascending: false });
 
@@ -236,13 +236,14 @@ Deno.serve(async function(request) {
             const connections = [];
 
             for (const connection of data) {
-                let needsReconnect = false;
+                let needsReconnect = connection.reconnect_required === true;
 
                 try {
                     const item = await plaidRequest("/item/get", {
                         access_token: connection.access_token
                     });
-                    needsReconnect = item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
+                    needsReconnect = needsReconnect ||
+                        item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
                 } catch (error) {
                     if (error.code !== "ITEM_LOGIN_REQUIRED") throw error;
                     needsReconnect = true;
@@ -258,6 +259,45 @@ Deno.serve(async function(request) {
             }
 
             return reply({ connections });
+        }
+
+        if (body.action === "reconnect-complete") {
+            if (typeof body.connection_id !== "string") {
+                return reply({ error: "Choose a bank connection." }, 400);
+            }
+
+            const { data: connection, error } = await database
+                .from("plaid_connections")
+                .select("id,access_token")
+                .eq("id", body.connection_id)
+                .eq("user_id", userData.user.id)
+                .maybeSingle();
+
+            if (error || !connection) {
+                return reply({ error: "Bank connection not found." }, 404);
+            }
+
+            const item = await plaidRequest("/item/get", {
+                access_token: connection.access_token
+            });
+
+            if (item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED") {
+                return reply({
+                    error: "This bank still needs to be reconnected.",
+                    needs_reconnect: true
+                }, 409);
+            }
+
+            const cleared = await database.from("plaid_connections")
+                .update({ reconnect_required: false })
+                .eq("id", connection.id)
+                .eq("user_id", userData.user.id);
+
+            if (cleared.error) {
+                return reply({ error: "Could not finish reconnecting the bank." }, 500);
+            }
+
+            return reply({ reconnected: true });
         }
 
         if (body.action === "sync") {
