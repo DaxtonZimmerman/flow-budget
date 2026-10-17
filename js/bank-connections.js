@@ -1,5 +1,6 @@
 const bankPanel = document.querySelector("#bank-connections");
 const bankButton = document.querySelector("#connect-bank");
+const bankIntro = document.querySelector("#bank-intro");
 const bankMessage = document.querySelector("#bank-message");
 const bankList = document.querySelector("#connected-banks");
 
@@ -18,6 +19,18 @@ async function showBankConnections() {
 
     try {
         const data = await bankRequest("connections");
+        const productionPilot = data.new_connection_environment === "production";
+        const realBankConnected = productionPilot && data.connections.some(
+            connection => connection.environment === "production"
+        );
+        const testBankConnected = productionPilot && data.connections.some(
+            connection => connection.environment === "sandbox"
+        );
+        bankButton.textContent = productionPilot ? "Connect my bank" : "Connect test bank";
+        bankButton.disabled = realBankConnected || testBankConnected;
+        bankIntro.textContent = productionPilot
+            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
+            : "Connect a test bank in Plaid Sandbox. Flow checks for new transactions when you open it, and you can sync here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
         bankList.replaceChildren();
 
         for (const connection of data.connections) {
@@ -29,7 +42,8 @@ async function showBankConnections() {
             const removeButton = document.createElement("button");
             const actions = document.createElement("div");
 
-            name.textContent = connection.institution_name;
+            name.textContent = connection.environment === "sandbox"
+                ? `${connection.institution_name} (test)` : connection.institution_name;
             updated.textContent = connection.needs_reconnect
                 ? "Needs to be reconnected"
                 : connection.last_synced_at
@@ -121,23 +135,38 @@ async function showBankConnections() {
                     `Disconnect ${connection.institution_name} and remove its transactions from Flow?`
                 )) return;
 
+                if (localStorage.getItem("flow_pending") === "1" ||
+                    flowSyncing || bankRefreshing) {
+                    bankMessage.textContent = "Wait for your current changes to finish saving, then disconnect.";
+                    return;
+                }
+
                 removeButton.disabled = true;
                 bankMessage.textContent = `Disconnecting ${connection.institution_name}…`;
+                bankDisconnectingIds.add(connection.id);
 
                 try {
-                    await bankRequest("disconnect", { connection_id: connection.id });
-                    const current = getFlowSnapshot().transactions;
-                    const remaining = current.filter(function(transaction) {
-                        return transaction.bankConnectionId !== connection.id;
-                    });
-
-                    localStorage.setItem("transactions", JSON.stringify(remaining));
-                    await flowDataChanged();
+                    const result = await bankRequest("disconnect", { connection_id: connection.id });
+                    if (result.data) replaceFlowSnapshot(result.data);
+                    else {
+                        const current = getFlowSnapshot().transactions;
+                        localStorage.setItem("transactions", JSON.stringify(current.filter(
+                            transaction => transaction.bankConnectionId !== connection.id
+                        )));
+                    }
+                    localStorage.setItem("flow_revision", String(result.revision));
+                    localStorage.removeItem("flow_pending");
+                    localStorage.removeItem(
+                        `flow_bank_applied_at_${localStorage.getItem("flow_user_id")}_${connection.id}`
+                    );
                     item.remove();
                     bankMessage.textContent = `${connection.institution_name} disconnected.`;
+                    await showBankConnections();
                 } catch (error) {
                     bankMessage.textContent = error.message;
                     removeButton.disabled = false;
+                } finally {
+                    bankDisconnectingIds.delete(connection.id);
                 }
             });
 
@@ -158,7 +187,7 @@ async function showBankConnections() {
 
 bankButton.addEventListener("click", async function() {
     bankButton.disabled = true;
-    bankMessage.textContent = "Opening the test bank…";
+    bankMessage.textContent = "Opening Plaid…";
 
     try {
         if (typeof Plaid === "undefined") {
@@ -169,14 +198,14 @@ bankButton.addEventListener("click", async function() {
         const link = Plaid.create({
             token: data.link_token,
             onSuccess: async function(publicToken, metadata) {
-                bankMessage.textContent = "Saving your test bank…";
+                bankMessage.textContent = "Saving your bank connection…";
 
                 try {
                     await bankRequest("exchange-public-token", {
                         public_token: publicToken,
                         institution_name: metadata?.institution?.name || "Bank"
                     });
-                    bankMessage.textContent = "Test bank connected. Checking transactions…";
+                    bankMessage.textContent = "Bank connected. Checking transactions…";
                     await showBankConnections();
                     sessionStorage.removeItem(
                         `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`
@@ -184,9 +213,8 @@ bankButton.addEventListener("click", async function() {
                     await updateBanksAutomatically();
                 } catch (error) {
                     bankMessage.textContent = error.message;
+                    bankButton.disabled = false;
                 }
-
-                bankButton.disabled = false;
             },
             onExit: function() {
                 bankButton.disabled = false;

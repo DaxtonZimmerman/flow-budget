@@ -1,6 +1,7 @@
 /* keep connected banks up to date when flow is open */
 
 let bankRefreshing = false;
+const bankDisconnectingIds = new Set();
 
 
 async function bankRequest(action, values = {}) {
@@ -38,6 +39,7 @@ async function bankRequest(action, values = {}) {
 
 async function syncBankConnection(connectionId) {
     const result = await bankRequest("sync", { connection_id: connectionId });
+    if (bankDisconnectingIds.has(connectionId)) return { ...result, changed: false };
     const current = getFlowSnapshot().transactions;
     const merged = mergeBankSnapshot(current, connectionId, result.transactions);
     const changed = JSON.stringify(current) !== JSON.stringify(merged);

@@ -6,6 +6,7 @@ create table if not exists public.plaid_connections (
     user_id uuid not null references auth.users(id) on delete cascade,
     item_id text not null unique,
     access_token text not null,
+    environment text not null default 'sandbox' check (environment in ('sandbox', 'production')),
     institution_name text not null default 'Bank',
     cursor text,
     reconnect_required boolean not null default false,
@@ -16,6 +17,14 @@ create table if not exists public.plaid_connections (
 -- Existing projects need this additive change too.
 alter table public.plaid_connections
     add column if not exists reconnect_required boolean not null default false;
+
+alter table public.plaid_connections
+    add column if not exists environment text not null default 'sandbox'
+    check (environment in ('sandbox', 'production'));
+
+-- A private pilot may hold only one Production Item per user.
+create unique index if not exists plaid_one_production_item_per_user
+    on public.plaid_connections(user_id) where environment = 'production';
 
 alter table public.plaid_connections enable row level security;
 revoke all on public.plaid_connections from anon, authenticated;
