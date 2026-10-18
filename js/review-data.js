@@ -17,7 +17,7 @@ function loadRecurringItems() {
 
 function findCategoryRule(transaction, rules) {
     return rules.find(function(rule) {
-        return rule.name === normalizedName(transaction.name) &&
+        return !rule.bankType && rule.name === normalizedName(transaction.name) &&
             rule.type === transaction.type;
     });
 }
@@ -70,6 +70,7 @@ function applyReviewChoice(transactions, selected, type, category) {
 
         if (transaction.source === "bank") {
             transaction.type = type;
+            transaction.bankTypeRuleId = undefined;
             transaction.typeOverride = type !== (transaction.amount < 0 ? "Expense" : "Income");
         } else if (type !== "Transfer" && type !== "Refund") {
             transaction.type = type;
@@ -86,6 +87,63 @@ function applyReviewChoice(transactions, selected, type, category) {
     }
 
     return count;
+}
+
+
+/* Transfer rules stay inside one bank account and one money direction. */
+
+function canRememberTransfers(items) {
+    return items.length > 0 && items.every(item => item.source === "bank" &&
+        typeof item.accountId === "string" && item.accountId.length > 0 &&
+        normalizedName(item.name) && Number.isFinite(item.amount) && item.amount !== 0);
+}
+
+
+function rememberTransferChoices(transactions, selected, rules) {
+    if (!canRememberTransfers(selected)) {
+        throw new Error("Sync this bank first so Flow can remember its account details.");
+    }
+    const selectedIds = new Set(selected.map(item => String(item.id)));
+    const savedRules = [];
+    for (const item of selected) {
+        const name = normalizedName(item.name);
+        const direction = item.amount < 0 ? "Expense" : "Income";
+        let rule = rules.find(candidate => candidate.bankType === "Transfer" &&
+            candidate.name === name && candidate.type === direction &&
+            candidate.accountId === item.accountId);
+        if (!rule) {
+            rule = { id: makeRecordId(rules), name: name, label: item.name,
+                type: direction, category: "Other", bankType: "Transfer",
+                accountId: item.accountId };
+            rules.push(rule);
+        }
+        if (!savedRules.includes(rule)) savedRules.push(rule);
+    }
+    for (const item of transactions) {
+        const selectedNow = selectedIds.has(String(item.id));
+        if (item.source !== "bank" || (!selectedNow &&
+            (!needsTransactionReview(item) || (item.typeOverride && !item.bankTypeRuleId)))) continue;
+        const rule = savedRules.find(candidate => candidate.name === normalizedName(item.name) &&
+            candidate.accountId === item.accountId &&
+            candidate.type === (item.amount < 0 ? "Expense" : "Income"));
+        if (!rule) continue;
+        item.type = "Transfer";
+        item.typeOverride = true;
+        item.bankTypeRuleId = rule.id;
+        if (item.date) item.reviewStatus = "reviewed";
+    }
+    return savedRules;
+}
+
+
+function forgetTransferChoice(transactions, rule) {
+    for (const item of transactions) {
+        if (item.source !== "bank" || item.bankTypeRuleId !== rule.id) continue;
+        item.type = item.amount < 0 ? "Expense" : "Income";
+        item.typeOverride = false;
+        item.bankTypeRuleId = undefined;
+        item.reviewStatus = "needs-review";
+    }
 }
 
 

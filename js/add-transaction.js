@@ -168,9 +168,10 @@ transactionForm.addEventListener("submit", function(event) {
     const matchedSuggestion = suggestedRule &&
         suggestedRule.name === normalizedName(name) &&
         suggestedRule.type === type && suggestedRule.category === category;
-    const bankEdit = editId !== null && loadTransactions().some(function(item) {
+    const bankTransaction = editId !== null ? loadTransactions().find(function(item) {
         return String(item.id) === editId && item.source === "bank";
-    });
+    }) : null;
+    const bankEdit = Boolean(bankTransaction);
 
 
     formMessage.textContent = "";
@@ -182,7 +183,7 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
     if (bankEdit) {
-        const validTypes = amount < 0
+        const validTypes = bankTransaction.amount < 0
             ? ["Expense", "Transfer"]
             : ["Income", "Refund", "Transfer"];
         if (!validTypes.includes(type)) {
@@ -272,6 +273,7 @@ transactionForm.addEventListener("submit", function(event) {
                 ...oldTransaction,
                 type: type,
                 typeOverride: type !== (oldTransaction.amount < 0 ? "Expense" : "Income"),
+                bankTypeRuleId: oldTransaction.type === type ? oldTransaction.bankTypeRuleId : undefined,
                 category: category,
                 notes: notes,
                 reviewStatus: "reviewed",

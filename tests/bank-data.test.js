@@ -219,3 +219,62 @@ test("a posted snapshot replaces pending and leaves other banks alone", () => {
     assert.equal(removed.length, 1);
     assert.equal(removed[0], otherBank);
 });
+
+test("remembered transfers require the same bank account, exact name, and direction", () => {
+    const rule = { id: "transfer-rule", name: "move to savings", label: "Move to savings",
+        type: "Expense", category: "Other", bankType: "Transfer", accountId: "checking-1" };
+    const item = bankItem("transfer-1", 100, { name: " MOVE  TO SAVINGS ", account_id: "checking-1" });
+    const first = mergeBankSnapshot([], "connection-1", [item], [rule]);
+    assert.equal(first[0].type, "Transfer");
+    assert.equal(first[0].bankTypeRuleId, rule.id);
+    assert.equal(first[0].reviewStatus, "reviewed");
+    assert.equal(first[0].amount, -100);
+    const updated = mergeBankSnapshot(first, "connection-1", [{ ...item, amount: 125 }], [rule]);
+    assert.equal(updated[0].type, "Transfer");
+    assert.equal(updated[0].amount, -125);
+    for (const different of [
+        { ...item, name: "Move to savings west" },
+        { ...item, account_id: "checking-2" },
+        { ...item, amount: -100 },
+        { ...item, amount: 0 }
+    ]) {
+        const result = mergeBankSnapshot([], "connection-1", [different], [rule]);
+        assert.notEqual(result[0].type, "Transfer");
+        assert.equal(result[0].bankTypeRuleId, undefined);
+    }
+});
+
+test("remembered transfers never overwrite individually reviewed bank choices", () => {
+    const rule = { id: "transfer-rule", name: "coffee shop", type: "Expense",
+        category: "Other", bankType: "Transfer", accountId: "checking-1" };
+    const saved = applyBankChanges([], "checking-1", { added: [bankItem("manual-choice", 10)] }).transactions;
+    saved[0].type = "Expense";
+    saved[0].reviewStatus = "reviewed";
+    saved[0].category = "Food";
+    saved[0].notes = "Keep this as spending";
+    const refreshed = applyBankChanges(saved, "checking-1", {
+        modified: [bankItem("manual-choice", 12)]
+    }, [rule]).transactions;
+    assert.equal(refreshed[0].type, "Expense");
+    assert.equal(refreshed[0].category, "Food");
+    assert.equal(refreshed[0].notes, "Keep this as spending");
+    assert.equal(refreshed[0].bankTypeRuleId, undefined);
+});
+
+test("an invalidated transfer rule returns its linked bank entry to review", () => {
+    const rule = { id: "transfer-rule", name: "coffee shop", type: "Expense",
+        category: "Other", bankType: "Transfer", accountId: "checking-1" };
+    const saved = applyBankChanges([], "checking-1", { added: [bankItem("rule-choice", 10)] }, [rule]).transactions;
+    const reversed = applyBankChanges(saved, "checking-1", {
+        modified: [bankItem("rule-choice", -10)]
+    }, [rule]).transactions;
+    assert.equal(reversed[0].type, "Income");
+    assert.equal(reversed[0].typeOverride, false);
+    assert.equal(reversed[0].bankTypeRuleId, undefined);
+    assert.equal(reversed[0].reviewStatus, "needs-review");
+    const removed = applyBankChanges(saved, "checking-1", {
+        modified: [bankItem("rule-choice", 10)]
+    }, []).transactions;
+    assert.equal(removed[0].type, "Expense");
+    assert.equal(removed[0].reviewStatus, "needs-review");
+});

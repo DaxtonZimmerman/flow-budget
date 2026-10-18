@@ -50,7 +50,7 @@ test("a version 1 backup without IDs restores and gains stable IDs", async () =>
     assert.ok(monthlyBudgets["2026-10"][0].id);
 });
 
-test("a backup keeps category rules and monthly choices", async () => {
+test("a backup keeps category rules, transfer choices, and monthly choices", async () => {
     const saved = new Map();
     let restore;
     const backup = {
@@ -58,7 +58,8 @@ test("a backup keeps category rules and monthly choices", async () => {
         transactions: [],
         budgets: [],
         budgetsByMonth: {},
-        categoryRules: [{ id: "rule-1", name: "rent", type: "Expense", category: "Bills" }],
+        categoryRules: [{ id: "rule-1", name: "rent", type: "Expense", category: "Bills" },
+            { id: "transfer-rule", name: "move", type: "Expense", category: "Other", bankType: "Transfer", accountId: "checking" }],
         recurringItems: [{ id: "monthly-1", key: "Expense|rent", name: "Rent",
             type: "Expense", amount: -1000, status: "confirmed" }]
     };
@@ -85,6 +86,9 @@ test("a backup keeps category rules and monthly choices", async () => {
 
     await restore();
     assert.equal(JSON.parse(saved.get("categoryRules"))[0].category, "Bills");
+    assert.equal(JSON.parse(saved.get("categoryRules"))[1].bankType, "Transfer");
+    assert.equal(JSON.parse(saved.get("categoryRules"))[1].accountId, "checking");
+    assert.equal(vm.runInContext("validBackup({ ..." + JSON.stringify(backup) + ", categoryRules: [{ id: 'bad', name: 'move', type: 'Expense', category: 'Other', bankType: 'Transfer' }] })", context), false);
     assert.equal(JSON.parse(saved.get("recurringItems"))[0].status, "confirmed");
     assert.equal(vm.runInContext("validBackup({ ..." + JSON.stringify(backup) + ", recurringItems: [{ status: 'bad' }] })", context), false);
 });

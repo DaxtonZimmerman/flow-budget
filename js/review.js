@@ -140,14 +140,19 @@ function showInbox() {
             const category = categorySelect.value;
             const type = typeSelect ? typeSelect.value
                 : transaction.amount > 0 ? "Income" : "Expense";
-            if (remember && type !== (transaction.amount > 0 ? "Income" : "Expense")) {
-                reviewMessage.textContent = "Save this transfer or refund once; category rules do not change transaction types.";
+            if (remember && type === "Refund") {
+                reviewMessage.textContent = "Save this refund once. Remember is available for categories and confirmed transfers.";
+                return;
+            }
+            const rememberTransfer = remember && type === "Transfer";
+            if (rememberTransfer && !canRememberTransfers([transaction])) {
+                reviewMessage.textContent = "Sync this bank first so Flow can remember its account details.";
                 return;
             }
             const name = normalizedName(transaction.name);
             let rule = null;
 
-            if (remember) {
+            if (remember && !rememberTransfer) {
                 rule = findCategoryRule({ name: transaction.name, type: type }, categoryRules);
                 if (rule) rule.category = category;
                 else {
@@ -178,11 +183,13 @@ function showInbox() {
                     (transaction.amount > 0 ? "Income" : "Expense");
             }
             transaction.category = category;
-            transaction.categoryReason = remember
+            transaction.categoryReason = remember && !rememberTransfer
                 ? `Rule for ${rule.label || rule.name}` : "Chosen by you";
-            transaction.categoryRuleId = remember ? rule.id : undefined;
+            transaction.categoryRuleId = remember && !rememberTransfer ? rule.id : undefined;
+            transaction.bankTypeRuleId = undefined;
             transaction.reviewStatus = "reviewed";
 
+            if (rememberTransfer) rememberTransferChoices(transactions, [transaction], categoryRules);
             const changes = { transactions: transactions };
             if (remember) changes.categoryRules = categoryRules;
             if (!saveReviewData(changes)) {
@@ -190,8 +197,9 @@ function showInbox() {
                 return;
             }
 
-            reviewMessage.textContent = remember
-                ? `Saved ${transaction.name}. Future matches will use ${category}.`
+            reviewMessage.textContent = rememberTransfer
+                ? `Saved ${transaction.name}. Future entries with this exact name, bank account, and money direction will be transfers.`
+                : remember ? `Saved ${transaction.name}. Future matches will use ${category}.`
                 : `Saved ${transaction.name}.`;
             showReview();
         };
@@ -205,7 +213,10 @@ function showInbox() {
             const updateTypeControls = () => {
                 categorySelect.disabled = typeSelect.value === "Transfer";
                 categoryLabel.firstChild.textContent = typeSelect.value === "Transfer" ? "Category · not needed" : "Category";
-                rememberButton.disabled = typeSelect.value === "Transfer" || typeSelect.value === "Refund";
+                rememberButton.disabled = typeSelect.value === "Refund";
+                rememberButton.title = typeSelect.value === "Transfer"
+                    ? "Remember transfers with this exact name, bank account, and money direction."
+                    : typeSelect.value === "Refund" ? "Refunds are saved individually." : "Remember this category.";
             };
             typeSelect.addEventListener("change", updateTypeControls);
             updateTypeControls();
@@ -269,7 +280,11 @@ function showQuickReview() {
                 const transfer = typeSelect.value === "Transfer";
                 categorySelect.disabled = transfer;
                 categoryLabel.firstChild.textContent = transfer ? "Category · not needed" : "Category";
-                rememberInput.disabled = transfer || typeSelect.value === "Refund";
+                rememberInput.disabled = typeSelect.value === "Refund";
+                rememberLabel.lastChild.textContent = transfer ? "Remember transfers" : "Remember category";
+                rememberInput.title = transfer
+                    ? "Use Transfer for future entries with this exact name, bank account, and money direction."
+                    : typeSelect.value === "Refund" ? "Refunds are saved individually." : "Remember this category.";
                 if (rememberInput.disabled) rememberInput.checked = false;
             };
             typeSelect.addEventListener("change", updateGroupControls);
@@ -278,16 +293,23 @@ function showQuickReview() {
         controls.appendChild(makeButton(`Apply to ${group.count}`, "save-button", function() {
             const type = typeSelect ? typeSelect.value : group.items[0].type;
             const inferredType = group.items[0].amount < 0 ? "Expense" : "Income";
-            if (rememberInput.checked && (!categorySelect.value || type !== inferredType)) {
-                quickReviewMessage.textContent =
-                    "To remember a category, choose one and keep the normal income or expense type. Transfers are chosen per transaction.";
+            const rememberTransfer = rememberInput.checked && type === "Transfer";
+            if (rememberInput.checked && !rememberTransfer && (!categorySelect.value || type !== inferredType)) {
+                quickReviewMessage.textContent = "Choose a category to remember. Refunds are saved individually.";
+                return;
+            }
+            if (rememberTransfer && !canRememberTransfers(group.items)) {
+                quickReviewMessage.textContent = "Sync this bank first so Flow can remember its account details.";
                 return;
             }
             const before = JSON.stringify(transactions);
             const count = applyReviewChoice(transactions, group.items,
                 type, categorySelect.value);
             const changes = { transactions: transactions };
-            if (rememberInput.checked) {
+            if (rememberTransfer) {
+                rememberTransferChoices(transactions, group.items, categoryRules);
+                changes.categoryRules = categoryRules;
+            } else if (rememberInput.checked) {
                 const name = normalizedName(group.name);
                 let rule = findCategoryRule({ name: group.name, type: type }, categoryRules);
                 if (rule) rule.category = categorySelect.value;
@@ -306,7 +328,9 @@ function showQuickReview() {
                 transactions = JSON.parse(before);
                 return showReview();
             }
-            quickReviewMessage.textContent = `Updated ${count} ${group.name} transaction${count === 1 ? "" : "s"}.`;
+            quickReviewMessage.textContent = rememberTransfer
+                ? `Updated ${count} transactions. Future entries with this exact name, bank account, and money direction will be transfers.`
+                : `Updated ${count} ${group.name} transaction${count === 1 ? "" : "s"}.`;
             showReview();
         }));
         row.appendChild(controls);
@@ -394,11 +418,14 @@ function showRules() {
         row.className = "review-row";
         const info = document.createElement("div");
         info.appendChild(makeText("strong", rule.label || rule.name));
-        info.appendChild(makeText("span", `${rule.type} → ${rule.category} · exact name match`));
+        info.appendChild(makeText("span", rule.bankType === "Transfer"
+            ? `${rule.type === "Income" ? "Money in" : "Money out"} → Transfer · exact bank name and account match`
+            : `${rule.type} → ${rule.category} · exact name match`));
         row.appendChild(info);
-        row.appendChild(makeButton("Remove rule and undo auto categories", "back-button", function() {
+        row.appendChild(makeButton(rule.bankType === "Transfer" ? "Remove transfer rule" : "Remove rule and undo auto categories", "back-button", function() {
             categoryRules = categoryRules.filter(item => item.id !== rule.id);
 
+            if (rule.bankType === "Transfer") forgetTransferChoice(transactions, rule);
             for (const transaction of transactions) {
                 if (transaction.categoryRuleId !== rule.id) continue;
                 transaction.category = transaction.amount > 0 ? "Income" : "Other";
@@ -408,7 +435,9 @@ function showRules() {
             }
 
             if (!saveReviewData({ categoryRules: categoryRules, transactions: transactions })) return showReview();
-            reviewMessage.textContent = `Removed the rule for ${rule.name} and undid its automatic categories.`;
+            reviewMessage.textContent = rule.bankType === "Transfer"
+                ? `Removed the transfer rule for ${rule.label || rule.name}. Its entries are back in review.`
+                : `Removed the rule for ${rule.name} and undid its automatic categories.`;
             showReview();
         }));
         rulesList.appendChild(row);

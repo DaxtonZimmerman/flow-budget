@@ -125,11 +125,14 @@ test("category rules and monthly choices travel with the cloud copy", async () =
     app.saved.set("flow_user_id", "person-1");
     app.saved.set("flow_revision", "0");
     app.saved.set("flow_pending", "1");
-    app.saved.set("categoryRules", JSON.stringify([{ id: "rule-1", name: "rent", type: "Expense", category: "Bills" }]));
+    app.saved.set("categoryRules", JSON.stringify([{ id: "rule-1", name: "rent", type: "Expense", category: "Bills" },
+        { id: "transfer-rule", name: "move", type: "Expense", category: "Other", bankType: "Transfer", accountId: "checking" }]));
     app.saved.set("recurringItems", JSON.stringify([{ id: "monthly-1", key: "Expense|rent", status: "confirmed" }]));
 
     await app.run("flowSync()");
     assert.equal(app.getCloud().data.categoryRules[0].category, "Bills");
+    assert.equal(app.getCloud().data.categoryRules[1].bankType, "Transfer");
+    assert.equal(app.getCloud().data.categoryRules[1].accountId, "checking");
     assert.equal(app.getCloud().data.recurringItems[0].status, "confirmed");
 
     app.setCloud({ revision: 2, data: {

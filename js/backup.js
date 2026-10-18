@@ -91,7 +91,9 @@ function validBackup(backup) {
             !rule || typeof rule.id !== "string" ||
             typeof rule.name !== "string" ||
             typeof rule.category !== "string" ||
-            !["Income", "Expense"].includes(rule.type)))) {
+            !["Income", "Expense"].includes(rule.type) ||
+            (rule.bankType !== undefined && (rule.bankType !== "Transfer" ||
+                typeof rule.accountId !== "string" || !rule.accountId))))) {
         return false;
     }
 

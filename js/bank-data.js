@@ -3,16 +3,23 @@
 function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const amount = Math.round(Number(item.amount) * 100) / -100;
     const inferredType = amount < 0 ? "Expense" : "Income";
-    const keepOverride = previous && previous.typeOverride &&
+    const keepOverride = previous && previous.typeOverride && !previous.bankTypeRuleId &&
         (previous.type === "Transfer" ||
             (previous.type === "Refund" && amount > 0));
-    const type = keepOverride ? previous.type : inferredType;
     const name = item.merchant_name || item.name || "Bank transaction";
     const normalized = String(name).trim().toLowerCase().replace(/\s+/g, " ");
-    const rule = rules.find(candidate => candidate.name === normalized &&
+    const transferRule = rules.find(candidate => candidate.bankType === "Transfer" &&
+        candidate.name === normalized && candidate.type === inferredType &&
+        typeof candidate.accountId === "string" && candidate.accountId.length > 0 &&
+        candidate.accountId === accountId && amount !== 0);
+    const useTransferRule = transferRule && !keepOverride &&
+        (!previous || previous.reviewStatus !== "reviewed" || previous.bankTypeRuleId === transferRule.id);
+    const type = keepOverride ? previous.type : useTransferRule ? "Transfer" : inferredType;
+    const rule = rules.find(candidate => !candidate.bankType && candidate.name === normalized &&
         candidate.type === type);
     const useRule = rule && (!previous || previous.reviewStatus !== "reviewed" ||
         previous.categoryRuleId === rule.id);
+    const removedTypeRule = previous && previous.bankTypeRuleId && !useTransferRule;
 
     return {
         id: previous && previous.bankTransactionId === item.transaction_id
@@ -22,7 +29,8 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
         bankTransactionId: item.transaction_id,
         status: item.pending ? "pending" : "posted",
         type: type,
-        typeOverride: Boolean(keepOverride),
+        typeOverride: Boolean(keepOverride || useTransferRule),
+        bankTypeRuleId: useTransferRule ? transferRule.id : undefined,
         name: name,
         amount: amount,
         date: item.date,
@@ -32,7 +40,8 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
         categoryReason: useRule ? `Rule for ${rule.label || rule.name}`
             : previous ? previous.categoryReason : "",
         categoryRuleId: useRule ? rule.id : previous ? previous.categoryRuleId : undefined,
-        reviewStatus: useRule ? "reviewed" : previous ? previous.reviewStatus : "needs-review"
+        reviewStatus: useRule || useTransferRule ? "reviewed" : removedTypeRule ? "needs-review"
+            : previous ? previous.reviewStatus : "needs-review"
     };
 }
 
