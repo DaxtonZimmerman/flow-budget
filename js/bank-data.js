@@ -1,6 +1,6 @@
 /* turn bank updates into Flow transactions */
 
-function bankTransactionFromPlaid(item, accountId, previous) {
+function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const amount = Math.round(Number(item.amount) * 100) / -100;
     const inferredType = amount < 0 ? "Expense" : "Income";
     const keepOverride = previous && previous.typeOverride &&
@@ -8,6 +8,11 @@ function bankTransactionFromPlaid(item, accountId, previous) {
             (previous.type === "Refund" && amount > 0));
     const type = keepOverride ? previous.type : inferredType;
     const name = item.merchant_name || item.name || "Bank transaction";
+    const normalized = String(name).trim().toLowerCase().replace(/\s+/g, " ");
+    const rule = rules.find(candidate => candidate.name === normalized &&
+        candidate.type === type);
+    const useRule = rule && (!previous || previous.reviewStatus !== "reviewed" ||
+        previous.categoryRuleId === rule.id);
 
     return {
         id: previous && previous.bankTransactionId === item.transaction_id
@@ -21,15 +26,18 @@ function bankTransactionFromPlaid(item, accountId, previous) {
         name: name,
         amount: amount,
         date: item.date,
-        category: previous ? previous.category : (type === "Income" ? "Income" : "Other"),
+        category: useRule ? rule.category : previous ? previous.category
+            : (type === "Income" ? "Income" : "Other"),
         notes: previous ? previous.notes : "",
-        categoryReason: previous ? previous.categoryReason : "",
-        reviewStatus: previous ? previous.reviewStatus : "needs-review"
+        categoryReason: useRule ? `Rule for ${rule.label || rule.name}`
+            : previous ? previous.categoryReason : "",
+        categoryRuleId: useRule ? rule.id : previous ? previous.categoryRuleId : undefined,
+        reviewStatus: useRule ? "reviewed" : previous ? previous.reviewStatus : "needs-review"
     };
 }
 
 
-function applyBankChanges(transactions, accountId, changes) {
+function applyBankChanges(transactions, accountId, changes, rules = []) {
     const updated = transactions.slice();
     const original = transactions.slice();
     const removedIds = new Set((changes.removed || []).map(function(item) {
@@ -66,7 +74,7 @@ function applyBankChanges(transactions, accountId, changes) {
                 transaction.bankTransactionId === item.pending_transaction_id;
         });
 
-        const next = bankTransactionFromPlaid(item, accountId, previous);
+        const next = bankTransactionFromPlaid(item, accountId, previous, rules);
 
         if (index >= 0) {
             updated[index] = next;
@@ -101,7 +109,7 @@ function applyBankChanges(transactions, accountId, changes) {
 
 /* match one bank's saved snapshot */
 
-function mergeBankSnapshot(transactions, connectionId, bankItems) {
+function mergeBankSnapshot(transactions, connectionId, bankItems, rules = []) {
     const oldBankItems = transactions.filter(function(item) {
         return item.source === "bank" && item.bankConnectionId === connectionId;
     });
@@ -127,7 +135,7 @@ function mergeBankSnapshot(transactions, connectionId, bankItems) {
         const item = available.get(saved.bankTransactionId);
 
         if (item) {
-            const next = bankTransactionFromPlaid(item, item.account_id, saved);
+            const next = bankTransactionFromPlaid(item, item.account_id, saved, rules);
             next.bankConnectionId = connectionId;
             updated.push(next);
             available.delete(item.transaction_id);
@@ -139,7 +147,7 @@ function mergeBankSnapshot(transactions, connectionId, bankItems) {
             return saved.accountId === item.account_id &&
                 saved.bankTransactionId === item.pending_transaction_id;
         });
-        const next = bankTransactionFromPlaid(item, item.account_id, previous);
+        const next = bankTransactionFromPlaid(item, item.account_id, previous, rules);
 
         next.id = `bank-${connectionId}-${item.transaction_id}`;
         next.bankConnectionId = connectionId;

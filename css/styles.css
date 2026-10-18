@@ -1452,6 +1452,96 @@ button:active {
     display: none;
 }
 
+.quick-review-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.quick-review-banner[hidden] {
+    display: none;
+}
+
+.quick-review-banner h3,
+.quick-review-dialog h2 {
+    margin: 0.25rem 0;
+}
+
+.quick-review-banner p,
+.quick-review-heading p,
+.quick-review-footer p {
+    margin: 0.35rem 0;
+    color: var(--text-light);
+    font-size: 0.8125rem;
+}
+
+.quick-review-dialog {
+    width: min(60rem, calc(100vw - 2rem));
+    max-height: min(48rem, calc(100vh - 2rem));
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--card);
+    color: var(--text);
+    overflow: auto;
+}
+
+.quick-review-dialog::backdrop {
+    background: rgb(17 35 30 / 62%);
+}
+
+.quick-review-heading,
+.quick-review-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.quick-review-heading {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.quick-review-group {
+    align-items: center;
+}
+
+.quick-review-group .review-controls {
+    justify-content: flex-end;
+}
+
+.quick-review-group .review-controls select {
+    max-width: 10rem;
+}
+
+.review-controls .quick-review-remember {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+}
+
+.review-controls .quick-review-remember input {
+    width: 1rem;
+    min-height: 1rem;
+    height: 1rem;
+    margin: 0;
+}
+
+.quick-review-more {
+    margin: 1rem auto;
+}
+
+.quick-review-footer {
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
 /* getting started and csv import */
 
 .start-options {
@@ -2082,6 +2172,17 @@ button:active {
 
 
 @media (max-width: 640px) {
+
+    .quick-review-banner,
+    .quick-review-heading,
+    .quick-review-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .quick-review-dialog {
+        padding: 1rem;
+    }
 
     .review-card {
         padding: 1rem;

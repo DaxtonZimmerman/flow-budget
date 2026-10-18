@@ -47,3 +47,25 @@ test("monthly dates clamp at month end", () => {
     assert.equal(run('nextMonthlyDate("2026-01-31")'), "2026-02-28");
     assert.equal(run('nextMonthlyDate("2024-01-31")'), "2024-02-29");
 });
+
+test("quick review groups matching bank names and puts possible transfers first", () => {
+    context.items = [
+        { id: "1", source: "bank", name: "Store", amount: -5, date: "2026-10-01", reviewStatus: "needs-review" },
+        { id: "2", source: "bank", name: " STORE ", amount: -7, date: "2026-10-02", reviewStatus: "needs-review" },
+        { id: "3", source: "bank", name: "Home transfer to savings", amount: -10, date: "2026-10-03", reviewStatus: "needs-review" },
+        { id: "4", source: "bank", name: "Store", amount: 5, date: "2026-10-04", reviewStatus: "needs-review" }
+    ];
+    assert.equal(run("reviewGroups(items)[0].likelyTransfer"), true);
+    assert.equal(run("reviewGroups(items)[1].count"), 2);
+    assert.equal(run("reviewGroups(items).length"), 3);
+});
+
+test("quick review changes bank type in a batch and excludes transfers from totals", () => {
+    context.items = [
+        { id: "1", source: "bank", name: "Transfer", amount: -100, date: "2026-10-01", type: "Expense", reviewStatus: "needs-review" },
+        { id: "2", source: "bank", name: "Transfer", amount: -50, date: "2026-10-02", type: "Expense", reviewStatus: "needs-review" }
+    ];
+    assert.equal(run('applyReviewChoice(items, items, "Transfer", "")'), 2);
+    assert.equal(run('items.every(item => item.type === "Transfer" && item.typeOverride && item.reviewStatus === "reviewed")'), true);
+    assert.equal(run('getMoneyTotals(items, "2026-10").spending'), 0);
+});

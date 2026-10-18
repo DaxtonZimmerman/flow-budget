@@ -41,12 +41,21 @@
 
             <p id="review-message" class="review-message" role="status" aria-live="polite"></p>
 
+            <section class="card quick-review-banner" id="quick-review-banner" hidden>
+                <div>
+                    <p class="small-label">A faster way to start</p>
+                    <h3>Sort similar transactions together</h3>
+                    <p>Check suggested transfers, then make one choice for repeated names. You can change any transaction later.</p>
+                </div>
+                <button type="button" id="open-quick-review" class="save-button">Open quick review</button>
+            </section>
+
             <section class="card review-card">
                 <div class="section-top">
                     <div><p class="small-label">Inbox</p><h3>Needs your answer</h3></div>
                     <span id="review-count" class="transaction-count"></span>
                 </div>
-                <p>Transactions that need a category or date appear here. Saving a category can teach Flow what to use next time.</p>
+                <p>Transactions that need a category, type, or date appear here. Choose Transfer for money moved between your own accounts.</p>
                 <div id="review-inbox" class="review-list"></div>
                 <p id="review-empty" class="budget-empty" hidden>All caught up. New items that need a decision will show here.</p>
             </section>
@@ -78,6 +87,23 @@
             </section>
         </main>
     </div>
+
+    <dialog id="quick-review-dialog" class="quick-review-dialog" aria-labelledby="quick-review-title">
+        <div class="quick-review-heading">
+            <div>
+                <p class="small-label">Quick review</p>
+                <h2 id="quick-review-title">Make a few choices, not hundreds</h2>
+                <p id="quick-review-summary"></p>
+            </div>
+            <button type="button" id="close-quick-review" class="back-button">Done for now</button>
+        </div>
+        <p id="quick-review-message" class="review-message" role="status" aria-live="polite"></p>
+        <div id="quick-review-groups" class="review-list"></div>
+        <div class="quick-review-footer">
+            <p>Keeping the current categories clears the review inbox, but does not change transaction types or fix transfers. You can edit any item later.</p>
+            <button type="button" id="accept-review-defaults" class="back-button">Keep current categories for the rest</button>
+        </div>
+    </dialog>
 </body>
 
 </html>

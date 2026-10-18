@@ -41,7 +41,8 @@ async function syncBankConnection(connectionId) {
     const result = await bankRequest("sync", { connection_id: connectionId });
     if (bankDisconnectingIds.has(connectionId)) return { ...result, changed: false };
     const current = getFlowSnapshot().transactions;
-    const merged = mergeBankSnapshot(current, connectionId, result.transactions);
+    const rules = JSON.parse(localStorage.getItem("categoryRules") || "[]");
+    const merged = mergeBankSnapshot(current, connectionId, result.transactions, rules);
     const changed = JSON.stringify(current) !== JSON.stringify(merged);
 
     if (changed) {

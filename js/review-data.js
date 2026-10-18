@@ -32,6 +32,63 @@ function needsTransactionReview(transaction) {
 }
 
 
+function reviewGroups(transactions) {
+    const groups = new Map();
+
+    for (const transaction of transactions) {
+        if (!needsTransactionReview(transaction) || !transaction.date) continue;
+        const direction = transaction.amount < 0 ? "out" : "in";
+        const key = `${transaction.source || "manual"}|${direction}|${normalizedName(transaction.name)}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(transaction);
+    }
+
+    return [...groups.entries()].map(function([key, items]) {
+        const first = items[0];
+        return {
+            key: key,
+            name: first.name,
+            count: items.length,
+            items: items,
+            likelyTransfer: items.every(item => item.source === "bank") &&
+                /\btransfer\b/i.test(first.name)
+        };
+    }).sort(function(first, second) {
+        return Number(second.likelyTransfer) - Number(first.likelyTransfer) ||
+            second.count - first.count || first.name.localeCompare(second.name);
+    });
+}
+
+
+function applyReviewChoice(transactions, selected, type, category) {
+    const ids = new Set(selected.map(item => String(item.id)));
+    let count = 0;
+
+    for (const transaction of transactions) {
+        if (!ids.has(String(transaction.id)) || !needsTransactionReview(transaction) ||
+            !transaction.date) continue;
+
+        if (transaction.source === "bank") {
+            transaction.type = type;
+            transaction.typeOverride = type !== (transaction.amount < 0 ? "Expense" : "Income");
+        } else if (type !== "Transfer" && type !== "Refund") {
+            transaction.type = type;
+        }
+
+        if (category) {
+            transaction.category = category;
+            transaction.categoryReason = "Chosen by you";
+            transaction.categoryRuleId = undefined;
+        }
+
+        transaction.reviewStatus = "reviewed";
+        count++;
+    }
+
+    return count;
+}
+
+
 function nextMonthlyDate(date) {
     const year = Number(date.slice(0, 4));
     const month = Number(date.slice(5, 7));

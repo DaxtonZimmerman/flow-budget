@@ -44,6 +44,8 @@ Flow skips exact matches by date, description, and amount. If two separate charg
 
 ## Review and category rules
 
-Open Transactions → Review to see imported transactions without a category and older transactions without a date. Choose a category and date, then save it once or save and remember. A remembered rule matches the exact transaction name and income/expense type on later imports or manual entries. Transactions show whether a category came from the CSV, your choice, or a rule. Removing a rule also undoes categories that rule assigned automatically.
+Open Transactions → Review to see imported transactions without a category and older transactions without a date. A quick review popup opens on the first visit when a large bank import needs attention. It groups matching names and suggests, but never automatically marks, names containing “transfer.” Confirm a transfer only when the money moved between accounts you own; transfers stay out of income and spending totals. Choose a category once for a group, optionally remember it for future matches, or keep current categories for the remaining non-transfer groups. Individual bank rows also offer a Type menu, so a transfer does not require a trip to the Edit page.
+
+A remembered category rule matches the exact transaction name and income/expense type on later bank syncs, imports, or manual entries. It does not remember a transfer or refund type. Transactions show whether a category came from the CSV, your choice, or a rule. Removing a rule also undoes categories that rule assigned automatically.
 
 Flow suggests a monthly item when the two most recent payments with the same name have similar amounts about a month apart. You confirm or dismiss each suggestion. Confirmed items are tracking notes only; they do not add transactions or change totals. Rules and monthly choices are included in browser backups and account sync.

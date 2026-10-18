@@ -9,7 +9,26 @@ const inbox = document.querySelector("#review-inbox");
 const suggestionsList = document.querySelector("#recurring-suggestions");
 const decisionsList = document.querySelector("#recurring-confirmed");
 const rulesList = document.querySelector("#category-rules");
+const quickReviewBanner = document.querySelector("#quick-review-banner");
+const quickReviewDialog = document.querySelector("#quick-review-dialog");
+const quickReviewGroups = document.querySelector("#quick-review-groups");
+const quickReviewMessage = document.querySelector("#quick-review-message");
 const categories = ["Salary", "Income", "Food", "Transport", "Entertainment", "Shopping", "Bills", "Other"];
+let quickReviewLimit = 12;
+
+
+function typeChoices(transaction) {
+    return transaction.amount < 0 ? ["Expense", "Transfer"]
+        : ["Income", "Refund", "Transfer"];
+}
+
+
+function makeTypeSelect(transaction, suggestedTransfer = false) {
+    const select = document.createElement("select");
+    for (const type of typeChoices(transaction)) select.add(new Option(type, type));
+    select.value = suggestedTransfer ? "Transfer" : transaction.type;
+    return select;
+}
 
 
 function todayString() {
@@ -103,6 +122,14 @@ function showInbox() {
         categorySelect.value = transaction.category || "Other";
         categoryLabel.appendChild(categorySelect);
 
+        let typeSelect = null;
+        if (transaction.source === "bank") {
+            const typeLabel = makeText("label", "Type");
+            typeSelect = makeTypeSelect(transaction);
+            typeLabel.appendChild(typeSelect);
+            controls.appendChild(typeLabel);
+        }
+
         const save = function(remember) {
             if (!dateInput.value) {
                 reviewMessage.textContent = `Choose a date for ${transaction.name} first.`;
@@ -111,7 +138,12 @@ function showInbox() {
             }
 
             const category = categorySelect.value;
-            const type = transaction.amount > 0 ? "Income" : "Expense";
+            const type = typeSelect ? typeSelect.value
+                : transaction.amount > 0 ? "Income" : "Expense";
+            if (remember && type !== (transaction.amount > 0 ? "Income" : "Expense")) {
+                reviewMessage.textContent = "Save this transfer or refund once; category rules do not change transaction types.";
+                return;
+            }
             const name = normalizedName(transaction.name);
             let rule = null;
 
@@ -126,9 +158,11 @@ function showInbox() {
 
                 for (const item of transactions) {
                     if (item.categoryRuleId === rule.id ||
-                        (item.source === "csv" && item.category === "Other" &&
+                        ((item.source === "csv" || item.source === "bank") &&
+                            item.reviewStatus !== "reviewed" &&
                             normalizedName(item.name) === name &&
-                            (item.amount > 0 ? "Income" : "Expense") === type)) {
+                            (item.amount > 0 ? "Income" : "Expense") === type &&
+                            item.type === type)) {
                         item.category = category;
                         item.categoryReason = `Rule for ${rule.label || rule.name}`;
                         item.categoryRuleId = rule.id;
@@ -138,9 +172,15 @@ function showInbox() {
             }
 
             transaction.date = dateInput.value;
+            if (typeSelect) {
+                transaction.type = type;
+                transaction.typeOverride = type !==
+                    (transaction.amount > 0 ? "Income" : "Expense");
+            }
             transaction.category = category;
-            transaction.categoryReason = "Chosen by you";
-            transaction.categoryRuleId = undefined;
+            transaction.categoryReason = remember
+                ? `Rule for ${rule.label || rule.name}` : "Chosen by you";
+            transaction.categoryRuleId = remember ? rule.id : undefined;
             transaction.reviewStatus = "reviewed";
 
             const changes = { transactions: transactions };
@@ -163,6 +203,98 @@ function showInbox() {
         row.appendChild(controls);
         inbox.appendChild(row);
     }
+}
+
+
+function showQuickReview() {
+    const groups = reviewGroups(transactions);
+    const remaining = transactions.filter(needsTransactionReview).length;
+    const likelyTransfers = groups.filter(group => group.likelyTransfer);
+    quickReviewBanner.hidden = remaining === 0;
+    document.querySelector("#quick-review-summary").textContent =
+        `${remaining} transactions need a decision. ${likelyTransfers.length} name groups look like transfers; confirm those first.`;
+    quickReviewGroups.replaceChildren();
+
+    for (const group of groups.slice(0, quickReviewLimit)) {
+        const row = document.createElement("div");
+        row.className = "review-row quick-review-group";
+        const info = document.createElement("div");
+        info.appendChild(makeText("strong", group.name));
+        info.appendChild(makeText("span", `${group.count} transaction${group.count === 1 ? "" : "s"} · ${group.items[0].amount < 0 ? "Money out" : "Money in"}`));
+        if (group.likelyTransfer) {
+            info.appendChild(makeText("small", "Looks like a transfer. Choose Transfer only if this money moved between accounts you own."));
+        }
+        row.appendChild(info);
+
+        const controls = document.createElement("div");
+        controls.className = "review-controls";
+        let typeSelect = null;
+        if (group.items[0].source === "bank") {
+            const typeLabel = makeText("label", "Type");
+            typeSelect = makeTypeSelect(group.items[0], group.likelyTransfer);
+            typeLabel.appendChild(typeSelect);
+            controls.appendChild(typeLabel);
+        }
+
+        const categoryLabel = makeText("label", "Category");
+        const categorySelect = document.createElement("select");
+        categorySelect.add(new Option("Keep current", ""));
+        for (const category of categories) categorySelect.add(new Option(category, category));
+        categoryLabel.appendChild(categorySelect);
+        controls.appendChild(categoryLabel);
+        const rememberLabel = makeText("label", "Remember");
+        rememberLabel.className = "quick-review-remember";
+        const rememberInput = document.createElement("input");
+        rememberInput.type = "checkbox";
+        rememberLabel.prepend(rememberInput);
+        controls.appendChild(rememberLabel);
+        controls.appendChild(makeButton(`Apply to ${group.count}`, "save-button", function() {
+            const type = typeSelect ? typeSelect.value : group.items[0].type;
+            const inferredType = group.items[0].amount < 0 ? "Expense" : "Income";
+            if (rememberInput.checked && (!categorySelect.value || type !== inferredType)) {
+                quickReviewMessage.textContent =
+                    "To remember a category, choose one and keep the normal income or expense type. Transfers are chosen per transaction.";
+                return;
+            }
+            const before = JSON.stringify(transactions);
+            const count = applyReviewChoice(transactions, group.items,
+                type, categorySelect.value);
+            const changes = { transactions: transactions };
+            if (rememberInput.checked) {
+                const name = normalizedName(group.name);
+                let rule = findCategoryRule({ name: group.name, type: type }, categoryRules);
+                if (rule) rule.category = categorySelect.value;
+                else {
+                    rule = { id: makeRecordId(categoryRules), name: name,
+                        label: group.name, type: type, category: categorySelect.value };
+                    categoryRules.push(rule);
+                }
+                for (const item of group.items) {
+                    item.categoryRuleId = rule.id;
+                    item.categoryReason = `Rule for ${rule.label || rule.name}`;
+                }
+                changes.categoryRules = categoryRules;
+            }
+            if (!saveReviewData(changes)) {
+                transactions = JSON.parse(before);
+                return showReview();
+            }
+            quickReviewMessage.textContent = `Updated ${count} ${group.name} transaction${count === 1 ? "" : "s"}.`;
+            showReview();
+        }));
+        row.appendChild(controls);
+        quickReviewGroups.appendChild(row);
+    }
+
+    if (groups.length > quickReviewLimit) {
+        quickReviewGroups.appendChild(makeButton(`Show more groups (${groups.length - quickReviewLimit} left)`,
+            "back-button quick-review-more", function() {
+                quickReviewLimit += 12;
+                showQuickReview();
+            }));
+    }
+    document.querySelector("#accept-review-defaults").disabled =
+        !groups.some(group => !group.likelyTransfer);
 }
 
 
@@ -259,8 +391,39 @@ function showRules() {
 
 function showReview() {
     showInbox();
+    showQuickReview();
     showRecurring();
     showRules();
 }
 
+document.querySelector("#open-quick-review").addEventListener("click", function() {
+    quickReviewDialog.showModal();
+});
+document.querySelector("#close-quick-review").addEventListener("click", function() {
+    quickReviewDialog.close();
+});
+document.querySelector("#accept-review-defaults").addEventListener("click", function() {
+    const selected = reviewGroups(transactions)
+        .filter(group => !group.likelyTransfer)
+        .flatMap(group => group.items);
+    const before = JSON.stringify(transactions);
+    let count = 0;
+    for (const transaction of selected) {
+        count += applyReviewChoice(transactions, [transaction], transaction.type, "");
+    }
+    if (!saveReviewData({ transactions: transactions })) {
+        transactions = JSON.parse(before);
+        return showReview();
+    }
+    quickReviewMessage.textContent = `Kept the current categories for ${count} transactions. Check the remaining possible transfers.`;
+    showReview();
+});
+
 showReview();
+
+const firstRunKey = `flow_quick_review_seen_${localStorage.getItem("flow_user_id") || "device"}`;
+if (transactions.filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
+    sessionStorage.getItem(firstRunKey) !== "1") {
+    sessionStorage.setItem(firstRunKey, "1");
+    quickReviewDialog.showModal();
+}

@@ -75,6 +75,24 @@ test("a posted charge also replaces pending when Plaid sends the removal later",
     assert.equal(posted.transactions[0].bankTransactionId, "posted-1");
 });
 
+test("remembered categories apply to later matching bank transactions without overwriting manual choices", () => {
+    const rules = [{ id: "rule-1", name: "coffee shop", label: "Coffee Shop",
+        type: "Expense", category: "Food" }];
+    const first = applyBankChanges([], "checking-1", {
+        added: [bankItem("new-1", 4.25)]
+    }, rules).transactions;
+    assert.equal(first[0].category, "Food");
+    assert.equal(first[0].categoryRuleId, "rule-1");
+    assert.equal(first[0].reviewStatus, "reviewed");
+
+    first[0].category = "Shopping";
+    first[0].categoryRuleId = undefined;
+    const updated = applyBankChanges(first, "checking-1", {
+        modified: [bankItem("new-1", 4.25)]
+    }, rules).transactions;
+    assert.equal(updated[0].category, "Shopping");
+});
+
 test("bank changes leave manual entries and other accounts alone", () => {
     const manual = { id: "manual-1", name: "Coffee Shop", amount: -4.25 };
     const otherAccount = {
