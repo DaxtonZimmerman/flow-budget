@@ -121,15 +121,12 @@ const totalExpenses = totals.spending;
 const balance = totals.net;
 
 
-historyIncome.textContent = `$${totalIncome.toFixed(2)}`;
+const historyMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+historyIncome.textContent = historyMoney(totalIncome);
 
-historyExpenses.textContent = `$${totalExpenses.toFixed(2)}`;
+historyExpenses.textContent = historyMoney(totalExpenses);
 
-if (balance < 0) {
-    historyBalance.textContent = `-$${Math.abs(balance).toFixed(2)}`;
-} else {
-    historyBalance.textContent = `$${balance.toFixed(2)}`;
-}
+historyBalance.textContent = historyMoney(balance);
 
 
 transactionCount.textContent =
@@ -200,6 +197,7 @@ if (transactions.length === 0) {
         }
 
 
+        if (transaction.type === "Transfer") { icon = "arrow-left-right"; iconColor = "blue-icon"; }
         iconBox.classList.add(iconColor);
 
         iconBox.innerHTML = `<i data-lucide="${icon}"></i>`;
@@ -217,8 +215,8 @@ if (transactions.length === 0) {
 
         const categoryText = document.createElement("span");
 
-        categoryText.textContent = transaction.category;
-        if (transaction.type === "Refund" || transaction.type === "Transfer") {
+        categoryText.textContent = transaction.type === "Transfer" ? "Transfer" : transaction.category;
+        if (transaction.type === "Refund") {
             const typeLabel = document.createElement("small");
             typeLabel.className = "category-reason";
             typeLabel.textContent = transaction.type;
@@ -252,7 +250,7 @@ if (transactions.length === 0) {
             amountText.textContent =
                 `+$${transaction.amount.toFixed(2)}`;
 
-            amountText.classList.add("income-text");
+            if (transaction.type !== "Transfer") amountText.classList.add("income-text");
 
         } else {
 

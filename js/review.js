@@ -199,7 +199,17 @@ function showInbox() {
         controls.appendChild(dateLabel);
         controls.appendChild(categoryLabel);
         controls.appendChild(makeButton("Save", "back-button", () => save(false)));
-        controls.appendChild(makeButton("Save and remember", "save-button", () => save(true)));
+        const rememberButton = makeButton("Save and remember", "save-button", () => save(true));
+        controls.appendChild(rememberButton);
+        if (typeSelect) {
+            const updateTypeControls = () => {
+                categorySelect.disabled = typeSelect.value === "Transfer";
+                categoryLabel.firstChild.textContent = typeSelect.value === "Transfer" ? "Category · not needed" : "Category";
+                rememberButton.disabled = typeSelect.value === "Transfer" || typeSelect.value === "Refund";
+            };
+            typeSelect.addEventListener("change", updateTypeControls);
+            updateTypeControls();
+        }
         row.appendChild(controls);
         inbox.appendChild(row);
     }
@@ -211,6 +221,12 @@ function showQuickReview() {
     const remaining = transactions.filter(needsTransactionReview).length;
     const likelyTransfers = groups.filter(group => group.likelyTransfer);
     quickReviewBanner.hidden = remaining === 0;
+    document.querySelector("#review-all-clear").hidden = remaining > 0;
+    document.querySelector("#review-total-stat").textContent = remaining;
+    document.querySelector("#review-group-stat").textContent = groups.length;
+    document.querySelector("#review-rule-stat").textContent = categoryRules.length;
+    document.querySelector("#individual-review-count").textContent = `${remaining} items`;
+    document.dispatchEvent(new Event("flow-review-updated"));
     document.querySelector("#quick-review-summary").textContent =
         `${remaining} transactions need a decision. ${likelyTransfers.length} name groups look like transfers; confirm those first.`;
     quickReviewGroups.replaceChildren();
@@ -248,6 +264,17 @@ function showQuickReview() {
         rememberInput.type = "checkbox";
         rememberLabel.prepend(rememberInput);
         controls.appendChild(rememberLabel);
+        if (typeSelect) {
+            const updateGroupControls = () => {
+                const transfer = typeSelect.value === "Transfer";
+                categorySelect.disabled = transfer;
+                categoryLabel.firstChild.textContent = transfer ? "Category · not needed" : "Category";
+                rememberInput.disabled = transfer || typeSelect.value === "Refund";
+                if (rememberInput.disabled) rememberInput.checked = false;
+            };
+            typeSelect.addEventListener("change", updateGroupControls);
+            updateGroupControls();
+        }
         controls.appendChild(makeButton(`Apply to ${group.count}`, "save-button", function() {
             const type = typeSelect ? typeSelect.value : group.items[0].type;
             const inferredType = group.items[0].amount < 0 ? "Expense" : "Income";
@@ -422,8 +449,9 @@ document.querySelector("#accept-review-defaults").addEventListener("click", func
 showReview();
 
 const firstRunKey = `flow_quick_review_seen_${localStorage.getItem("flow_user_id") || "device"}`;
-if (transactions.filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
-    sessionStorage.getItem(firstRunKey) !== "1") {
+if ((new URLSearchParams(location.search).get("quick") === "1" && transactions.some(needsTransactionReview)) ||
+    (transactions.filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
+    sessionStorage.getItem(firstRunKey) !== "1")) {
     sessionStorage.setItem(firstRunKey, "1");
     quickReviewDialog.showModal();
 }

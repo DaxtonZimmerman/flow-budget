@@ -3,9 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Import Transactions | Flow</title>
+    <meta name="theme-color" content="#163f35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg">
+    <link rel="apple-touch-icon" href="assets/flow-icon-192.png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script src="js/app-shell.js" defer></script>
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
     <script src="js/cloud-config.js" defer></script>
@@ -16,28 +24,33 @@
     <script src="js/import.js" defer></script>
 </head>
 
-<body>
+<body data-page="import">
     <div class="app">
         <aside class="sidebar">
             <div class="sidebar-top">
-                <h1 class="logo">Flow</h1>
-                <nav class="nav" aria-label="Main navigation">
-                    <a href="index.html" class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard</a>
-                    <a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon"></i> Transactions</a>
-                    <a href="budgets.html" class="nav-link"><i data-lucide="wallet-cards" class="nav-icon"></i> Budgets</a>
-                    <a href="account.html" class="nav-link"><i data-lucide="user-round" class="nav-icon"></i> Account</a>
-                </nav>
+                <a class="brand" href="index.html" aria-label="Flow overview"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
+                <p class="nav-caption">Your workspace</p>
+                <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Overview</span></a><a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="sidebar-note"><span class="sidebar-note-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><strong>A little clarity.<br>A little more room.</strong><p>Make a plan that fits your life.</p></div>
+                <button type="button" class="install-button" data-install-app><i data-lucide="panel-top" aria-hidden="true"></i><span>Get the app experience</span><i data-lucide="arrow-up-right" aria-hidden="true"></i></button>
+                <a href="account.html" class="workspace-account"><span class="workspace-avatar"><i data-lucide="user-round" aria-hidden="true"></i></span><span><strong>My workspace</strong><small>Account &amp; connected banks</small></span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
             </div>
         </aside>
 
         <main class="main import-main">
+            <div class="app-toolbar">
+                <div class="app-breadcrumb"><span>My workspace</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Import transactions</strong></div>
+                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a></div>
+            </div>
             <header class="page-header">
                 <div>
                     <p class="small-label">Fast setup</p>
                     <h2>Import transactions</h2>
                     <p>Bring in a CSV statement from your bank. Your file stays in this browser until you save.</p>
                 </div>
-                <a href="transactions.html" class="back-button">Back to transactions</a>
+                <a href="transactions.html" class="back-button">Back to activity</a>
             </header>
 
             <section class="card import-card">
@@ -80,9 +93,14 @@
             </section>
 
             <p id="import-message" class="import-message" role="status" aria-live="polite"></p>
-            <a id="import-done-link" href="transactions.html" class="add-transaction-link" hidden>View transactions</a>
+            <a id="import-done-link" href="transactions.html" class="add-transaction-link" hidden>View activity</a>
         </main>
     </div>
+    <dialog id="app-search-dialog" class="app-search-dialog" aria-labelledby="app-search-title">
+        <div class="dialog-heading"><h2 id="app-search-title">Find a transaction</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close search"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <form action="transactions.html" method="get" class="app-search-form"><input id="search-month" type="hidden" name="month"><label for="app-search-input" class="sr-only">Name, category, or notes</label><i data-lucide="search" aria-hidden="true"></i><input id="app-search-input" name="search" type="search" placeholder="Name, category, or notes" autocomplete="off"><button type="submit" class="save-button">Search</button></form><p class="dialog-help">Search across your saved activity.</p>
+    </dialog>
+    <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title"><div class="dialog-heading"><span class="install-symbol"><i data-lucide="panel-top" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-dialog aria-label="Close install instructions"><i data-lucide="x" aria-hidden="true"></i></button></div><h2 id="install-title">Give Flow a place of its own.</h2><p>Open Flow from your home screen or dock, in its own app window.</p><ol id="install-steps"></ol><button class="save-button" type="button" data-close-dialog>Got it</button></dialog>
 </body>
 
 </html>

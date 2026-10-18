@@ -3,11 +3,19 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <title>Flow | Budget Dashboard</title>
 
+    <meta name="theme-color" content="#163f35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg">
+    <link rel="apple-touch-icon" href="assets/flow-icon-192.png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script src="js/app-shell.js" defer></script>
 
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
@@ -19,270 +27,72 @@
     <script src="js/review-data.js" defer></script>
     <script src="js/budget-data.js" defer></script>
     <script src="js/script.js" defer></script>
-    <script src="js/backup.js" defer></script>
 </head>
 
-<body>
+<body data-page="overview">
 
     <div class="app">
 
         <aside class="sidebar">
-
             <div class="sidebar-top">
-
-                <h1 class="logo">Flow</h1>
-
-                <nav class="nav" aria-label="Main navigation">
-
-                    <a href="index.html" class="nav-link active" aria-current="page">
-                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
-                        Dashboard
-                    </a>
-
-                    <a href="transactions.html" class="nav-link">
-                        <i data-lucide="arrow-left-right" class="nav-icon"></i>
-                        Transactions
-                    </a>
-
-                    <a href="budgets.html" class="nav-link">
-                        <i data-lucide="wallet-cards" class="nav-icon"></i>
-                        Budgets
-                    </a>
-
-                    <a href="account.html" class="nav-link">
-                        <i data-lucide="user-round" class="nav-icon"></i>
-                        Account
-                    </a>
-
-                </nav>
-
+                <a class="brand" href="index.html" aria-label="Flow overview"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
+                <p class="nav-caption">Your workspace</p>
+                <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link active" aria-current="page"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Overview</span></a><a href="transactions.html" class="nav-link"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
             </div>
-
+            <div class="sidebar-bottom">
+                <div class="sidebar-note"><span class="sidebar-note-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><strong>A little clarity.<br>A little more room.</strong><p>Make a plan that fits your life.</p></div>
+                <button type="button" class="install-button" data-install-app><i data-lucide="panel-top" aria-hidden="true"></i><span>Get the app experience</span><i data-lucide="arrow-up-right" aria-hidden="true"></i></button>
+                <a href="account.html" class="workspace-account"><span class="workspace-avatar"><i data-lucide="user-round" aria-hidden="true"></i></span><span><strong>My workspace</strong><small>Account &amp; connected banks</small></span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            </div>
         </aside>
 
 
         <main class="main">
-
-            <div class="top-bar">
-
-                <form class="search" action="transactions.html" method="get">
-
-                    <input id="search-month" type="hidden" name="month">
-
-                    <input
-                        type="search"
-                        name="search"
-                        aria-label="Search transactions"
-                        placeholder="Search transactions..."
-                    >
-
-                    <button type="submit" aria-label="Search transactions">
-                        <i data-lucide="search"></i>
-                    </button>
-
-                </form>
-
+            <div class="app-toolbar">
+                <div class="app-breadcrumb"><span>My workspace</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Overview</strong></div>
+                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a></div>
             </div>
 
 
-            <header class="welcome">
 
-                <div>
-                    <p class="small-label">Your money, in focus</p>
-                    <h2>A clearer view of this month.</h2>
-                    <p>See what you recorded and where your budget stands.</p>
-                </div>
 
-                <div class="welcome-actions">
-
-                    <a href="add-transaction.html" class="add-transaction-link">
-                        Add transaction
-                    </a>
-
-                    <input type="month" id="dashboard-month" class="month-button" aria-label="Choose month">
-
-                </div>
-
+            <header class="welcome dashboard-heading">
+                <div><p class="small-label">A little more clarity</p><h2>Your month, at a glance<span class="heading-dot">.</span></h2><p>A simple view of what came in, what went out, and what’s next.</p></div>
+                <div class="welcome-actions"><div class="month-control"><button class="icon-button" type="button" data-month-step="-1" aria-label="Previous month"><i data-lucide="chevron-left" aria-hidden="true"></i></button><input type="month" id="dashboard-month" class="month-button" aria-label="Choose month"><button class="icon-button" type="button" data-month-step="1" aria-label="Next month"><i data-lucide="chevron-right" aria-hidden="true"></i></button></div></div>
             </header>
-
 
             <section id="start-options" class="card start-options" hidden>
                 <p class="small-label">Start here</p>
-                <h3>How would you like to begin?</h3>
-                <p>Add a single purchase or bring in a bank statement. You can use both any time.</p>
-                <div class="start-links">
+                <h3>Your money story starts here.</h3>
+                <p>Connect a bank, add a purchase, or import a statement. Start your way.</p>
+                <div class="start-links"><a href="account.html" class="save-button">Connect a bank</a>
                     <a href="add-transaction.html" class="add-transaction-link">Enter a transaction</a>
                     <a href="import.html" class="back-button">Import a bank CSV</a>
                 </div>
             </section>
 
 
-            <section class="summary-grid">
-
-                <div class="summary-card">
-
-                    <div class="summary-top">
-
-                        <p>Recorded net</p>
-
-                        <span class="card-icon green-icon">
-                            <i data-lucide="wallet"></i>
-                        </span>
-
-                    </div>
-
-                    <h3 id="total-balance">$0.00</h3>
-
-                    <p class="small-text">
-                        All saved income minus spending. This is not a bank balance.
-                    </p>
-
-                </div>
-
-
-                <div class="summary-card feature-card">
-
-                    <div class="summary-top">
-
-                        <p>Budget room this month</p>
-
-                        <span class="card-icon blue-icon">
-                            <i data-lucide="shield-check"></i>
-                        </span>
-
-                    </div>
-
-                    <h3 id="budget-room">$0.00</h3>
-
-                    <p id="budget-room-note" class="small-text">
-                        The unspent part of your category limits. This is not cash available.
-                    </p>
-
-                </div>
-
-
-                <div class="card attention-card" aria-labelledby="attention-heading">
-
-                    <div class="section-top">
-                        <div>
-                            <p class="small-label">Right now</p>
-                            <h3 id="attention-heading">Worth a look</h3>
-                        </div>
-                    </div>
-
-                    <div id="attention-list" class="attention-list"></div>
-
-                </div>
-
-
-                <div class="summary-card">
-
-                    <div class="summary-top">
-
-                        <p>Monthly income</p>
-
-                        <span class="card-icon green-icon">
-                            <i data-lucide="trending-up"></i>
-                        </span>
-
-                    </div>
-
-                    <h3 id="monthly-income">$0.00</h3>
-
-                    <p class="small-text">
-                        Dated income in selected month
-                    </p>
-
-                </div>
-
-
-                <div class="summary-card">
-
-                    <div class="summary-top">
-
-                        <p>Monthly spending</p>
-
-                        <span class="card-icon red-icon">
-                            <i data-lucide="trending-down"></i>
-                        </span>
-
-                    </div>
-
-                    <h3 id="monthly-spending">$0.00</h3>
-
-                    <p class="small-text">
-                        Dated expenses in selected month
-                    </p>
-
-                </div>
-
+            <section class="overview-grid" aria-label="Your month in numbers">
+                <article class="spending-overview">
+                    <div class="hero-top"><span class="hero-eyebrow"><span class="live-dot"></span> Spending this month</span><span id="chart-month-label" class="hero-period"></span></div>
+                    <div class="hero-amount-line"><h3 id="monthly-spending">$0.00</h3><span class="hero-comparison" id="spending-comparison"></span></div>
+                    <p class="hero-caption">Your posted spending, with transfers left out.</p>
+                    <div id="spending-chart" class="spending-chart"><div id="chart-values" class="chart-values"></div><div id="spending-bars" class="bars"></div></div>
+                    <p id="spending-chart-empty" class="hero-empty" hidden>No spending this month. A fresh start.</p>
+                    <div class="hero-metrics"><div><span><i data-lucide="arrow-down-left" aria-hidden="true"></i> Income</span><strong id="monthly-income">$0.00</strong></div><div><span><i data-lucide="arrow-up-right" aria-hidden="true"></i> Income after spending</span><strong id="total-balance">$0.00</strong></div></div>
+                </article>
+                <article class="card plan-overview">
+                    <div class="section-top"><h3>Your spending plan</h3><span class="subtle-icon"><i data-lucide="chart-pie" aria-hidden="true"></i></span></div>
+                    <div class="plan-ring" id="plan-ring"><div><i data-lucide="sprout" id="plan-ring-icon" aria-hidden="true"></i><strong id="plan-ring-percent"></strong><span id="plan-ring-caption">Room to grow</span></div></div>
+                    <div class="plan-overview-copy"><p class="small-label" id="budget-room-label">Make room for what matters</p><h3 id="budget-room">Let’s make a plan</h3><p id="budget-room-note">Set a few category limits. You can start small.</p></div>
+                    <a href="budgets.html" id="plan-cta" class="save-button">Build my plan <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                </article>
             </section>
-
-
-            <section class="chart-grid">
-
-                <div class="card">
-
-                    <div class="section-top">
-
-                        <div>
-                            <p class="small-label">Overview</p>
-                            <h3>Spending by week</h3>
-                        </div>
-
-                        <span id="chart-month-label" class="small-button"></span>
-
-                    </div>
-
-
-                    <div id="spending-chart" class="spending-chart">
-
-                        <div id="chart-values" class="chart-values"></div>
-
-                        <div id="spending-bars" class="bars"></div>
-
-                    </div>
-
-                    <p id="spending-chart-empty" class="budget-empty" hidden>
-                        No dated expenses for this month.
-                    </p>
-                </div>
-
-
-                <div class="card">
-
-                    <div class="section-top">
-
-                        <div>
-                            <p class="small-label">Categories</p>
-                            <h3>Spending by category</h3>
-                        </div>
-
-                    </div>
-
-
-                    <div class="category-content">
-
-                        <div id="category-donut" class="donut">
-
-                            <div class="donut-center">
-                                <strong id="category-total">$0.00</strong>
-                                <span>Total spent</span>
-                            </div>
-
-                        </div>
-
-                        <div id="category-list" class="category-list"></div>
-
-                    </div>
-                </div>
-
-            </section>
-
+            <section class="card attention-card" aria-labelledby="attention-heading"><div class="section-top"><div><p class="small-label">Your next steps</p><h3 id="attention-heading">A little attention goes a long way</h3></div><span class="subtle-icon"><i data-lucide="sparkles" aria-hidden="true"></i></span></div><div id="attention-list" class="attention-list"></div></section>
 
             <section class="bottom-grid">
 
-                <div class="card">
+                <div class="card recent-card">
 
                     <div class="section-top">
 
@@ -305,63 +115,19 @@
                 </div>
 
 
-                <div class="card">
-
-                    <div class="section-top">
-
-                        <div>
-                            <p class="small-label">Selected month</p>
-                            <h3>Budget progress</h3>
-                        </div>
-
-                        <a href="budgets.html">See all</a>
-
-                    </div>
-
-                    <div
-                        class="budget-list"
-                        id="budget-list"
-                    >
-
-                    </div>
-
-                </div>
-
+                <div class="card category-card"><div class="section-top"><div><p class="small-label">Where it went</p><h3>Spending breakdown</h3></div></div><div class="category-content"><div id="category-donut" class="donut"><div class="donut-center"><strong id="category-total">$0.00</strong><span>Total spent</span></div></div><div id="category-list" class="category-list"></div></div></div>
             </section>
-
-
-            <section class="card backup-card">
-
-                <div class="section-top">
-                    <div>
-                        <p class="small-label">Your data</p>
-                        <h3>Backup and restore</h3>
-                    </div>
-                </div>
-
-                <p>Download a copy of your transactions, budgets, category rules, and monthly choices. Restoring a backup replaces the data saved in this browser.</p>
-
-                <div class="backup-actions">
-                    <button id="download-backup" class="save-button" type="button">
-                        Download backup
-                    </button>
-
-                    <label for="backup-file">Backup file</label>
-                    <input id="backup-file" type="file" accept=".json,application/json">
-
-                    <button id="restore-backup" class="back-button" type="button">
-                        Restore backup
-                    </button>
-                </div>
-
-                <p id="backup-message" class="form-message" aria-live="polite"></p>
-
-            </section>
+            <section class="card dashboard-budgets"><div class="section-top"><div><p class="small-label">Stay on track</p><h3>Your category limits</h3></div><a href="budgets.html">View plan <i data-lucide="arrow-up-right" aria-hidden="true"></i></a></div><div class="budget-list" id="budget-list"></div></section>
 
         </main>
 
     </div>
 
+    <dialog id="app-search-dialog" class="app-search-dialog" aria-labelledby="app-search-title">
+        <div class="dialog-heading"><h2 id="app-search-title">Find a transaction</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close search"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <form action="transactions.html" method="get" class="app-search-form"><input id="search-month" type="hidden" name="month"><label for="app-search-input" class="sr-only">Name, category, or notes</label><i data-lucide="search" aria-hidden="true"></i><input id="app-search-input" name="search" type="search" placeholder="Name, category, or notes" autocomplete="off"><button type="submit" class="save-button">Search</button></form><p class="dialog-help">Search across your saved activity.</p>
+    </dialog>
+    <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title"><div class="dialog-heading"><span class="install-symbol"><i data-lucide="panel-top" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-dialog aria-label="Close install instructions"><i data-lucide="x" aria-hidden="true"></i></button></div><h2 id="install-title">Give Flow a place of its own.</h2><p>Open Flow from your home screen or dock, in its own app window.</p><ol id="install-steps"></ol><button class="save-button" type="button" data-close-dialog>Got it</button></dialog>
 </body>
 
 </html>

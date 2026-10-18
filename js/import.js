@@ -279,5 +279,5 @@ saveButton.addEventListener("click", function() {
     fileInput.value = "";
     csv = null;
     doneLink.hidden = false;
-    showMessage(`${importedCount} transaction${importedCount === 1 ? "" : "s"} imported. Review them in Transactions.`);
+    showMessage(`${importedCount} transaction${importedCount === 1 ? "" : "s"} imported. Find them in Activity, or open Review to sort them.`);
 });

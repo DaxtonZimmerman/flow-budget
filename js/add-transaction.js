@@ -54,16 +54,16 @@ const selectedMonth = monthFromPage && /^\d{4}-(0[1-9]|1[0-2])$/.test(monthFromP
 const fromPage = pageParameters.get("from");
 
 let returnPage = "index.html";
-let returnLabel = "Back to dashboard";
+let returnLabel = "Back to overview";
 
 if (fromPage === "budgets") {
     returnPage = "budgets.html";
-    returnLabel = "Back to budgets";
+    returnLabel = "Back to plan";
 }
 
 if (fromPage === "transactions" || editId !== null) {
     returnPage = "transactions.html";
-    returnLabel = "Back to transactions";
+    returnLabel = "Back to activity";
 }
 
 if (selectedMonth) {

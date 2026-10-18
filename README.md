@@ -49,3 +49,9 @@ Open Transactions → Review to see imported transactions without a category and
 A remembered category rule matches the exact transaction name and income/expense type on later bank syncs, imports, or manual entries. It does not remember a transfer or refund type. Transactions show whether a category came from the CSV, your choice, or a rule. Removing a rule also undoes categories that rule assigned automatically.
 
 Flow suggests a monthly item when the two most recent payments with the same name have similar amounts about a month apart. You confirm or dismiss each suggestion. Confirmed items are tracking notes only; they do not add transactions or change totals. Rules and monthly choices are included in browser backups and account sync.
+
+## App interface
+
+Flow uses a shared five-tab layout: Overview, Activity, Plan, Review, and Account. Phones use a fixed bottom navigation bar. Overview keeps the headline spending, income, and income after spending in the selected month. Category limits remain distinct from bank balances. Category editing and grouped review use dialogs; selecting Transfer disables the irrelevant category control. Backup and restore are under Account.
+
+The web manifest and app icons support opening Flow in an installed app window. This change does not add a service worker or cache bank responses. The static build includes the manifest and icons. See [interface research and validation](docs/DESIGN_RESEARCH.md) for the 12-app comparison and local browser checks.

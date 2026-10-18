@@ -19,14 +19,14 @@ const selectedYear = Number(selectedMonth.slice(0, 4));
 const selectedMonthNumber = Number(selectedMonth.slice(5, 7));
 const daysInMonth = new Date(selectedYear, selectedMonthNumber, 0).getDate();
 
-const allTotals = getMoneyTotals(transactions);
+const formatMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 const monthlyTotals = getMoneyTotals(transactions, selectedMonth);
 const breakdown = getSpendingBreakdown(transactions, selectedMonth, daysInMonth);
 const weeklySpending = breakdown.weeklySpending;
 const categorySpending = breakdown.categorySpending;
 const monthlyIncome = monthlyTotals.income;
 const monthlySpending = monthlyTotals.spending;
-const totalBalance = allTotals.net;
+const totalBalance = monthlyTotals.net;
 
 const monthlyIncomeText = document.querySelector("#monthly-income");
 const monthlySpendingText = document.querySelector("#monthly-spending");
@@ -36,12 +36,14 @@ const chartMonthLabel = document.querySelector("#chart-month-label");
 const monthName = new Date(selectedYear, selectedMonthNumber - 1, 1)
     .toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-monthlyIncomeText.textContent = `$${monthlyIncome.toFixed(2)}`;
-monthlySpendingText.textContent = `$${monthlySpending.toFixed(2)}`;
-if (totalBalance < 0) {
-    totalBalanceText.textContent = `-$${Math.abs(totalBalance).toFixed(2)}`;
-} else {
-    totalBalanceText.textContent = `$${totalBalance.toFixed(2)}`;
+monthlyIncomeText.textContent = formatMoney(monthlyIncome);
+monthlySpendingText.textContent = formatMoney(monthlySpending);
+totalBalanceText.textContent = formatMoney(totalBalance);
+const priorMonthDate = new Date(selectedYear, selectedMonthNumber - 2, 1);
+const priorMonth = `${priorMonthDate.getFullYear()}-${String(priorMonthDate.getMonth() + 1).padStart(2, "0")}`;
+const priorItems = transactions.filter(item => item.date?.startsWith(priorMonth));
+if (priorItems.length) {
+    document.querySelector("#spending-comparison").textContent = `Last month: ${formatMoney(getMoneyTotals(priorItems).spending)}`;
 }
 dashboardMonth.value = selectedMonth;
 chartMonthLabel.textContent = monthName;
@@ -81,11 +83,21 @@ const budgetRoomText = document.querySelector("#budget-room");
 const budgetRoomNote = document.querySelector("#budget-room-note");
 
 if (budgets.length === 0) {
-    budgetRoomText.textContent = "No budget yet";
+    budgetRoomText.textContent = "Let’s make a plan";
     budgetRoomNote.textContent =
-        "Set category limits to see your monthly budget room.";
+        "Set a few category limits. You can start small.";
 } else {
-    budgetRoomText.textContent = `$${centsToMoney(remainingBudgetCents).toFixed(2)}`;
+    budgetRoomText.textContent = formatMoney(centsToMoney(remainingBudgetCents));
+    budgetRoomNote.textContent = "Left across your category limits. This is your plan, not your bank balance.";
+    document.querySelector("#budget-room-label").textContent = "Left in your category limits";
+    const limitCents = budgets.reduce((sum, item) => sum + moneyToCents(item.limit), 0);
+    const spentCents = budgets.reduce((sum, item) => sum + moneyToCents(getBudgetSpending(item.category, transactions, selectedMonth)), 0);
+    const used = limitCents > 0 ? Math.max(0, Math.round(spentCents / limitCents * 100)) : 0;
+    document.querySelector("#plan-ring-icon").setAttribute("hidden", "");
+    document.querySelector("#plan-ring-percent").textContent = `${used}%`;
+    document.querySelector("#plan-ring-caption").textContent = "of limits used";
+    document.querySelector("#plan-ring").style.background = `conic-gradient(${used > 100 ? "var(--red)" : "#9eb780"} 0% ${Math.min(100, used)}%, #edf2e7 ${Math.min(100, used)}% 100%)`;
+    document.querySelector("#plan-cta").firstChild.textContent = "View my plan ";
 }
 
 
@@ -134,7 +146,7 @@ function addAttention(title, description, page) {
 if (budgets.length === 0) {
     addAttention(
         "Set your first budget",
-        "Choose a category and a monthly limit that fits your life.",
+        "Start with one category. You can add more any time.",
         `budgets.html?month=${selectedMonth}`
     );
 }
@@ -158,8 +170,8 @@ if (overBudgetCategories.length > 0) {
 if (reviewCount > 0) {
     addAttention(
         `${reviewCount} transaction${reviewCount === 1 ? "" : "s"} need review`,
-        "Choose a category or date, and teach Flow what to use next time.",
-        "review.html"
+        "Sort repeated names together in quick review.",
+        "review.html?quick=1"
     );
 }
 
@@ -189,7 +201,7 @@ const categoryDonut = document.querySelector("#category-donut");
 const categoryTotal = document.querySelector("#category-total");
 const categoryList = document.querySelector("#category-list");
 
-categoryTotal.textContent = `$${monthlySpending.toFixed(2)}`;
+categoryTotal.textContent = formatMoney(monthlySpending);
 
 
 if (monthlySpending <= 0) {
@@ -302,7 +314,7 @@ if (monthlySpending <= 0) {
 
 const recentTransactions = document.querySelector("#recent-transactions");
 
-const recentTransactionsToShow = [...transactions].reverse();
+const recentTransactionsToShow = transactions.filter(item => item.date?.startsWith(selectedMonth)).reverse();
 
 recentTransactionsToShow.sort(function(first, second) {
 
@@ -326,7 +338,7 @@ if (recentTransactionsToShow.length === 0) {
 
     const emptyMessage = document.createElement("p");
     emptyMessage.classList.add("budget-empty");
-    emptyMessage.textContent = "No transactions yet.";
+    emptyMessage.textContent = "No activity in this month yet.";
     recentTransactions.appendChild(emptyMessage);
 
 }
@@ -361,6 +373,7 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
     }
 
 
+    if (transaction.type === "Transfer") { icon = "arrow-left-right"; iconColor = "blue-icon"; }
     const row = document.createElement("div");
     row.classList.add("transaction-row");
 
@@ -377,7 +390,7 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
     name.textContent = transaction.name;
 
     const category = document.createElement("span");
-    category.textContent = transaction.category || "Uncategorized";
+    category.textContent = transaction.type === "Transfer" ? "Transfer" : transaction.type === "Refund" ? `Refund · ${transaction.category || "Other"}` : transaction.category || "Uncategorized";
 
     details.appendChild(name);
     details.appendChild(category);
@@ -393,14 +406,14 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
 
     if (transaction.amount > 0) {
         amount.textContent = `+$${transaction.amount.toFixed(2)}`;
-        amount.classList.add("income-text");
+        if (transaction.type !== "Transfer") amount.classList.add("income-text");
     } else {
         amount.textContent =
             `-$${Math.abs(transaction.amount).toFixed(2)}`;
     }
 
     const date = document.createElement("span");
-    date.textContent = transaction.date || "No date";
+    date.textContent = transaction.date ? new Date(`${transaction.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "No date";
 
     right.appendChild(amount);
     right.appendChild(date);
@@ -418,7 +431,7 @@ const budgetList = document.querySelector("#budget-list");
 if (budgets.length === 0) {
     const emptyBudget = document.createElement("p");
     emptyBudget.classList.add("budget-empty");
-    emptyBudget.textContent = "No budgets yet. Add one on the Budgets page.";
+    emptyBudget.textContent = "Your plan starts small. Add your first category to see its progress here.";
     budgetList.appendChild(emptyBudget);
 }
 

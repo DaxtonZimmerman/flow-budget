@@ -4,6 +4,7 @@ if (typeof lucide !== "undefined") {
 
 
 const transactions = loadTransactions();
+const budgetMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 const selectedMonth = getSelectedMonth();
 let budgets = loadBudgets(selectedMonth);
@@ -25,7 +26,16 @@ budgetMonth.addEventListener("change", function() {
     }
 });
 
+const budgetEditor = document.querySelector("#budget-editor");
 const budgetForm = document.querySelector("#budget-form");
+for (const button of document.querySelectorAll("[data-new-budget]")) {
+    button.addEventListener("click", () => {
+        budgetForm.reset();
+        document.querySelector("#budget-message").textContent = "";
+        document.querySelector("#budget-editor-title").textContent = "Set a category limit";
+        budgetEditor.showModal();
+    });
+}
 const categoryInput = document.querySelector("#budget-category");
 const limitInput = document.querySelector("#budget-limit");
 const budgetMessage = document.querySelector("#budget-message");
@@ -62,6 +72,17 @@ function showBudgets() {
         const row = document.createElement("div");
         row.classList.add("budget-detail-row");
 
+        const cardTop = document.createElement("div");
+        cardTop.className = "budget-card-top";
+        const icon = document.createElement("span");
+        icon.className = "budget-card-icon";
+        const icons = { Food: "utensils", Transport: "car-front", Entertainment: "clapperboard", Shopping: "shopping-bag", Bills: "receipt-text", Other: "shapes" };
+        icon.innerHTML = `<i data-lucide="${icons[budget.category] || "shapes"}" aria-hidden="true"></i>`;
+        const status = document.createElement("span");
+        status.className = `budget-card-status${spent > budget.limit ? " is-over" : ""}`;
+        status.textContent = spent > budget.limit ? "Over limit" : "Within limit";
+        cardTop.append(icon, status);
+        row.appendChild(cardTop);
         const info = document.createElement("div");
         info.classList.add("budget-info");
 
@@ -70,7 +91,7 @@ function showBudgets() {
 
         const amounts = document.createElement("span");
         amounts.textContent =
-            `$${spent.toFixed(2)} spent of $${budget.limit.toFixed(2)}`;
+            `${budgetMoney(spent)} spent of ${budgetMoney(budget.limit)}`;
 
         info.appendChild(name);
         info.appendChild(amounts);
@@ -112,6 +133,8 @@ function showBudgets() {
             categoryInput.value = budget.category;
             limitInput.value = budget.limit;
             budgetMessage.textContent = "";
+            document.querySelector("#budget-editor-title").textContent = `Edit ${budget.category} limit`;
+            budgetEditor.showModal();
             limitInput.focus();
         });
 
@@ -143,18 +166,28 @@ function showBudgets() {
         actions.appendChild(editButton);
         actions.appendChild(deleteButton);
 
-        row.appendChild(info);
-        row.appendChild(progress);
-        row.appendChild(actions);
+        const left = document.createElement("div");
+        left.className = "budget-card-left";
+        left.textContent = budgetMoney(Math.abs(budget.limit - spent));
+        const leftLabel = document.createElement("small");
+        leftLabel.textContent = spent > budget.limit ? "over limit" : "left";
+        left.appendChild(leftLabel);
+        const footer = document.createElement("div");
+        footer.className = "budget-card-footer";
+        const periodLabel = document.createElement("span");
+        periodLabel.textContent = "Monthly category limit";
+        footer.append(periodLabel, actions);
+        row.append(info, left, progress, footer);
 
         budgetList.appendChild(row);
 
     }
 
 
-    budgetTotal.textContent = `$${centsToMoney(totalLimit).toFixed(2)}`;
-    budgetSpent.textContent = `$${centsToMoney(totalSpent).toFixed(2)}`;
-    budgetRemaining.textContent = `$${centsToMoney(totalRemaining).toFixed(2)}`;
+    budgetTotal.textContent = budgetMoney(centsToMoney(totalLimit));
+    budgetSpent.textContent = budgetMoney(centsToMoney(totalSpent));
+    budgetRemaining.textContent = budgetMoney(centsToMoney(totalRemaining));
+    if (typeof lucide !== "undefined") lucide.createIcons();
 
 }
 
@@ -201,6 +234,7 @@ budgetForm.addEventListener("submit", function(event) {
     limitInput.value = "";
 
     showBudgets();
+    budgetEditor.close();
 
 });
 
