@@ -4,11 +4,12 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function setupCloud() {
+function setupCloud(editing = false) {
     const saved = new Map();
     const status = { textContent: "" };
     let cloud = null;
     let reloads = 0;
+    const events = [];
     const network = { onLine: true };
     const client = {
         auth: { getUser: async () => ({ data: { user: { id: "person-1" } }, error: null }) },
@@ -41,9 +42,10 @@ function setupCloud() {
         navigator: network,
         document: {
             body: {},
-            querySelector: selector => selector === "#flow-sync-status" ? status : null,
+            querySelector: selector => selector === "#flow-sync-status" ? status
+                : editing && selector === "#transaction-details-dialog[open]" ? {} : null,
             addEventListener: () => {},
-            dispatchEvent: () => {}
+            dispatchEvent: event => events.push(event.type)
         },
         window: { addEventListener: () => {}, location: { reload: () => { reloads++; } } },
         setTimeout,
@@ -55,6 +57,7 @@ function setupCloud() {
     return {
         saved,
         status,
+        events,
         run: code => vm.runInContext(code, context),
         setCloud: value => { cloud = value; },
         setOnline: value => { network.onLine = value; },
@@ -81,6 +84,20 @@ test("local changes sync, then another device's revision is pulled", async () =>
     await app.run("flowSync()");
     assert.equal(JSON.parse(app.saved.get("transactions"))[0].id, "two");
     assert.equal(app.getReloads(), 1);
+});
+
+test("a newer cloud copy updates storage without closing an open transaction popup", async () => {
+    const app = setupCloud(true);
+    app.saved.set("flow_user_id", "person-1");
+    app.saved.set("flow_revision", "0");
+    app.setCloud({ revision: 1, data: {
+        transactions: [{ id: "updated", amount: -5 }], budgets: [], budgetsByMonth: {}
+    } });
+    await app.run("flowSync()");
+    assert.equal(JSON.parse(app.saved.get("transactions"))[0].id, "updated");
+    assert.equal(app.saved.get("flow_revision"), "1");
+    assert.equal(app.getReloads(), 0);
+    assert.ok(app.events.includes("flow-transaction-data-updated"));
 });
 
 test("offline edits stay on this device until syncing is possible", async () => {

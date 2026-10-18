@@ -375,7 +375,10 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
 
     if (transaction.type === "Transfer") { icon = "arrow-left-right"; iconColor = "blue-icon"; }
     const row = document.createElement("div");
-    row.classList.add("transaction-row");
+    row.classList.add("transaction-row", "openable-transaction");
+    row.addEventListener("click", event => {
+        if (!event.target.closest("a, button, input, select, textarea")) FlowTransactionDetails.open(transaction.id);
+    });
 
     const left = document.createElement("div");
     left.classList.add("transaction-left");
@@ -392,7 +395,13 @@ for (const transaction of recentTransactionsToShow.slice(0, 5)) {
     const category = document.createElement("span");
     category.textContent = transaction.type === "Transfer" ? "Transfer" : transaction.type === "Refund" ? `Refund · ${transaction.category || "Other"}` : transaction.category || "Uncategorized";
 
-    details.appendChild(name);
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "transaction-open-button";
+    openButton.setAttribute("aria-label", `Open ${transaction.name} transaction`);
+    openButton.appendChild(name);
+    openButton.addEventListener("click", () => FlowTransactionDetails.open(transaction.id));
+    details.appendChild(openButton);
     details.appendChild(category);
 
     left.appendChild(iconBox);
@@ -485,3 +494,6 @@ for (const budget of budgets) {
 if (typeof lucide !== "undefined") {
     lucide.createIcons();
 }
+
+document.addEventListener("flow-transaction-updated", () => window.location.reload());
+document.addEventListener("flow-transaction-view-refresh", () => window.location.reload());

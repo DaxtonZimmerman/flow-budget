@@ -89,6 +89,13 @@ const noMatchingTransactions = document.querySelector("#no-matching-transactions
 const transactionRows = [];
 
 
+function showTransactionHistory() {
+transactions = loadTransactions();
+transactionRows.length = 0;
+transactionHistory.replaceChildren();
+emptyTransactions.hidden = true;
+const previousCategory = historyCategoryFilter.value;
+historyCategoryFilter.replaceChildren(new Option("All categories", "all"));
 /* fill category filter */
 
 const categories = [];
@@ -114,6 +121,8 @@ for (const category of categories) {
 
 }
 
+
+if ([...historyCategoryFilter.options].some(option => option.value === previousCategory)) historyCategoryFilter.value = previousCategory;
 
 const totals = getMoneyTotals(transactions, selectedMonth);
 const totalIncome = totals.income;
@@ -146,7 +155,11 @@ if (transactions.length === 0) {
 
         const transactionRow = document.createElement("div");
 
-        transactionRow.classList.add("history-row");
+        transactionRow.classList.add("history-row", "openable-transaction");
+        transactionRow.dataset.transactionId = String(transaction.id);
+        transactionRow.addEventListener("click", event => {
+            if (!event.target.closest("a, button, input, select, textarea")) FlowTransactionDetails.open(transaction.id);
+        });
 
 
         const transactionName = document.createElement("div");
@@ -210,7 +223,13 @@ if (transactions.length === 0) {
 
         transactionName.appendChild(iconBox);
 
-        transactionName.appendChild(nameText);
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "transaction-open-button";
+        openButton.setAttribute("aria-label", `Open ${transaction.name} transaction`);
+        openButton.appendChild(nameText);
+        openButton.addEventListener("click", () => FlowTransactionDetails.open(transaction.id));
+        transactionName.appendChild(openButton);
 
 
         const categoryText = document.createElement("span");
@@ -345,6 +364,10 @@ if (transactions.length === 0) {
 }
 
 
+
+if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
 /* sort transactions */
 
 function sortTransactions() {
@@ -463,6 +486,7 @@ historyTypeFilter.addEventListener("change", filterTransactions);
 historyCategoryFilter.addEventListener("change", filterTransactions);
 historySort.addEventListener("change", sortTransactions);
 
+showTransactionHistory();
 sortTransactions();
 filterTransactions();
 
@@ -470,3 +494,15 @@ filterTransactions();
 if (typeof lucide !== "undefined") {
     lucide.createIcons();
 }
+
+function refreshTransactionHistory(event) {
+    showTransactionHistory();
+    sortTransactions();
+    filterTransactions();
+    if (event.type === "flow-transaction-updated") {
+        const row = [...document.querySelectorAll(".history-row")].find(item => item.dataset.transactionId === String(event.detail.id));
+        if (row && !row.hidden) row.querySelector(".transaction-open-button").focus({ preventScroll: true });
+    }
+}
+document.addEventListener("flow-transaction-updated", refreshTransactionHistory);
+document.addEventListener("flow-transaction-view-refresh", refreshTransactionHistory);

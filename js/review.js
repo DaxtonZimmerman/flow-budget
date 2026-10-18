@@ -15,6 +15,8 @@ const quickReviewGroups = document.querySelector("#quick-review-groups");
 const quickReviewMessage = document.querySelector("#quick-review-message");
 const categories = ["Salary", "Income", "Food", "Transport", "Entertainment", "Shopping", "Bills", "Other"];
 let quickReviewLimit = 12;
+const quickReviewDrafts = new Map();
+const expandedReviewGroups = new Set();
 
 
 function typeChoices(transaction) {
@@ -26,7 +28,7 @@ function typeChoices(transaction) {
 function makeTypeSelect(transaction, suggestedTransfer = false) {
     const select = document.createElement("select");
     for (const type of typeChoices(transaction)) select.add(new Option(type, type));
-    select.value = suggestedTransfer ? "Transfer" : transaction.type;
+    select.value = suggestedTransfer ? "Transfer" : transaction.type || (transaction.amount < 0 ? "Expense" : "Income");
     return select;
 }
 
@@ -95,7 +97,9 @@ function showInbox() {
         const row = document.createElement("div");
         row.className = "review-row";
         const info = document.createElement("div");
-        info.appendChild(makeText("strong", transaction.name));
+        const openTransaction = makeButton(transaction.name, "transaction-open-button", () => FlowTransactionDetails.open(transaction.id));
+        openTransaction.setAttribute("aria-label", `Open ${transaction.name} transaction`);
+        info.appendChild(openTransaction);
         info.appendChild(makeText("span", `${transaction.type || (transaction.amount > 0 ? "Income" : "Expense")} · $${Math.abs(transaction.amount).toFixed(2)} · ${transaction.date || "Date needed"}`));
         row.appendChild(info);
 
@@ -245,6 +249,7 @@ function showQuickReview() {
     for (const group of groups.slice(0, quickReviewLimit)) {
         const row = document.createElement("div");
         row.className = "review-row quick-review-group";
+        row.dataset.groupKey = group.key;
         const info = document.createElement("div");
         info.appendChild(makeText("strong", group.name));
         info.appendChild(makeText("span", `${group.count} transaction${group.count === 1 ? "" : "s"} · ${group.items[0].amount < 0 ? "Money out" : "Money in"}`));
@@ -275,6 +280,19 @@ function showQuickReview() {
         rememberInput.type = "checkbox";
         rememberLabel.prepend(rememberInput);
         controls.appendChild(rememberLabel);
+        const draft = quickReviewDrafts.get(group.key);
+        if (draft) {
+            if (typeSelect && [...typeSelect.options].some(option => option.value === draft.type)) typeSelect.value = draft.type;
+            categorySelect.value = draft.category;
+            rememberInput.checked = draft.remember;
+        }
+        const keepDraft = () => quickReviewDrafts.set(group.key, {
+            type: typeSelect ? typeSelect.value : group.items[0].type,
+            category: categorySelect.value, remember: rememberInput.checked
+        });
+        categorySelect.addEventListener("change", keepDraft);
+        rememberInput.addEventListener("change", keepDraft);
+        typeSelect?.addEventListener("change", keepDraft);
         if (typeSelect) {
             const updateGroupControls = () => {
                 const transfer = typeSelect.value === "Transfer";
@@ -328,12 +346,47 @@ function showQuickReview() {
                 transactions = JSON.parse(before);
                 return showReview();
             }
+            quickReviewDrafts.delete(group.key);
             quickReviewMessage.textContent = rememberTransfer
                 ? `Updated ${count} transactions. Future entries with this exact name, bank account, and money direction will be transfers.`
                 : `Updated ${count} ${group.name} transaction${count === 1 ? "" : "s"}.`;
             showReview();
         }));
         row.appendChild(controls);
+        const entries = transactionsForReviewGroup(transactions, group);
+        const individual = document.createElement("details");
+        individual.className = "quick-review-transactions";
+        individual.open = expandedReviewGroups.has(group.key);
+        const summary = document.createElement("summary");
+        summary.appendChild(makeText("span", entries.length === 1 ? "View transaction" : `View ${entries.length} transactions`));
+        summary.appendChild(makeText("span", "⌄"));
+        summary.setAttribute("aria-label", `View ${group.name} transactions individually`);
+        individual.appendChild(summary);
+        const hint = makeText("p", "Different reasons for each payment? Choose a category for each one.");
+        hint.className = "quick-review-individual-help";
+        individual.appendChild(hint);
+        const list = document.createElement("div");
+        list.className = "quick-review-transaction-list";
+        for (const entry of entries) {
+            const item = makeButton("", "quick-review-transaction", () => FlowTransactionDetails.open(entry.id));
+            const info = document.createElement("span");
+            const date = entry.date ? new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date needed";
+            info.appendChild(makeText("strong", date));
+            const category = entry.type === "Transfer" ? "Transfer" : entry.category || "Other";
+            info.appendChild(makeText("small", `${category}${entry.notes ? ` · ${entry.notes}` : ""}`));
+            item.appendChild(info);
+            const amount = makeText("strong", `${entry.amount < 0 ? "−" : "+"}${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.abs(entry.amount))}`);
+            item.appendChild(amount);
+            item.appendChild(makeText("span", "›"));
+            item.setAttribute("aria-label", `Open ${entry.name}, ${date}, ${amount.textContent}`);
+            list.appendChild(item);
+        }
+        individual.appendChild(list);
+        individual.addEventListener("toggle", () => {
+            if (individual.open) expandedReviewGroups.add(group.key);
+            else expandedReviewGroups.delete(group.key);
+        });
+        row.appendChild(individual);
         quickReviewGroups.appendChild(row);
     }
 
@@ -484,3 +537,22 @@ if ((new URLSearchParams(location.search).get("quick") === "1" && transactions.s
     sessionStorage.setItem(firstRunKey, "1");
     quickReviewDialog.showModal();
 }
+
+function refreshReviewedTransactions(event) {
+    const currentOpenGroup = [...document.querySelectorAll(".quick-review-transactions[open]")].map(item => item.closest("[data-group-key]").dataset.groupKey);
+    for (const key of currentOpenGroup) expandedReviewGroups.add(key);
+    transactions = loadTransactions();
+    categoryRules = loadCategoryRules();
+    recurringItems = loadRecurringItems();
+    if (event.type === "flow-transaction-updated") {
+        quickReviewMessage.textContent = "Saved this transaction. The other payments keep their categories.";
+        reviewMessage.textContent = "Saved this transaction.";
+    }
+    showReview();
+    if (event.type === "flow-transaction-updated" && quickReviewDialog.open) {
+        const target = [...document.querySelectorAll(".quick-review-group")].find(item => currentOpenGroup.includes(item.dataset.groupKey));
+        (target?.querySelector("summary") || document.querySelector("#close-quick-review")).focus({ preventScroll: true });
+    }
+}
+document.addEventListener("flow-transaction-updated", refreshReviewedTransactions);
+document.addEventListener("flow-transaction-view-refresh", refreshReviewedTransactions);

@@ -57,7 +57,8 @@ function makeApp(needsReconnect = false, editing = false) {
         document: {
             addEventListener: () => {},
             dispatchEvent: () => {},
-            querySelector: () => editing ? {} : null
+            querySelector: selector => typeof editing === "string"
+                ? selector.includes(editing) ? {} : null : editing ? {} : null
         },
         window: { location: { reload: () => { reloads++; } } },
         Event
@@ -124,4 +125,12 @@ test("a newer webhook snapshot is pulled despite the normal poll delay", async (
     await app.run();
 
     assert.deepEqual(app.actions, ["connections", "sync", "connections", "sync"]);
+});
+
+test("a bank update saves new data without dismissing an open transaction popup", async () => {
+    const app = makeApp(false, "#transaction-details-dialog[open]");
+    await app.run();
+    assert.equal(app.getTransactions().length, 1);
+    assert.equal(app.getCloudSaves(), 1);
+    assert.equal(app.getReloads(), 0);
 });

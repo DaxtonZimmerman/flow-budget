@@ -77,6 +77,7 @@
         } catch (_) { /* The data screens handle storage errors. */ }
     }
     document.addEventListener('flow-review-updated', updateReviewBadge);
+    document.addEventListener('flow-transaction-updated', updateReviewBadge);
     const status = document.querySelector('#flow-sync-status');
     if (status) {
         new MutationObserver(() => {

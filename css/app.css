@@ -562,3 +562,55 @@ dialog[open] { animation: dialog-enter .18s ease-out; }
 @media(max-width:768px) { .activity-more-filters { grid-column: 1/-1; margin-top: 3px; } .activity-more-filters > summary { font-size: 11px; color: #617553; padding: 3px 0; justify-content: flex-start; gap: 8px; } .activity-more-filters > summary svg { width: 13px; height: 13px; } .more-filters-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 13px; } .history-filters { padding-bottom: 12px; } }
 @media(max-width:1200px) and (min-width:769px) { .history-filters { grid-template-columns: 1fr 1fr; } .more-filters-inner .history-filter { grid-column: auto; } }
 @media(max-width:768px) { .more-filters-inner .history-filter { grid-column: auto; } }
+
+/* Open one payment without leaving the current task. */
+.transaction-open-button { display: inline-block; min-width: 0; max-width: 100%; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--text); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.transaction-open-button:hover { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.history-name .transaction-open-button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.openable-transaction { cursor: pointer; }
+.transaction-left .transaction-open-button { line-height: 1.5; }
+.quick-review-group { flex-wrap: wrap; }
+.quick-review-transactions { flex: 1 0 100%; min-width: 0; margin-top: -2px; border: 1px solid #e3eadc; border-radius: 10px; background: #fafcf7; overflow: hidden; }
+.quick-review-transactions > summary { font-size: 12px; padding: 11px 14px; color: #587448; }
+.quick-review-transactions > summary > span:last-child { margin-left: auto; font-size: 16px; line-height: 1; }
+.quick-review-individual-help { font-size: 11px; color: var(--text-light); margin: 0; padding: 0 14px 11px; }
+.quick-review-transaction-list { max-height: 260px; overflow: auto; overscroll-behavior: contain; border-top: 1px solid #e3eadc; }
+.quick-review-transaction { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 15px; padding: 12px 15px; border: 0; border-bottom: 1px solid #e8eee1; border-radius: 0; background: #fff; color: var(--text); text-align: left; cursor: pointer; }
+.quick-review-transaction:hover { background: #f1f6e9; }
+.quick-review-transaction:last-child { border-bottom: 0; }
+.quick-review-transaction > span:first-child { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.quick-review-transaction > span:first-child strong { font-size: 12px; font-weight: 550; }
+.quick-review-transaction small { font-size: 11px; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-review-transaction > strong { flex-shrink: 0; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.quick-review-transaction > span:last-child { font-size: 22px; color: #8c9b83; }
+.quick-review-revisit { font-size: 12px; color: var(--text-light); padding: 14px 0 0; margin: 0; }
+.quick-review-revisit a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.transaction-details-dialog { width: min(465px,calc(100vw - 32px)); padding: 26px; max-height: calc(100dvh - 40px); overflow: auto; }
+.transaction-details-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 15px; }
+.transaction-details-heading .icon-button { width: 36px; height: 36px; }
+.transaction-details-dialog h2 { font-size: 23px; letter-spacing: -.7px; font-weight: 600; line-height: 1.35; margin: 0 0 12px; overflow-wrap: anywhere; }
+.transaction-details-amount { font-size: 34px; font-weight: 500; letter-spacing: -1.2px; font-variant-numeric: tabular-nums; }
+.transaction-details-meta { margin: 6px 0 24px; font-size: 11px; color: var(--text-light); }
+#transaction-details-form { display: grid; gap: 17px; }
+.transaction-details-fields { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; }
+.transaction-details-dialog .form-group label { font-size: 12px; }
+.transaction-details-dialog select,.transaction-details-dialog input,.transaction-details-dialog textarea { font-size: 13px; min-width: 0; }
+.transaction-details-help { margin: -7px 0 0; color: var(--text-light); font-size: 11px; }
+.optional-label { color: #7a8872; font-size: 10px; font-weight: 400; margin-left: 5px; }
+.transaction-details-footer { display: grid; gap: 11px; padding-top: 4px; }
+.transaction-details-footer p { color: var(--text-light); font-size: 11px; margin: 0; text-align: center; }
+.transaction-details-footer .save-button { width: 100%; min-height: 42px; }
+.transaction-details-dialog .form-message { font-size: 12px; line-height: 1.7; }
+@media(max-width:768px) {
+    .quick-review-transactions { flex-basis: auto; width: 100%; }
+    .quick-review-transaction-list { max-height: 240px; }
+    .quick-review-transactions > summary { min-height: 43px; }
+    .quick-review-transaction { min-height: 61px; }
+    .review-row .transaction-open-button { width: auto; min-height: 0; padding: 0; font-size: 14px; }
+    .transaction-details-dialog { width: 100%; max-width: 100%; margin: auto 0 0; padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); max-height: 94dvh; border-radius: 22px 22px 0 0; }
+    .transaction-details-heading .icon-button { width: 40px; height: 40px; }
+    .transaction-details-dialog select,.transaction-details-dialog input,.transaction-details-dialog textarea { font-size: 16px; }
+    .transaction-details-dialog h2 { font-size: 24px; }
+    .transaction-details-fields { grid-template-columns: 1fr 1fr; }
+    .transaction-details-footer .save-button { min-height: 46px; }
+}

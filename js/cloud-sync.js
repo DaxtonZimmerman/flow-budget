@@ -168,7 +168,9 @@ async function flowSync() {
         } else if (cloudRevision > localRevision) {
             replaceFlowSnapshot(cloud.data);
             localStorage.setItem("flow_revision", String(cloudRevision));
-            window.location.reload();
+            if (document.querySelector("#transaction-details-dialog[open]")) {
+                document.dispatchEvent(new Event("flow-transaction-data-updated"));
+            } else window.location.reload();
         } else if (cloudRevision < localRevision) {
             showFlowStatus("Cloud data changed. Open Account to choose which copy to keep.");
         } else {
