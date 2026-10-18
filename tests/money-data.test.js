@@ -52,6 +52,21 @@ test("transfers and pending charges do not count; refunds lower spending", () =>
     assert.equal(run('getSpendingBreakdown(sample, "2026-10", 31).categorySpending.Food'), 15);
 });
 
+test("reviewed bank refunds reduce a category budget and transfers stay out", () => {
+    context.sample = [
+        { id: "charge", source: "bank", type: "Expense", amount: -25,
+            category: "Food", date: "2026-10-01", status: "posted" },
+        { id: "refund", source: "bank", type: "Refund", amount: 7,
+            category: "Food", date: "2026-10-02", status: "posted" },
+        { id: "transfer", source: "bank", type: "Transfer", amount: -100,
+            category: "Food", date: "2026-10-03", status: "posted" }
+    ];
+
+    assert.equal(run('getMoneyTotals(sample, "2026-10").income'), 0);
+    assert.equal(run('getMoneyTotals(sample, "2026-10").spending'), 18);
+    assert.equal(run('getBudgetSpending("Food", sample, "2026-10")'), 18);
+});
+
 test("a posted version counts when a pending version has the same ID", () => {
     context.sample = [
         { id: "bank-1", amount: -8, status: "pending", date: "2026-10-01" },

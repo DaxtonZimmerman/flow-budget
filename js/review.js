@@ -77,7 +77,7 @@ function showInbox() {
         row.className = "review-row";
         const info = document.createElement("div");
         info.appendChild(makeText("strong", transaction.name));
-        info.appendChild(makeText("span", `${transaction.amount > 0 ? "Income" : "Expense"} · $${Math.abs(transaction.amount).toFixed(2)} · ${transaction.date || "Date needed"}`));
+        info.appendChild(makeText("span", `${transaction.type || (transaction.amount > 0 ? "Income" : "Expense")} · $${Math.abs(transaction.amount).toFixed(2)} · ${transaction.date || "Date needed"}`));
         row.appendChild(info);
 
         const controls = document.createElement("div");

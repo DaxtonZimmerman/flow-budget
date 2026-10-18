@@ -218,6 +218,12 @@ if (transactions.length === 0) {
         const categoryText = document.createElement("span");
 
         categoryText.textContent = transaction.category;
+        if (transaction.type === "Refund" || transaction.type === "Transfer") {
+            const typeLabel = document.createElement("small");
+            typeLabel.className = "category-reason";
+            typeLabel.textContent = transaction.type;
+            categoryText.appendChild(typeLabel);
+        }
         if (transaction.categoryReason) {
             const reason = document.createElement("small");
             reason.className = "category-reason";
@@ -416,8 +422,12 @@ function filterTransactions() {
 
         const matchesSearch = searchableText.includes(searchText);
         const matchesType = selectedType === "all" ||
-            (selectedType === "income" && transaction.amount > 0) ||
-            (selectedType === "expense" && transaction.amount < 0);
+            (selectedType === "income" && (transaction.type === "Income" ||
+                (!transaction.type && transaction.amount > 0))) ||
+            (selectedType === "expense" && (transaction.type === "Expense" ||
+                (!transaction.type && transaction.amount < 0))) ||
+            (selectedType === "refund" && transaction.type === "Refund") ||
+            (selectedType === "transfer" && transaction.type === "Transfer");
         const matchesCategory = selectedCategory === "all" ||
             transaction.category === selectedCategory;
 

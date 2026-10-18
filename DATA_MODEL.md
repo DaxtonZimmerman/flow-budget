@@ -16,8 +16,8 @@ The cloud copy is one `flow_data` row per signed-in user with a revision number.
 ## How totals work
 
 - Income and expenses are added in cents, then displayed as dollars. Net is income minus expenses.
-- A `Transfer` moves money between accounts and does not change income, expenses, or a category budget. The current form does not create transfers yet.
-- A `Refund` is a positive amount that reduces spending in its category; it is not new income. The current form does not create refunds yet.
+- A `Transfer` moves money between accounts and does not change income, expenses, or a category budget. A bank transaction can be marked as a transfer; manual entry does not create one yet.
+- A `Refund` is a positive amount that reduces spending in its category; it is not new income. A bank credit can be marked as a refund; manual entry does not create one yet.
 - A transaction with `status: "pending"` is excluded from posted totals until it is posted. The current form creates posted transactions without a status field.
 - If the same record ID appears twice in a calculation, it is counted once. Existing saved records with colliding IDs receive separate IDs when loaded so neither record is lost.
 

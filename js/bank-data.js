@@ -2,7 +2,11 @@
 
 function bankTransactionFromPlaid(item, accountId, previous) {
     const amount = Math.round(Number(item.amount) * 100) / -100;
-    const type = amount < 0 ? "Expense" : "Income";
+    const inferredType = amount < 0 ? "Expense" : "Income";
+    const keepOverride = previous && previous.typeOverride &&
+        (previous.type === "Transfer" ||
+            (previous.type === "Refund" && amount > 0));
+    const type = keepOverride ? previous.type : inferredType;
     const name = item.merchant_name || item.name || "Bank transaction";
 
     return {
@@ -13,6 +17,7 @@ function bankTransactionFromPlaid(item, accountId, previous) {
         bankTransactionId: item.transaction_id,
         status: item.pending ? "pending" : "posted",
         type: type,
+        typeOverride: Boolean(keepOverride),
         name: name,
         amount: amount,
         date: item.date,

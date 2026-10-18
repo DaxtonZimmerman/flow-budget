@@ -134,6 +134,44 @@ test("repeating a bank snapshot keeps IDs, edits, and row order", () => {
     assert.equal(JSON.stringify(second), JSON.stringify(third));
 });
 
+test("a chosen refund or transfer survives sync without changing the bank amount", () => {
+    const credit = mergeBankSnapshot([], "connection-1", [
+        bankItem("refund-1", -12.5, { account_id: "checking-1" })
+    ]);
+    credit[0].type = "Refund";
+    credit[0].typeOverride = true;
+    credit[0].category = "Food";
+
+    const refreshed = mergeBankSnapshot(credit, "connection-1", [
+        bankItem("refund-1", -10, { account_id: "checking-1" })
+    ]);
+    assert.equal(refreshed[0].type, "Refund");
+    assert.equal(refreshed[0].amount, 10);
+    assert.equal(refreshed[0].category, "Food");
+
+    refreshed[0].type = "Transfer";
+    refreshed[0].typeOverride = true;
+    const transfer = mergeBankSnapshot(refreshed, "connection-1", [
+        bankItem("refund-1", 10, { account_id: "checking-1" })
+    ]);
+    assert.equal(transfer[0].type, "Transfer");
+    assert.equal(transfer[0].amount, -10);
+});
+
+test("a refund label clears if Plaid changes a credit into a debit", () => {
+    const credit = mergeBankSnapshot([], "connection-1", [
+        bankItem("correction-1", -5, { account_id: "checking-1" })
+    ]);
+    credit[0].type = "Refund";
+    credit[0].typeOverride = true;
+
+    const corrected = mergeBankSnapshot(credit, "connection-1", [
+        bankItem("correction-1", 5, { account_id: "checking-1" })
+    ]);
+    assert.equal(corrected[0].type, "Expense");
+    assert.equal(corrected[0].typeOverride, false);
+});
+
 
 test("a posted snapshot replaces pending and leaves other banks alone", () => {
     const pending = mergeBankSnapshot([], "connection-1", [

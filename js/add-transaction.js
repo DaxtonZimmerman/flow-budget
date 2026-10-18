@@ -131,8 +131,17 @@ if (editId !== null) {
 
         if (transaction.source === "bank") {
             formDescription.textContent =
-                "This came from your bank. You can change its category and notes.";
-            typeInput.disabled = true;
+                "This came from your bank. You can mark a credit as a refund or a movement between accounts as a transfer. Its amount and date stay as sent by the bank.";
+            typeInput.add(new Option("Refund", "Refund"));
+            typeInput.add(new Option("Transfer", "Transfer"));
+            typeInput.querySelector('option[value="Income"]').disabled =
+                transaction.amount < 0;
+            typeInput.querySelector('option[value="Expense"]').disabled =
+                transaction.amount >= 0;
+            typeInput.querySelector('option[value="Refund"]').disabled =
+                transaction.amount <= 0;
+            typeInput.value = transaction.type ||
+                (transaction.amount > 0 ? "Income" : "Expense");
             nameInput.disabled = true;
             amountInput.disabled = true;
             dateInput.disabled = true;
@@ -170,6 +179,16 @@ transactionForm.addEventListener("submit", function(event) {
     if (type === "") {
         showError("Please choose a transaction type.");
         return;
+    }
+
+    if (bankEdit) {
+        const validTypes = amount < 0
+            ? ["Expense", "Transfer"]
+            : ["Income", "Refund", "Transfer"];
+        if (!validTypes.includes(type)) {
+            showError("Choose a type that matches this bank transaction.");
+            return;
+        }
     }
 
 
@@ -251,6 +270,8 @@ transactionForm.addEventListener("submit", function(event) {
         transactions[transactionIndex] = oldTransaction.source === "bank"
             ? {
                 ...oldTransaction,
+                type: type,
+                typeOverride: type !== (oldTransaction.amount < 0 ? "Expense" : "Income"),
                 category: category,
                 notes: notes,
                 reviewStatus: "reviewed",
