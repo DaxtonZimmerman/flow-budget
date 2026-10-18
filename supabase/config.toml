@@ -4,3 +4,7 @@ verify_jwt = true
 # Plaid cannot send a Flow user JWT. The handler verifies Plaid's signed payload.
 [functions.plaid-webhook]
 verify_jwt = false
+
+# Production has a separate endpoint so its signature is checked with Production keys.
+[functions.plaid-production-webhook]
+verify_jwt = false

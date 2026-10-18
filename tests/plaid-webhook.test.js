@@ -6,11 +6,15 @@ const vm = require("node:vm");
 const { stripTypeScriptTypes } = require("node:module");
 const { webcrypto } = require("node:crypto");
 
-const source = stripTypeScriptTypes(fs.readFileSync(
-    path.join(__dirname, "..", "supabase", "functions", "plaid-webhook", "index.ts"), "utf8"
-).replace(/^import .*;\n/, ""));
+function sourceFor(environment) {
+    const folder = environment === "production"
+        ? "plaid-production-webhook" : "plaid-webhook";
+    return stripTypeScriptTypes(fs.readFileSync(
+        path.join(__dirname, "..", "supabase", "functions", folder, "index.ts"), "utf8"
+    ).replace(/^import .*;\n/, ""));
+}
 
-async function makeServer() {
+async function makeServer(environment = "sandbox", connectionEnvironment = environment) {
     const keyPair = await webcrypto.subtle.generateKey({
         name: "ECDSA", namedCurve: "P-256"
     }, true, ["sign", "verify"]);
@@ -31,7 +35,8 @@ async function makeServer() {
                 SUPABASE_URL: "https://example.supabase.co",
                 SUPABASE_SERVICE_ROLE_KEY: "service-test",
                 PLAID_CLIENT_ID: "client-test",
-                PLAID_SANDBOX_SECRET: "sandbox-test"
+                PLAID_SANDBOX_SECRET: "sandbox-test",
+                PLAID_PRODUCTION_SECRET: "production-test"
             })[key] },
             serve: fn => { handler = fn; }
         },
@@ -39,13 +44,19 @@ async function makeServer() {
             from: () => ({
                 select() { return this; },
                 update(values) { this.values = values; return this; },
-                eq(_field, value) { this.itemId = value; return this; },
+                eq(field, value) {
+                    if (field === "item_id") this.itemId = value;
+                    if (field === "environment") this.environment = value;
+                    return this;
+                },
                 then(resolve) {
-                    warningUpdates.push({ itemId: this.itemId, values: this.values });
+                    warningUpdates.push({ itemId: this.itemId,
+                        environment: this.environment, values: this.values });
                     return resolve({ error: databaseError ? new Error("retry") : null });
                 },
                 async maybeSingle() {
-                    return { data: connectionExists && this.itemId === "item-1"
+                    return { data: connectionExists && this.itemId === "item-1" &&
+                        this.environment === connectionEnvironment
                         ? { id: "connection-1", access_token: "access-test", cursor: null }
                         : null, error: null };
                 }
@@ -68,7 +79,7 @@ async function makeServer() {
             };
         }
     };
-    vm.runInNewContext(source, context);
+    vm.runInNewContext(sourceFor(environment), context);
 
     async function signedRequest(body, overrides = {}) {
         const raw = JSON.stringify(body);
@@ -114,6 +125,23 @@ test("signed transaction webhook fetches and saves changes", async () => {
         "https://sandbox.plaid.com/transactions/sync");
     assert.equal(server.saved[0].connection_id, "connection-1");
     assert.equal(server.saved[0].added[0].transaction_id, "txn-1");
+});
+
+test("production webhook verifies with production keys and only reads production Items", async () => {
+    const server = await makeServer("production");
+    assert.equal(await server.signedRequest(event), 200);
+    assert.equal(server.calls[0].url,
+        "https://production.plaid.com/webhook_verification_key/get");
+    assert.equal(server.calls[0].body.secret, "production-test");
+    assert.equal(server.calls[1].url, "https://production.plaid.com/transactions/sync");
+    assert.equal(server.saved.length, 1);
+});
+
+test("production webhook ignores an Item stored as Sandbox", async () => {
+    const server = await makeServer("production", "sandbox");
+    assert.equal(await server.signedRequest(event), 200);
+    assert.equal(server.saved.length, 0);
+    assert.equal(server.calls.some(call => call.url.endsWith("/transactions/sync")), false);
 });
 
 test("signed Item warnings request reconnection and repair clears it", async () => {
