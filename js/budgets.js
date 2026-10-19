@@ -3,7 +3,7 @@ if (typeof lucide !== "undefined") {
 }
 
 
-const transactions = loadTransactions();
+let transactions = loadTransactions();
 const budgetMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 const selectedMonth = getSelectedMonth();
@@ -240,3 +240,8 @@ budgetForm.addEventListener("submit", function(event) {
 
 
 showBudgets();
+
+// Refresh totals without closing an editor or resetting the selected month.
+document.addEventListener('flow-transaction-view-refresh', () => {
+    transactions = loadTransactions(); budgets = loadBudgets(selectedMonth); showBudgets();
+});

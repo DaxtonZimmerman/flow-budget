@@ -40,9 +40,9 @@ Published on 19 October 2026 in `75c9035`; the website deployment [passed](https
 
 Remaining limits: exact-name matching will need a check when a bank changes a merchant description; variable bills require an amount check; automatic recognition is limited to USD cash accounts. Credit-card bill discovery, transfer pairing, and push/email notifications are not part of this increment. Legacy monthly tracking notes remain separate from confirmed payday bills.
 
-## Payday check-in increment: approved for publication
+## Payday check-in increment: published
 
-Prepared and approved by the owner for publication on 19 October 2026. This increment appears on the live site after a successful website deployment.
+Published on 19 October 2026 in `846e288`. The website deployment [passed](https://github.com/DaxtonZimmerman/flow-budget/actions/runs/39318411355), and the live scripts and stylesheet matched the tested release.
 
 - When a completed plan reaches its end date, Home and Plan offer a three-step check-in: confirm the next payday, check available money, and review fresh essential set-asides and the cushion. A schedule suggests a future date, including anchored month ends. Irregular income requires a chosen planning date.
 - The check-in never assumes a paycheck arrived or adds expected income. Bank balances retain their cache dates and freshness checks; a person can explicitly enter today's available amount instead. Stale entered balances are not prefilled as current money.
@@ -50,6 +50,18 @@ Prepared and approved by the owner for publication on 19 October 2026. This incr
 - All three steps save together through the existing owner/conflict checks. Canceling leaves the saved plan intact; Back retains entered values. Changed balances, activity, another saved plan, another account, or a new calendar day require another check before saving. A completed check-in cannot run again while its new plan is active.
 - A calendar-day check and return-to-app check expose the prompt without automatically resetting the plan. The completed check-in date and monthly anchor survive cloud/device copies and backups. This is an in-app workflow, not a push or email reminder; no server deployment or paid product is needed.
 - 123 automated checks pass. Synthetic browser checks cover the three-step flow, cancel/Back, arithmetic, carried bills, stale data, concurrent changes, overdue bills, midnight, and desktop/phone layouts. Existing setup, category controls, grouped review, individual editing, and six-screen layout checks also pass. No personal plan or bank records were changed for testing.
+
+## Automatic bank sync increment: approved for publication
+
+Prepared and approved by the owner for publication on 19 October 2026. This increment appears on the live site after a successful website deployment.
+
+- All app screens, including Review and Import, check for available server updates roughly once per minute while visible, and on return/focus or connectivity recovery. Existing signed bank webhooks continue to ingest available changes while the app is closed. Normal incremental transaction sync remains a 15-minute fallback when no newer server snapshot exists; the explicit Check now action reads available updates sooner. No forced bank refresh product or new paid endpoint is called.
+- Home, Activity, category totals, and Plan refresh in place. Filters remain selected. Open dialogs, setup, entry forms, and unsaved review choices defer view rebuilding; incoming records remain saved. Stale review saves ask for another check instead of overwriting newly imported payments. Pending activity is labeled in Activity; a posted record replaces its pending counterpart using the existing identity logic.
+- A separate bank status shows checking, last available-update check, offline waiting, retry, and reconnect states. The help text explains bank/Plaid reporting delays. “Checked” does not claim a real-time bank balance or that a newly made transfer is already available. A new bank transaction also checks the existing free cached balance endpoint.
+- Concurrent requests for the same connection share one in-flight call. Visible tabs share check timestamps. Hidden/offline/signed-out copies do not poll banks; pending local edits and unsuccessful cloud sync pause bank polling. Failures back off and retry. Owner checks after asynchronous fetches/saves and disconnect checks prevent late responses from restoring another account's data.
+- 133 automated checks pass. Isolated browser checks simulate a new transfer arriving while Activity is open, its pending-to-posted transition, preserved filters and transaction notes, deferred review/payday edits, rejection of a stale bulk review save, and offline recovery. Existing setup/review/layout and payday check-in browser suites also pass. Screens checked include desktop and 320/390-pixel phone layouts. Tests use synthetic records only; the owner's actual missing transfer has not been verified as received by Plaid.
+
+This is a frontend update. It needs no server deployment, new bank connection, secret, database migration, or paid product. It cannot make an institution report a transfer sooner. Plaid describes notification-based retrieval in its [webhook guide](https://plaid.com/docs/transactions/webhooks/) and pending/posted replacements in its [transaction-state guide](https://plaid.com/docs/transactions/transactions-data/).
 
 ## Product decision
 

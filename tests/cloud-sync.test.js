@@ -56,6 +56,7 @@ function setupCloud(editing = false) {
 
     return {
         saved,
+        client,
         status,
         events,
         run: code => vm.runInContext(code, context),
@@ -83,7 +84,8 @@ test("local changes sync, then another device's revision is pulled", async () =>
     });
     await app.run("flowSync()");
     assert.equal(JSON.parse(app.saved.get("transactions"))[0].id, "two");
-    assert.equal(app.getReloads(), 1);
+    assert.equal(app.getReloads(), 0);
+    assert.ok(app.events.includes('flow-transaction-view-refresh'));
 });
 
 test("a newer cloud copy updates storage without closing an open transaction popup", async () => {
@@ -160,4 +162,20 @@ test("category rules and monthly choices travel with the cloud copy", async () =
     await app.run("flowSync()");
     assert.equal(JSON.parse(app.saved.get("categoryRules"))[0].name, "pay");
     assert.equal(JSON.parse(app.saved.get("recurringItems")).length, 0);
+});
+
+
+test('incoming data keeps an open editor intact and refreshes once it is safe',async()=>{
+ const app=setupCloud(true);app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','0');app.setCloud({revision:1,data:{transactions:[{id:'bank-transfer',amount:-10}]}});
+ await app.run('flowSync()');assert.ok(app.events.includes('flow-transaction-data-updated'));assert.equal(app.events.includes('flow-transaction-view-refresh'),false);assert.equal(app.getReloads(),0);
+ app.run('document.querySelector = () => null; flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);app.run('flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);
+});
+test('late cloud fetches and saves cannot repopulate another signed-in account',async()=>{
+ const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','0');app.setCloud({revision:1,data:{transactions:[{id:'private-old-owner'}]}});
+ const work=app.run('flowSync()');app.saved.set('flow_user_id','person-2');await work;assert.equal(app.saved.has('transactions'),false);assert.equal(app.saved.get('flow_revision'),'0');
+ const saved=setupCloud();saved.saved.set('flow_user_id','person-1');saved.saved.set('flow_revision','0');saved.saved.set('flow_pending','1');
+ let release,started;const gate=new Promise(resolve=>release=resolve),called=new Promise(resolve=>started=resolve),rpc=saved.client.rpc;
+ saved.client.rpc=async(...args)=>{started();await gate;return rpc(...args);};
+ const saving=saved.run('flowSync()');await called;saved.saved.set('flow_user_id','person-2');saved.saved.set('flow_revision','50');saved.saved.set('transactions','[{"id":"new-owner"}]');release();await saving;
+ assert.equal(saved.saved.get('flow_revision'),'50');assert.equal(JSON.parse(saved.saved.get('transactions'))[0].id,'new-owner');
 });

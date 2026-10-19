@@ -235,6 +235,11 @@ if (transactions.length === 0) {
         const categoryText = document.createElement("span");
 
         categoryText.textContent = transaction.type === "Transfer" ? "Transfer" : transaction.category;
+        if (transaction.status === 'pending') {
+            const pendingLabel = document.createElement('small');
+            pendingLabel.className = 'category-reason'; pendingLabel.textContent = 'Pending';
+            categoryText.appendChild(pendingLabel);
+        }
         if (transaction.type === "Refund") {
             const typeLabel = document.createElement("small");
             typeLabel.className = "category-reason";

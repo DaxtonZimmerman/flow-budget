@@ -29,8 +29,8 @@ async function showBankConnections() {
         bankButton.textContent = productionPilot ? "Connect my bank" : "Connect test bank";
         bankButton.disabled = realBankConnected || testBankConnected;
         bankIntro.textContent = productionPilot
-            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
-            : "Connect a test bank in Plaid Sandbox. Flow checks for new transactions when you open it, and you can sync here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
+            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. Flow checks for available updates while open and when you return. Your bank may report new activity later. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
+            : "Connect a test bank in Plaid Sandbox. Flow checks for available updates while open and when you return; you can also check here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
         bankList.replaceChildren();
 
         for (const connection of data.connections) {
@@ -47,7 +47,7 @@ async function showBankConnections() {
             updated.textContent = connection.needs_reconnect
                 ? "Needs to be reconnected"
                 : connection.last_synced_at
-                    ? `Updated ${new Date(connection.last_synced_at).toLocaleString()}`
+                    ? `Last check ${new Date(connection.last_synced_at).toLocaleString()}`
                     : "Not synced yet";
             if (connection.needs_reconnect) updated.className = "bank-warning";
             syncButton.type = "button";
@@ -68,8 +68,8 @@ async function showBankConnections() {
                         `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`,
                         String(Date.now())
                     );
-                    updated.textContent = `Updated ${new Date(update.last_synced_at).toLocaleString()}`;
-                    bankMessage.textContent = `${connection.institution_name} is up to date.`;
+                    updated.textContent = `Checked for updates ${new Date(update.last_synced_at).toLocaleString()}`;
+                    bankMessage.textContent = `Checked ${connection.institution_name}. New activity can arrive later from your bank.`;
                 } catch (error) {
                     bankMessage.textContent = error.message;
                     if (error.needsReconnect) await showBankConnections();

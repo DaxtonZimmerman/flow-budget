@@ -49,7 +49,8 @@
         active = null;
         if (changedWhileOpen) {
             changedWhileOpen = false;
-            document.dispatchEvent(new Event('flow-transaction-view-refresh'));
+            if (typeof refreshFlowDataViews === 'function') refreshFlowDataViews();
+            else document.dispatchEvent(new Event('flow-transaction-view-refresh'));
         }
     });
     dialog.addEventListener('click', event => {

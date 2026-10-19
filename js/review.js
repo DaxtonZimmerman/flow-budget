@@ -1,8 +1,20 @@
+let flowReviewDraft = false;
+window.hasFlowReviewDraft = () => flowReviewDraft;
+for (const name of ['input', 'change']) document.addEventListener(name, event => {
+    if (event.target.closest('.review-controls')) flowReviewDraft = true;
+});
 if (typeof lucide !== "undefined") lucide.createIcons();
 
 let transactions = loadTransactions();
 let categoryRules = loadCategoryRules();
 let recurringItems = loadRecurringItems();
+const reviewOwner = localStorage.getItem('flow_user_id');
+function reviewStorageStamp() { return JSON.stringify(['transactions', 'categoryRules', 'recurringItems'].map(key => localStorage.getItem(key))); }
+let reviewStorageBase = reviewStorageStamp();
+function reloadReviewData() {
+    transactions = loadTransactions(); categoryRules = loadCategoryRules(); recurringItems = loadRecurringItems();
+    reviewStorageBase = reviewStorageStamp();
+}
 
 const reviewMessage = document.querySelector("#review-message");
 const inbox = document.querySelector("#review-inbox");
@@ -73,6 +85,11 @@ function makeButton(text, className, action) {
 /* save all changed lists together */
 
 function saveReviewData(changes) {
+    if (reviewOwner !== localStorage.getItem('flow_user_id') || reviewStorageBase !== reviewStorageStamp()) {
+        const message = 'New activity or saved changes arrived. Your last choice was not applied. Check the refreshed list and try again.';
+        reviewMessage.textContent = message; quickReviewMessage.textContent = message;
+        reloadReviewData(); return false;
+    }
     const previous = {};
 
     for (const key of Object.keys(changes)) {
@@ -89,12 +106,11 @@ function saveReviewData(changes) {
             else localStorage.setItem(key, previous[key]);
         }
         reviewMessage.textContent = "Flow could not save this choice. Check browser storage and try again.";
-        transactions = loadTransactions();
-        categoryRules = loadCategoryRules();
-        recurringItems = loadRecurringItems();
+        reloadReviewData();
         return false;
     }
 
+    reviewStorageBase = reviewStorageStamp();
     if (typeof flowDataChanged === "function") flowDataChanged();
     return true;
 }
@@ -334,7 +350,6 @@ function showQuickReview() {
                 quickReviewMessage.textContent = "Sync this bank first so Flow can remember its account details.";
                 return;
             }
-            const before = JSON.stringify(transactions);
             const count = applyReviewChoice(transactions, group.items,
                 type, categorySelect.value);
             const changes = { transactions: transactions };
@@ -357,7 +372,6 @@ function showQuickReview() {
                 changes.categoryRules = categoryRules;
             }
             if (!saveReviewData(changes)) {
-                transactions = JSON.parse(before);
                 return showReview();
             }
             quickReviewDrafts.delete(group.key);
@@ -513,6 +527,7 @@ function showRules() {
 
 
 function showReview() {
+    flowReviewDraft = false;
     for (const tab of document.querySelectorAll('[data-review-scope]')) {
         const active = tab.dataset.reviewScope === reviewScope;
         tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active));
@@ -536,13 +551,11 @@ document.querySelector("#accept-review-defaults").addEventListener("click", func
     const selected = reviewGroups(scopedReviewItems())
         .filter(group => !group.likelyTransfer)
         .flatMap(group => group.items);
-    const before = JSON.stringify(transactions);
     let count = 0;
     for (const transaction of selected) {
         count += applyReviewChoice(transactions, [transaction], transaction.type, "");
     }
     if (!saveReviewData({ transactions: transactions })) {
-        transactions = JSON.parse(before);
         return showReview();
     }
     quickReviewMessage.textContent = `Kept the current categories for ${count} transactions. Check the remaining possible transfers.`;
@@ -562,9 +575,7 @@ if ((new URLSearchParams(location.search).get("quick") === "1" && scopedReviewIt
 function refreshReviewedTransactions(event) {
     const currentOpenGroup = [...document.querySelectorAll(".quick-review-transactions[open]")].map(item => item.closest("[data-group-key]").dataset.groupKey);
     for (const key of currentOpenGroup) expandedReviewGroups.add(key);
-    transactions = loadTransactions();
-    categoryRules = loadCategoryRules();
-    recurringItems = loadRecurringItems();
+    reloadReviewData();
     if (event.type === "flow-transaction-updated") {
         quickReviewMessage.textContent = "Saved this transaction. The other payments keep their categories.";
         reviewMessage.textContent = "Saved this transaction.";
@@ -577,3 +588,8 @@ function refreshReviewedTransactions(event) {
 }
 document.addEventListener("flow-transaction-updated", refreshReviewedTransactions);
 document.addEventListener("flow-transaction-view-refresh", refreshReviewedTransactions);
+
+quickReviewDialog.addEventListener('close', () => {
+    flowReviewDraft = false;
+    if (typeof flushFlowDataViews === 'function') flushFlowDataViews();
+});

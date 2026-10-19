@@ -3,6 +3,24 @@
 let flowClient;
 let flowSyncing = false;
 let flowSyncAgain = false;
+let flowViewRefreshPending = false;
+
+function flowViewIsBeingEdited() {
+    return Boolean(document.querySelector('dialog[open], #transaction-details-dialog[open], #payday-dialog[open], #transaction-form, #setup-form') ||
+        typeof window.hasFlowReviewDraft === 'function' && window.hasFlowReviewDraft());
+}
+function flushFlowDataViews() {
+    if (!flowViewRefreshPending || flowViewIsBeingEdited()) return;
+    flowViewRefreshPending = false;
+    document.dispatchEvent(new Event('flow-transaction-view-refresh'));
+}
+function refreshFlowDataViews() {
+    flowViewRefreshPending = true;
+    document.dispatchEvent(new Event('flow-transaction-data-updated'));
+    flushFlowDataViews();
+}
+document.addEventListener('close', flushFlowDataViews, true);
+document.addEventListener('flow-cloud-ready', flushFlowDataViews);
 
 function getFlowClient() {
     if (!flowCloudUrl || !flowCloudKey || typeof supabase === "undefined") {
@@ -150,8 +168,10 @@ async function flowSync() {
             showFlowStatus("Sign in on the Account page to sync.");
             return;
         }
+        if (localStorage.getItem('flow_user_id') !== linkedUserId) return;
 
         const cloud = await getCloudData(client, linkedUserId);
+        if (localStorage.getItem('flow_user_id') !== linkedUserId) return;
         const cloudRevision = cloud ? cloud.revision : 0;
         const localRevision = Number(localStorage.getItem("flow_revision") || 0);
 
@@ -163,6 +183,7 @@ async function flowSync() {
 
             const snapshot = getFlowSnapshot();
             const revision = await saveCloudData(client, localRevision, snapshot);
+            if (localStorage.getItem('flow_user_id') !== linkedUserId) return;
             localStorage.setItem("flow_revision", String(revision));
 
             if (JSON.stringify(getFlowSnapshot()) === JSON.stringify(snapshot)) {
@@ -177,9 +198,9 @@ async function flowSync() {
         } else if (cloudRevision > localRevision) {
             replaceFlowSnapshot(cloud.data);
             localStorage.setItem("flow_revision", String(cloudRevision));
-            if (document.querySelector("#transaction-details-dialog[open], #payday-dialog[open], #setup-form")) {
-                document.dispatchEvent(new Event("flow-transaction-data-updated"));
-            } else window.location.reload();
+            refreshFlowDataViews();
+            showFlowStatus('All changes saved.');
+            cloudReady = true;
         } else if (cloudRevision < localRevision) {
             showFlowStatus("Cloud data changed. Open Account to choose which copy to keep.");
         } else {
@@ -197,10 +218,11 @@ async function flowSync() {
             setTimeout(flowSync, 0);
         }
 
-        if (cloudReady) {
+        if (cloudReady && localStorage.getItem('flow_user_id') === linkedUserId) {
             document.dispatchEvent(new Event("flow-cloud-ready"));
         }
     }
+    return cloudReady;
 }
 
 

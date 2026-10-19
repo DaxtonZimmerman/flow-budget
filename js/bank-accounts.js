@@ -40,5 +40,5 @@
     }
     window.refreshFlowAccounts = refresh;
     document.addEventListener('flow-cloud-ready', () => refresh());
-    document.addEventListener('flow-bank-updated', () => refresh());
+    document.addEventListener('flow-bank-updated', event => refresh(event.detail?.changed === true));
 })();
