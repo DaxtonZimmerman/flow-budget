@@ -63,9 +63,11 @@
         return `<ul class="timeline">${e.bills.slice(0, 8).map(b => `<li><span class="date-tile">${new Date(b.dueDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}<strong>${Number(b.dueDate.slice(-2))}</strong></span><div><strong>${esc(b.name)}</strong><small>${b.dueDate < flowToday() ? 'Check overdue bill' : 'Confirmed'} · ${esc(b.status ? billStatus(b) : frequencyNames[b.frequency])}</small></div><strong>${money(b.amountCents)}</strong>${edit ? button(icon('pencil'), 'bill', 'icon-button', `data-id="${esc(b.id)}" aria-label="Edit ${esc(b.name)}"`) : ''}</li>`).join('')}</ul>`;
     }
     function recentRow(t) {
-        const category = t.type === 'Transfer' ? 'Transfer' : t.category || 'Other';
+        const peer = typeof linkedTransferPeer === 'function' ? linkedTransferPeer(t, transactions, accounts) : null;
+        const displayName = peer ? transferPairLabel(t, peer, accounts) : t.name;
+        const category = t.type === 'Transfer' ? (peer ? 'Linked transfer · ' + (t.amount < 0 ? 'Money out' : 'Money in') : 'Transfer') : t.category || 'Other';
         const nameIcon = t.type === 'Transfer' ? 'arrow-left-right' : t.amount > 0 ? 'banknote' : ({ Food: 'utensils', Transport: 'fuel', Shopping: 'shopping-bag', Entertainment: 'music', Bills: 'file-text' })[t.category] || 'receipt';
-        return `<button type="button" class="transaction-row payday-transaction" data-plan-action="transaction" data-id="${esc(t.id)}"><span class="transaction-left"><span class="merchant-icon blue-icon">${icon(nameIcon)}</span><span><strong>${esc(t.name)}</strong><span>${esc(category)}${t.status === 'pending' ? ' · Pending' : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</span></span></span><span class="transaction-right"><strong class="${t.amount > 0 ? 'income-text' : ''}">${t.amount < 0 ? '−' : '+'}${money(Math.abs(Math.round(t.amount * 100)))}</strong><span>${validPlanDate(t.date) ? date(t.date) : 'Date needed'}</span></span></button>`;
+        return `<button type="button" class="transaction-row payday-transaction" data-plan-action="transaction" data-id="${esc(t.id)}"><span class="transaction-left"><span class="merchant-icon blue-icon">${icon(nameIcon)}</span><span><strong>${esc(displayName)}</strong><span>${esc(category)}${t.status === 'pending' ? ' · Pending' : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</span></span></span><span class="transaction-right"><strong class="${t.amount > 0 && t.type !== 'Transfer' ? 'income-text' : ''}">${t.amount < 0 ? '−' : '+'}${money(Math.abs(Math.round(t.amount * 100)))}</strong><span>${validPlanDate(t.date) ? date(t.date) : 'Date needed'}</span></span></button>`;
     }
     function categoryBars() {
         const today = flowToday();

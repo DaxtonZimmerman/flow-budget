@@ -51,6 +51,9 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
         category: useRule ? rule.category : useBankCategory ? suggestion : previous ? previous.category
             : (type === "Income" ? "Income" : "Other"),
         notes: previous ? previous.notes : "",
+        transferPair: previous?.transferPair,
+        transferNoMatch: previous?.transferNoMatch,
+        transferMatchIssue: previous?.transferMatchIssue,
         bankCategory: metadata,
         bankCategoryAuto: Boolean(useBankCategory),
         categoryReason: useRule ? `Rule for ${rule.label || rule.name}` : useBankCategory ? 'Bank category'

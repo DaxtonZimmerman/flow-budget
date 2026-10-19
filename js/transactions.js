@@ -94,6 +94,7 @@ transactions = loadTransactions();
 transactionRows.length = 0;
 transactionHistory.replaceChildren();
 emptyTransactions.hidden = true;
+const transferAccounts = typeof loadBankAccounts === 'function' ? loadBankAccounts() : [];
 const previousCategory = historyCategoryFilter.value;
 historyCategoryFilter.replaceChildren(new Option("All categories", "all"));
 /* fill category filter */
@@ -218,7 +219,8 @@ if (transactions.length === 0) {
 
         const nameText = document.createElement("strong");
 
-        nameText.textContent = transaction.name;
+        const transferPeer = typeof linkedTransferPeer === "function" ? linkedTransferPeer(transaction, transactions, transferAccounts) : null;
+        nameText.textContent = transferPeer ? transferPairLabel(transaction, transferPeer, transferAccounts) : transaction.name;
 
 
         transactionName.appendChild(iconBox);
@@ -228,6 +230,12 @@ if (transactions.length === 0) {
         openButton.className = "transaction-open-button";
         openButton.setAttribute("aria-label", `Open ${transaction.name} transaction`);
         openButton.appendChild(nameText);
+        const bankAccount = typeof transferAccount === "function" ? transferAccount(transaction, transferAccounts) : null;
+        if (bankAccount) {
+            const accountLabel = document.createElement("small"); accountLabel.className = "activity-account-name";
+            accountLabel.textContent = transferPeer ? `${transaction.amount < 0 ? "Money out" : "Money in"} · ${bankAccount.name}` : bankAccount.name;
+            openButton.appendChild(accountLabel);
+        }
         openButton.addEventListener("click", () => FlowTransactionDetails.open(transaction.id));
         transactionName.appendChild(openButton);
 
@@ -239,6 +247,9 @@ if (transactions.length === 0) {
             const pendingLabel = document.createElement('small');
             pendingLabel.className = 'category-reason'; pendingLabel.textContent = 'Pending';
             categoryText.appendChild(pendingLabel);
+        }
+        if (transaction.transferMatchIssue) {
+            const issue = document.createElement('small'); issue.className = 'category-reason'; issue.textContent = 'Transfer match needs a check'; categoryText.appendChild(issue);
         }
         if (transaction.type === "Refund") {
             const typeLabel = document.createElement("small");
@@ -253,6 +264,12 @@ if (transactions.length === 0) {
             categoryText.appendChild(reason);
         }
 
+
+        if (transferPeer) {
+            const matchButton = document.createElement("button"); matchButton.type = "button"; matchButton.className = "transfer-match-link";
+            matchButton.textContent = "Linked · view match"; matchButton.addEventListener("click", () => FlowTransfers.open(transaction.id));
+            categoryText.appendChild(matchButton);
+        }
 
         const dateText = document.createElement("span");
 
@@ -361,6 +378,8 @@ if (transactions.length === 0) {
         transactionRows.push({
             transaction: transaction,
             row: transactionRow,
+            accountSearch: bankAccount?.name || '',
+            transferSearch: transferPeer ? transferPairLabel(transaction, transferPeer, transferAccounts) : '',
             order: transactionRows.length
         });
 
@@ -443,7 +462,9 @@ function filterTransactions() {
         const searchableText = [
             transaction.name,
             transaction.category,
-            transaction.notes || ""
+            transaction.notes || "",
+            item.accountSearch,
+            item.transferSearch
         ].join(" ").toLowerCase();
 
         const matchesSearch = searchableText.includes(searchText);

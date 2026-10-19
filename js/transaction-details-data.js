@@ -8,6 +8,8 @@ function transactionWithDetails(current, values, opened) {
             throw new Error("This transaction changed while it was open. Reopen it to see the latest details.");
         }
     }
+    if (JSON.stringify(current.transferPair) !== JSON.stringify(opened.transferPair)) throw new Error("This transfer match changed. Reopen it to see the latest details.");
+    if (current.transferPair && values.type !== current.type) throw new Error("Undo the transfer match before changing its type.");
     const inferredType = current.amount < 0 ? "Expense" : "Income";
     const allowed = current.source === "bank"
         ? current.amount < 0 ? ["Expense", "Transfer"] : current.amount > 0
@@ -32,6 +34,7 @@ function transactionWithDetails(current, values, opened) {
         updated.typeOverride = values.type !== inferredType;
         updated.bankTypeRuleId = values.type === current.type ? current.bankTypeRuleId : undefined;
     }
+    delete updated.transferMatchIssue;
     return updated;
 }
 

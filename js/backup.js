@@ -72,6 +72,7 @@ function validBackup(backup) {
     }
 
     for (const transaction of backup.transactions) {
+        if (typeof validTransferFields === "function" && !validTransferFields(transaction)) return false;
         if (!transaction || typeof transaction.name !== "string" ||
             typeof transaction.category !== "string" ||
             !Number.isFinite(transaction.amount) ||

@@ -83,6 +83,7 @@ function applyReviewChoice(transactions, selected, type, category) {
         }
 
         transaction.reviewStatus = "reviewed";
+        delete transaction.transferMatchIssue;
         count++;
     }
 
@@ -128,6 +129,7 @@ function rememberTransferChoices(transactions, selected, rules) {
             candidate.type === (item.amount < 0 ? "Expense" : "Income"));
         if (!rule) continue;
         item.type = "Transfer";
+        delete item.transferMatchIssue;
         item.typeOverride = true;
         item.bankTypeRuleId = rule.id;
         if (item.date) item.reviewStatus = "reviewed";

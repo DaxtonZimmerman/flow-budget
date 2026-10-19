@@ -79,7 +79,11 @@ async function syncBankConnection(connectionId) {
         if (bankDisconnectingIds.has(connectionId)) return { ...result, changed: false };
         const current = getFlowSnapshot().transactions;
         const rules = JSON.parse(localStorage.getItem('categoryRules') || '[]');
-        const merged = mergeBankSnapshot(current, connectionId, result.transactions, rules);
+        let merged = mergeBankSnapshot(current, connectionId, result.transactions, rules);
+        if (typeof reconcileTransferRecords === 'function' && typeof loadBankAccounts === 'function') {
+            const accounts = loadBankAccounts();
+            if (!merged.some(t => t.transferPair && !transferAccount(t, accounts))) merged = reconcileTransferRecords(merged, accounts);
+        }
         const changed = JSON.stringify(current) !== JSON.stringify(merged);
         if (changed) {
             localStorage.setItem('transactions', JSON.stringify(merged));

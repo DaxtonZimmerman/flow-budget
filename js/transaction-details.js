@@ -9,6 +9,7 @@
         <h2 id="transaction-details-title"></h2>
         <div class="transaction-details-amount" id="transaction-details-amount"></div>
         <p class="transaction-details-meta" id="transaction-details-meta"></p>
+        <div id="transaction-transfer-info" class="transaction-transfer-info" hidden></div>
         <form id="transaction-details-form">
             <div class="transaction-details-fields">
                 <div class="form-group"><label for="transaction-details-type">Type</label><select id="transaction-details-type"></select></div>
@@ -64,7 +65,7 @@
         active = { transaction: { ...transaction }, owner: localStorage.getItem('flow_user_id') };
         message.textContent = '';
         const source = dialog.querySelector('#transaction-details-category-source');
-        source.textContent = transaction.categoryReason === 'Bank category' ? 'Sorted from a reliable category supplied by your bank. You can change this payment without changing the others.' : transaction.categoryReason || '';
+        source.textContent = transaction.transferMatchIssue ? 'A transfer match was removed after bank details changed. Check this entry’s type and save your choice.' : transaction.categoryReason === 'Bank category' ? 'Sorted from a reliable category supplied by your bank. You can change this payment without changing the others.' : transaction.categoryReason || '';
         source.hidden = !source.textContent;
         dialog.querySelector('#transaction-details-title').textContent = transaction.name;
         dialog.querySelector('#transaction-details-amount').textContent = `${transaction.amount < 0 ? '−' : '+'}${formatMoney(transaction.amount)}`;
@@ -76,7 +77,27 @@
         type.replaceChildren();
         for (const value of choices) type.add(new Option(value, value));
         type.value = transaction.type || (transaction.amount < 0 ? 'Expense' : 'Income');
-        type.disabled = transaction.source !== 'bank';
+        type.disabled = transaction.source !== 'bank' || Boolean(transaction.transferPair);
+        const transferInfo = dialog.querySelector('#transaction-transfer-info');
+        transferInfo.replaceChildren(); transferInfo.hidden = true;
+        if (transaction.source === 'bank' && typeof FlowTransfers !== 'undefined') {
+            const accounts = loadBankAccounts(), peer = linkedTransferPeer(transaction, loadTransactions(), accounts);
+            const account = transferAccount(transaction, accounts);
+            if (account) {
+                transferInfo.hidden = false;
+                const label = document.createElement('p'); label.textContent = peer ? transferPairLabel(transaction, peer, accounts) : `Account: ${account.name}`;
+                transferInfo.append(label);
+                const action = document.createElement('button'); action.type = 'button'; action.className = 'inline-link';
+                action.textContent = peer ? 'View transfer match / undo' : transaction.status === 'pending' ? 'About transfer matching' : 'Find matching transfer';
+                action.addEventListener('click', () => {
+                    if (notes.value !== (transaction.notes || '') || type.value !== transaction.type || category.value !== (transaction.category || 'Other')) {
+                        message.textContent = 'Save or close your edits before opening transfer matching.'; return;
+                    }
+                    dialog.close(); FlowTransfers.open(transaction.id);
+                });
+                transferInfo.append(action);
+            }
+        }
         category.replaceChildren();
         const allCategories = [...new Set([...standardCategories, transaction.category].filter(Boolean))];
         for (const value of allCategories) category.add(new Option(value, value));

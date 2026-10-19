@@ -265,6 +265,10 @@ transactionForm.addEventListener("submit", function(event) {
         }
 
         const oldTransaction = transactions[transactionIndex];
+        if (oldTransaction.transferPair && type !== oldTransaction.type) {
+            showError("Open this entry in Activity and undo its transfer match before changing the type.");
+            return;
+        }
         const sameCategory = oldTransaction.category === category &&
             oldTransaction.name === name && oldTransaction.type === type;
 
@@ -274,6 +278,7 @@ transactionForm.addEventListener("submit", function(event) {
                 type: type,
                 typeOverride: type !== (oldTransaction.amount < 0 ? "Expense" : "Income"),
                 bankTypeRuleId: oldTransaction.type === type ? oldTransaction.bankTypeRuleId : undefined,
+                transferMatchIssue: undefined,
                 category: category,
                 notes: notes,
                 reviewStatus: "reviewed",

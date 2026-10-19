@@ -565,9 +565,9 @@ document.querySelector("#accept-review-defaults").addEventListener("click", func
 showReview();
 
 const firstRunKey = `flow_quick_review_seen_${localStorage.getItem("flow_user_id") || "device"}`;
-if ((new URLSearchParams(location.search).get("quick") === "1" && scopedReviewItems().some(needsTransactionReview)) ||
+if (location.hash !== '#transfer-review-card' && ((new URLSearchParams(location.search).get("quick") === "1" && scopedReviewItems().some(needsTransactionReview)) ||
     (scopedReviewItems().filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
-    sessionStorage.getItem(firstRunKey) !== "1")) {
+    sessionStorage.getItem(firstRunKey) !== "1"))) {
     sessionStorage.setItem(firstRunKey, "1");
     quickReviewDialog.showModal();
 }

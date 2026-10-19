@@ -51,9 +51,9 @@ Published on 19 October 2026 in `846e288`. The website deployment [passed](https
 - A calendar-day check and return-to-app check expose the prompt without automatically resetting the plan. The completed check-in date and monthly anchor survive cloud/device copies and backups. This is an in-app workflow, not a push or email reminder; no server deployment or paid product is needed.
 - 123 automated checks pass. Synthetic browser checks cover the three-step flow, cancel/Back, arithmetic, carried bills, stale data, concurrent changes, overdue bills, midnight, and desktop/phone layouts. Existing setup, category controls, grouped review, individual editing, and six-screen layout checks also pass. No personal plan or bank records were changed for testing.
 
-## Automatic bank sync increment: approved for publication
+## Automatic bank sync increment: published
 
-Prepared and approved by the owner for publication on 19 October 2026. This increment appears on the live site after a successful website deployment.
+Published on 19 October 2026 in `d6c746a`. The website deployment [passed](https://github.com/DaxtonZimmerman/flow-budget/actions/runs/39323174239), and all 11 changed website files matched the tested release.
 
 - All app screens, including Review and Import, check for available server updates roughly once per minute while visible, and on return/focus or connectivity recovery. Existing signed bank webhooks continue to ingest available changes while the app is closed. Normal incremental transaction sync remains a 15-minute fallback when no newer server snapshot exists; the explicit Check now action reads available updates sooner. No forced bank refresh product or new paid endpoint is called.
 - Home, Activity, category totals, and Plan refresh in place. Filters remain selected. Open dialogs, setup, entry forms, and unsaved review choices defer view rebuilding; incoming records remain saved. Stale review saves ask for another check instead of overwriting newly imported payments. Pending activity is labeled in Activity; a posted record replaces its pending counterpart using the existing identity logic.
@@ -63,15 +63,28 @@ Prepared and approved by the owner for publication on 19 October 2026. This incr
 
 This is a frontend update. It needs no server deployment, new bank connection, secret, database migration, or paid product. It cannot make an institution report a transfer sooner. Plaid describes notification-based retrieval in its [webhook guide](https://plaid.com/docs/transactions/webhooks/) and pending/posted replacements in its [transaction-state guide](https://plaid.com/docs/transactions/transactions-data/).
 
+## Transfer matching increment: approved for publication
+
+Prepared and approved by the owner for publication on 19 October 2026. This increment appears on the live site after a successful website deployment.
+
+- Flow automatically links a unique same-day pair only when both bank entries are already confirmed as Transfer (including existing scoped remembered rules). It never infers account ownership from equal amounts, a bank category, or the word “transfer” alone. New possible pairs ask for explicit confirmation.
+- Both sides must be posted, equal and opposite to the cent, and belong to different connected USD cash accounts at the same bank. Confirmation supports posting dates up to three calendar days apart; ambiguity remains visible. Pending entries, unsupported currencies, credit-card accounts, unconnected accounts, duplicate bank identities, and cross-bank pairing are excluded. Explicit non-transfer corrections and mixed-purpose payment apps are not suggested automatically.
+- Activity and Home show a clear source-to-destination route; the two original signed bank records remain intact. Review lists each linked movement once, offers possible matches, and provides an account-based path from quick review. Individual transaction details can open a matching sheet with the original bank descriptions available on demand.
+- Linking sets the two types to Transfer without editing bank amounts, dates, identities, balances, categories, or notes. Undo restores earlier type choices only where the operation still owns those fields, preserves newer notes/categories, and prevents immediate automatic relinking. Existing remembered rules remain separate. A deliberately dismissed match can be reconsidered from an individual entry.
+- Matching metadata travels with transactions through existing cloud/device snapshots and backups. Ordinary bank updates retain it. Changed or removed bank entries invalidate their match and flag unchanged classifications for a check; newer explicit personal corrections retain priority. Temporarily unavailable account metadata retains the dated match for recovery. Owner and transaction/account snapshot checks reject stale confirmation or undo actions. Unsaved individual edits must be saved or closed before opening the transfer sheet.
+- 148 automated checks pass. Browser checks with synthetic data cover automatic pairing, confirmation, persistent undo, dismissal, note preservation, stale choices after background activity, account switching, bank amount corrections, account labels, and desktop/phone/tablet layouts. Narrow 318/388-pixel content viewports and a 766-pixel tablet viewport have no horizontal overflow. No personal records were modified for testing.
+
+This frontend increment requires no new bank connection, paid service, database migration, or server deployment. It organizes activity already supplied by the bank; it does not make a missing transfer arrive sooner. The owner's actual missing transfer has not been verified as received by Plaid. Cross-bank and credit-card payment pairing remain future work.
+
 ## Product decision
 
 The first version should answer **“What can I spend until payday?”** This priority was selected by the owner. Flow should import and organize routine activity, explain the answer, and ask short questions when the bank data cannot establish a payment's purpose.
 
 Initial scope: one person, US dollars, the existing private bank pilot, selected spending accounts, and the existing free recovery approach. Keep the current Flow visual identity and working bank connection. New paid services require a separate decision. Broader public signup remains a separate release.
 
-## Current foundation
+## Foundation when this plan was written
 
-Verified against the current repository, rather than inferred from screenshots:
+This section records the starting point on 18 October 2026. The implementation sections above describe the features added since then:
 
 - Bank transaction import, update handling, reconnect/disconnect, and cloud/device sync exist.
 - Categories, monthly limits, exact-name rules, scoped transfer rules, grouped review, individual transaction editing, notes, CSV import, and backups exist.

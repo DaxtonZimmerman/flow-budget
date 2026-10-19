@@ -207,3 +207,35 @@ input[type="checkbox"] {width:18px;height:18px;accent-color:#23644c;flex-shrink:
 .bank-sync-banner details p {font-size:12px;line-height:1.7;color:var(--text-light);margin:10px 0 0;}
 .bank-sync-banner[data-phase=error],.bank-sync-banner[data-phase=reconnect],.bank-sync-banner[data-phase=offline] {background:#fbf3e5;border-color:#eadebc;}
 @media(max-width:768px){.bank-sync-banner{margin-top:-8px;padding:10px 12px;}.bank-sync-line button{min-height:44px;}}
+/* Transfers keep both original entries and show one clear route between accounts. */
+.transfer-dialog { width: min(620px, calc(100% - 24px)); max-height: calc(100dvh - 32px); border: 1px solid var(--border, #dfe5db); border-radius: 24px; padding: 28px; color: #193f35; background: #fffefa; overflow: auto; }
+.transfer-dialog::backdrop { background: rgb(20 49 42 / .48); backdrop-filter: blur(4px); }
+.transfer-dialog .dialog-heading { align-items: flex-start; gap: 16px; }
+.transfer-dialog h2 { font-size: 27px; line-height: 1.2; margin: 7px 0 22px; }
+.transfer-route { font-weight: 700; font-size: 18px; line-height: 1.5; overflow-wrap: anywhere; }
+.transfer-entries { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.transfer-entry { display: flex; flex-direction: column; gap: 7px; background: #f2f5ed; padding: 16px; border-radius: 14px; margin: 14px 0; overflow-wrap: anywhere; min-width: 0; }
+.transfer-entry small { color: #64766d; line-height: 1.5; }
+.transfer-entry summary { font-size: 12px; color: #64766d; cursor: pointer; }
+.transfer-entry details small { display: block; margin-top: 8px; }
+.transfer-dialog .field { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.transfer-dialog select { width: 100%; min-width: 0; min-height: 48px; }
+.transfer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.transfer-review-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 0; border-top: 1px solid #e2e7dc; }
+.transfer-review-row > div { display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere; min-width: 0; }
+.transfer-review-row small { color: #64766d; }
+.transfer-review-row button { flex-shrink: 0; }
+.transfer-matched-list { margin-top: 18px; }
+.transfer-matched-list summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.transfer-activity-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; background: #edf3e7; border-radius: 13px; margin: 0 0 22px; color: #315145; }
+.activity-account-name { display: block; color: #6b7c73; font-size: 12px; font-weight: 400; margin-top: 5px; }
+.transfer-match-link { display: block; background: none; border: 0; padding: 6px 0; color: #27674e; font: inherit; font-size: 12px; text-align: left; text-decoration: underline; cursor: pointer; }
+.transaction-transfer-info { background: #f2f5ed; border-radius: 14px; padding: 14px 16px; margin: 16px 0; overflow-wrap: anywhere; }
+.transaction-transfer-info p { margin: 0 0 8px; font-weight: 600; }
+@media (max-width: 540px) {
+    .transfer-dialog { padding: 20px; border-radius: 19px; }
+    .transfer-entries { grid-template-columns: 1fr; gap: 0; }
+    .transfer-review-row { align-items: flex-start; flex-direction: column; gap: 12px; }
+    .transfer-actions { flex-direction: column; }
+    .transfer-actions button { width: 100%; }
+}
