@@ -27,9 +27,9 @@ Deliberate limits of this release:
 - Progress saves on each setup step, Back, and Save & close. Partially entered essential reserves are retained when leaving a step; unsaved typing warns before navigation.
 - Automatic cached account balances and newly retained bank categories are included in the deployed functions. Missing or unavailable balances still support an explicitly confirmed manual amount. No database migration or secret change was needed. A signed-in user’s first real account refresh remains a private-pilot validation step; the release checks did not retrieve or change the owner’s financial records.
 
-## Recurring-bill increment: approved for publication
+## Recurring-bill increment: published
 
-Prepared and approved by the owner for publication on 19 October 2026. This increment requires a successful website deployment before it appears on the live site; the release record above describes the preceding version.
+Published on 19 October 2026 in `75c9035`; the website deployment [passed](https://github.com/DaxtonZimmerman/flow-budget/actions/runs/39309544970), and all 12 changed website files matched the release bytes on the public site.
 
 - Plan and setup suggest recurring bills from repeated posted payments on the same USD cash account, with payment dates as evidence. Routine shopping and mixed-purpose payment services are excluded. Confirm, edit, dismiss, or restore a suggestion; nothing is reserved until confirmed.
 - Confirmed bills can use an exact merchant/account source to recognize later payments. Weekly, fortnightly, monthly, quarterly, annual, and one-time schedules are supported, including month-end and leap-day anchors. A just-due suggested bill is not silently advanced to another cycle.
@@ -39,6 +39,17 @@ Prepared and approved by the owner for publication on 19 October 2026. This incr
 - 115 automated checks pass. Synthetic browser checks cover discovery through payment confirmation, corrections, price changes, stale edits, the full existing setup/review flow, and desktop/phone layouts. No personal bank records were used for testing. A real pay-cycle comparison remains a private-pilot validation step.
 
 Remaining limits: exact-name matching will need a check when a bank changes a merchant description; variable bills require an amount check; automatic recognition is limited to USD cash accounts. Credit-card bill discovery, transfer pairing, and push/email notifications are not part of this increment. Legacy monthly tracking notes remain separate from confirmed payday bills.
+
+## Payday check-in increment: approved for publication
+
+Prepared and approved by the owner for publication on 19 October 2026. This increment appears on the live site after a successful website deployment.
+
+- When a completed plan reaches its end date, Home and Plan offer a three-step check-in: confirm the next payday, check available money, and review fresh essential set-asides and the cushion. A schedule suggests a future date, including anchored month ends. Irregular income requires a chosen planning date.
+- The check-in never assumes a paycheck arrived or adds expected income. Bank balances retain their cache dates and freshness checks; a person can explicitly enter today's available amount instead. Stale entered balances are not prefilled as current money.
+- Bills, matched payments, preferences, dismissed suggestions, and account selection carry forward. Unpaid older bills remain due and need attention. Usual essential amounts are offered for confirmation; they restart from today only when the new plan is saved. A shortfall remains visible.
+- All three steps save together through the existing owner/conflict checks. Canceling leaves the saved plan intact; Back retains entered values. Changed balances, activity, another saved plan, another account, or a new calendar day require another check before saving. A completed check-in cannot run again while its new plan is active.
+- A calendar-day check and return-to-app check expose the prompt without automatically resetting the plan. The completed check-in date and monthly anchor survive cloud/device copies and backups. This is an in-app workflow, not a push or email reminder; no server deployment or paid product is needed.
+- 123 automated checks pass. Synthetic browser checks cover the three-step flow, cancel/Back, arithmetic, carried bills, stale data, concurrent changes, overdue bills, midnight, and desktop/phone layouts. Existing setup, category controls, grouped review, individual editing, and six-screen layout checks also pass. No personal plan or bank records were changed for testing.
 
 ## Product decision
 

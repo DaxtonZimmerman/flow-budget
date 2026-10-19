@@ -74,3 +74,12 @@ test('bill confirmations, dismissals, revised amounts and matching history survi
  m.evaluate('replaceFlowSnapshot',{transactions:[],flowPlanning:p,bankAccounts:[]});const snapshot=m.evaluate('getFlowSnapshot');assert.equal(JSON.stringify(snapshot.flowPlanning),JSON.stringify(p));assert.equal(m.evaluate('validBackup',{version:1,...snapshot}),true);
  const malformed={...p,billPaymentDecisions:[{...p.billPaymentDecisions[0],billId:'other-bill'}]};assert.equal(m.evaluate('validFlowPlanning',malformed),false);
 });
+
+
+test('completed payday check-ins and monthly anchors survive cloud and backup round trips',()=>{
+ const m=model(),p=plan(m);p.payday={nextDate:'2026-10-20',frequency:'monthly',anchorDay:31};
+ const next=m.evaluate('preparePaydayCheckIn',p,{nextDate:'2026-11-20',frequency:'monthly',balanceMode:'manual',balanceCents:200000,essentialAmounts:[10000],cushionCents:20000},'2026-10-20');
+ m.evaluate('replaceFlowSnapshot',{transactions:[],flowPlanning:next,bankAccounts:[]});const snapshot=m.evaluate('getFlowSnapshot');
+ assert.equal(JSON.stringify(snapshot.flowPlanning),JSON.stringify(next));assert.equal(m.evaluate('validBackup',{version:1,...snapshot}),true);
+ assert.equal(snapshot.flowPlanning.lastPaydayCheckIn.date,'2026-10-20');
+});

@@ -15,7 +15,7 @@
     const amountField = (label, name, cents = null, extra = '') => field(label, name, cents == null ? '' : (cents / 100).toFixed(2), 'number', `step="0.01" min="0" required ${extra}`);
     const selectFrequency = (name, value, bill = false) => `<label class="field">${bill ? 'Repeats' : 'How often?'}<select name="${name}">${Object.entries(frequencyNames).filter(([key]) => bill ? !['irregular', 'semimonthly'].includes(key) : !['once', 'quarterly', 'yearly'].includes(key)).map(([key, label]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`;
     const header = (eyebrow, title, action = '') => `<div class="section-top"><div><p class="small-label">${eyebrow}</p><h3>${title}</h3></div>${action}</div>`;
-    let p, accounts, transactions, pageBase, owner = localStorage.getItem('flow_user_id'), modalBase, setupDirty = false;
+    let p, accounts, transactions, pageBase, owner = localStorage.getItem('flow_user_id'), modalBase, setupDirty = false, checkIn = null, renderedDay = flowToday();
     const dialog = document.createElement('dialog');
     dialog.id = 'payday-dialog'; dialog.className = 'transaction-details-dialog'; dialog.setAttribute('aria-labelledby', 'payday-dialog-title');
     document.body.appendChild(dialog);
@@ -76,21 +76,26 @@
     }
     function recoveryAction(e, cls = 'save-button') {
         if (!p.setup.completed) return `<a class="${cls}" href="setup.html">Start the short setup ${icon('arrow-right')}</a>`;
+        if (paydayCheckInDue(p)) return button('Start payday check-in', 'payday-checkin', cls);
         if (e.missing.some(item => /balance|spending account/i.test(item))) return button('Confirm available balance', 'balance', cls);
         if (e.missing.some(item => /payday/i.test(item))) return button('Confirm next payday', 'payday', cls);
         if (e.missing.some(item => /bills/i.test(item))) return '<a class="' + cls + '" href="budgets.html#bill-tracking">Check upcoming bills</a>';
         return '<a class="' + cls + '" href="setup.html?step=4">Check money to keep aside</a>';
     }
+    function paydayCheckInCard() {
+        if (!paydayCheckInDue(p)) return '';
+        return `<section class="card payday-checkin-card">${header('A fresh plan', p.payday.nextDate === flowToday() ? 'It’s your planning day.' : 'Ready for your next plan?', icon('sunrise'))}<p>Your previous plan ended ${date(p.payday.nextDate)}. Confirm your next payday, today’s available money, and your set-asides. Your bills come with you.</p>${button('Start payday check-in', 'payday-checkin')}<small>No pay is assumed to have arrived. Nothing changes until you finish.</small></section>`;
+    }
     function renderHome() {
         if (!home) return;
         const e = estimate(); const reviewCount = transactions.filter(needsCurrentTransactionReview).length; const bills = billState();
         const recent = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
-        home.innerHTML = `<div class="page-header"><div><p class="small-label">Your money, in focus</p><h2>A little clarity for your day<span class="heading-dot">.</span></h2><p>${e.ready ? `Your plan through ${date(p.payday.nextDate)}.` : 'A few small decisions, more room to breathe.'}</p></div></div><section class="payday-grid"><article class="spending-overview payday-hero"><div><div class="hero-top"><span class="hero-eyebrow"><span class="live-dot"></span>${e.ready ? (e.leftCents < 0 ? 'Estimated shortfall until payday' : 'Estimated left until payday') : 'Your payday plan'}</span><span class="hero-period">${e.ready ? e.days + ' days to go' : ''}</span></div><h3>${e.ready ? money(e.leftCents) : p.setup.completed ? 'A quick check' : 'Let’s make a plan'}</h3><p class="hero-caption">${e.ready ? 'After your upcoming bills, essentials, and cushion.' : esc(e.missing[0]) + ' to see what’s left until payday.'}</p>${e.ready ? button('See how this is calculated ' + icon('arrow-up-right'), 'breakdown', 'hero-link') : recoveryAction(e, 'hero-link')}</div><div class="hero-metrics"><div><span>${icon('calendar-days')} Next payday</span><strong>${date(p.payday.nextDate)}</strong></div><div><span>${e.ready ? (e.leftCents < 0 ? 'Review your plan' : 'About this much per day') : 'Your progress'}</span><strong>${e.ready ? (e.leftCents < 0 ? 'Adjust set-asides' : money(Math.floor(e.leftCents / e.days))) : `Step ${p.setup.step + 1} of 6`}</strong></div></div></article><article class="card">${header('Coming up', 'Before payday', '<a href="budgets.html">Manage</a>')}${p.preferences.billReminders ? timeline() : '<p class="detail-help">Upcoming bill reminders are hidden. You can still see and edit every bill in Plan.</p>'}<p class="detail-help">Confirmed unpaid bills are set aside in your estimate.</p></article></section><section class="card attention-card">${header('Your next step', reviewCount || !e.ready || bills.alerts.length || bills.suggestions.length ? 'Just a little attention' : 'You’re up to date', '<span class="subtle-icon">' + icon('sparkles') + '</span>')}<div class="attention-list">${bills.alerts.length ? `<a class="attention-item row-between" href="budgets.html#bill-tracking"><span><strong>${bills.alerts.length} bill ${bills.alerts.length === 1 ? 'needs' : 'need'} a check</strong><small>Check payments, changed amounts, or dates that have passed.</small></span><span>↗</span></a>` : bills.suggestions.length ? `<a class="attention-item row-between" href="budgets.html#bill-discovery"><span><strong>${bills.suggestions.length} possible ${bills.suggestions.length === 1 ? 'bill' : 'bills'} to confirm</strong><small>A quick check now can save work next time.</small></span><span>↗</span></a>` : ''}${reviewCount ? `<a class="attention-item row-between" href="review.html?quick=1"><span><strong>${reviewCount} ${reviewCount === 1 ? 'payment needs' : 'payments need'} a decision</strong><small>Choose categories for the few payments that vary.</small></span><span>↗</span></a>` : ''}${!e.ready ? `<a class="attention-item row-between" href="setup.html"><span><strong>${p.setup.completed ? 'Refresh your plan' : 'Take the short setup guide'}</strong><small>${esc(e.missing.slice(0, 2).join(' · '))}</small></span><span>↗</span></a>` : !reviewCount && !bills.alerts.length && !bills.suggestions.length ? '<p class="detail-help">Your new activity is sorted. Your categories stay editable in Activity.</p>' : ''}</div></section><section class="bottom-grid"><article class="card recent-card">${header('Latest activity', 'Recent transactions', '<a href="transactions.html">See all</a>')}<div class="transaction-list">${recent.map(recentRow).join('') || '<p class="detail-help">Connect a bank or add your first transaction to get started.</p><a class="back-button" href="account.html">Open Account</a>'}</div></article><article class="card">${header('This month', 'Where it went')}${categoryBars()}</article></section>`;
+        home.innerHTML = `<div class="page-header"><div><p class="small-label">Your money, in focus</p><h2>A little clarity for your day<span class="heading-dot">.</span></h2><p>${e.ready ? `Your plan through ${date(p.payday.nextDate)}.` : 'A few small decisions, more room to breathe.'}</p></div></div>${paydayCheckInCard()}<section class="payday-grid"><article class="spending-overview payday-hero"><div><div class="hero-top"><span class="hero-eyebrow"><span class="live-dot"></span>${e.ready ? (e.leftCents < 0 ? 'Estimated shortfall until payday' : 'Estimated left until payday') : 'Your payday plan'}</span><span class="hero-period">${e.ready ? e.days + ' days to go' : ''}</span></div><h3>${e.ready ? money(e.leftCents) : p.setup.completed ? 'A quick check' : 'Let’s make a plan'}</h3><p class="hero-caption">${e.ready ? 'After your upcoming bills, essentials, and cushion.' : esc(e.missing[0]) + ' to see what’s left until payday.'}</p>${e.ready ? button('See how this is calculated ' + icon('arrow-up-right'), 'breakdown', 'hero-link') : recoveryAction(e, 'hero-link')}</div><div class="hero-metrics"><div><span>${icon('calendar-days')} Next payday</span><strong>${date(p.payday.nextDate)}</strong></div><div><span>${e.ready ? (e.leftCents < 0 ? 'Review your plan' : 'About this much per day') : p.setup.completed ? 'Plan status' : 'Your progress'}</span><strong>${e.ready ? (e.leftCents < 0 ? 'Adjust set-asides' : money(Math.floor(e.leftCents / e.days))) : p.setup.completed ? (paydayCheckInDue(p) ? 'Check-in due' : 'Needs a check') : `Step ${p.setup.step + 1} of 6`}</strong></div></div></article><article class="card">${header('Coming up', 'Before payday', '<a href="budgets.html">Manage</a>')}${p.preferences.billReminders ? timeline() : '<p class="detail-help">Upcoming bill reminders are hidden. You can still see and edit every bill in Plan.</p>'}<p class="detail-help">Confirmed unpaid bills are set aside in your estimate.</p></article></section><section class="card attention-card">${header('Your next step', reviewCount || !e.ready || bills.alerts.length || bills.suggestions.length ? 'Just a little attention' : 'You’re up to date', '<span class="subtle-icon">' + icon('sparkles') + '</span>')}<div class="attention-list">${bills.alerts.length ? `<a class="attention-item row-between" href="budgets.html#bill-tracking"><span><strong>${bills.alerts.length} bill ${bills.alerts.length === 1 ? 'needs' : 'need'} a check</strong><small>Check payments, changed amounts, or dates that have passed.</small></span><span>↗</span></a>` : bills.suggestions.length ? `<a class="attention-item row-between" href="budgets.html#bill-discovery"><span><strong>${bills.suggestions.length} possible ${bills.suggestions.length === 1 ? 'bill' : 'bills'} to confirm</strong><small>A quick check now can save work next time.</small></span><span>↗</span></a>` : ''}${reviewCount ? `<a class="attention-item row-between" href="review.html?quick=1"><span><strong>${reviewCount} ${reviewCount === 1 ? 'payment needs' : 'payments need'} a decision</strong><small>Choose categories for the few payments that vary.</small></span><span>↗</span></a>` : ''}${!e.ready ? `<a class="attention-item row-between" href="setup.html"><span><strong>${p.setup.completed ? 'Refresh your plan' : 'Take the short setup guide'}</strong><small>${esc(e.missing.slice(0, 2).join(' · '))}</small></span><span>↗</span></a>` : !reviewCount && !bills.alerts.length && !bills.suggestions.length ? '<p class="detail-help">Your new activity is sorted. Your categories stay editable in Activity.</p>' : ''}</div></section><section class="bottom-grid"><article class="card recent-card">${header('Latest activity', 'Recent transactions', '<a href="transactions.html">See all</a>')}<div class="transaction-list">${recent.map(recentRow).join('') || '<p class="detail-help">Connect a bank or add your first transaction to get started.</p><a class="back-button" href="account.html">Open Account</a>'}</div></article><article class="card">${header('This month', 'Where it went')}${categoryBars()}</article></section>`;
     }
     function renderPlan() {
         if (!plan) return;
         const e = estimate();
-        plan.innerHTML = `<section class="plan-summary"><div><p class="small-label">Your plan ${validPlanDate(p.payday.nextDate) ? 'through ' + date(p.payday.nextDate) : ''}</p><h3>${e.ready ? money(e.leftCents) + (e.leftCents < 0 ? ' estimated shortfall' : ' estimated left') : 'A little setup, more clarity'}</h3><p>${e.ready ? 'Your bills and set-asides are accounted for.' : esc(e.missing.slice(0, 2).join(' · '))}</p></div>${e.ready ? button('See breakdown', 'breakdown', 'back-button') : recoveryAction(e)}</section><section class="plan-columns"><div><article class="card">${header('Your next income', 'Payday', button('Edit', 'payday', 'inline-link'))}<div class="row-between"><div><strong class="setting-title">${validPlanDate(p.payday.nextDate) ? new Date(p.payday.nextDate + 'T12:00:00').toLocaleDateString('en-US', { dateStyle: 'long' }) : 'Confirm your next payday'}</strong><p>${frequencyNames[p.payday.frequency]}</p></div><span class="subtle-icon">${icon('calendar-days')}</span></div><p class="detail-help">Future pay isn’t included in what you can spend before it arrives.</p></article><article class="card">${header('Coming up', 'Bills before payday', button('Add bill', 'bill', 'inline-link'))}${timeline(true)}<p class="detail-help">Already paid? Open the bill to confirm it’s reflected in your balance and move to its next date.</p></article>${billManagementCards()}</div><div><article class="card">${header('Keep aside', 'Everyday essentials', button('Edit', 'essentials', 'inline-link'))}<div class="plain-list">${e.reserves.map(r => `<div class="row-between"><span class="setting-title">${esc(r.name)}</span><div><strong>${money(r.remainingCents)}</strong><small class="setting-note">${money(r.amountCents)} set aside</small></div></div>`).join('') || '<p class="detail-help">Choose what to keep aside in setup. Category limits are optional.</p>'}</div></article><article class="card">${header('A little breathing room', 'Your cushion', button('Edit', 'essentials', 'inline-link'))}<strong class="cushion-value">${money(p.cushionCents)}</strong><p class="detail-help">Money you’ve chosen to keep out of everyday spending.</p></article><article class="card">${header('Your money', 'Spending accounts', button('Manage', 'accounts', 'inline-link'))}<p class="detail-help">${p.manualBalance ? `Available balance confirmed by you on ${date(p.manualBalance.date)}.` : accounts.filter(a => p.selectedAccountIds.includes(a.id)).map(a => esc(a.name)).join(', ') || 'Choose accounts or enter your available balance.'}</p>${button('Update available balance', 'balance', 'back-button')}</article></div></section>`;
+        plan.innerHTML = `${paydayCheckInCard()}<section class="plan-summary"><div><p class="small-label">Your plan ${validPlanDate(p.payday.nextDate) ? 'through ' + date(p.payday.nextDate) : ''}</p><h3>${e.ready ? money(e.leftCents) + (e.leftCents < 0 ? ' estimated shortfall' : ' estimated left') : 'A little setup, more clarity'}</h3><p>${e.ready ? 'Your bills and set-asides are accounted for.' : esc(e.missing.slice(0, 2).join(' · '))}</p></div>${e.ready ? button('See breakdown', 'breakdown', 'back-button') : recoveryAction(e)}</section><section class="plan-columns"><div><article class="card">${header('Your next income', 'Payday', button('Edit', 'payday', 'inline-link'))}<div class="row-between"><div><strong class="setting-title">${validPlanDate(p.payday.nextDate) ? new Date(p.payday.nextDate + 'T12:00:00').toLocaleDateString('en-US', { dateStyle: 'long' }) : 'Confirm your next payday'}</strong><p>${frequencyNames[p.payday.frequency]}</p></div><span class="subtle-icon">${icon('calendar-days')}</span></div><p class="detail-help">Future pay isn’t included in what you can spend before it arrives.</p></article><article class="card">${header('Coming up', 'Bills before payday', button('Add bill', 'bill', 'inline-link'))}${timeline(true)}<p class="detail-help">Already paid? Open the bill to confirm it’s reflected in your balance and move to its next date.</p></article>${billManagementCards()}</div><div><article class="card">${header('Keep aside', 'Everyday essentials', button('Edit', 'essentials', 'inline-link'))}<div class="plain-list">${e.reserves.map(r => `<div class="row-between"><span class="setting-title">${esc(r.name)}</span><div><strong>${money(r.remainingCents)}</strong><small class="setting-note">${money(r.amountCents)} set aside</small></div></div>`).join('') || '<p class="detail-help">Choose what to keep aside in setup. Category limits are optional.</p>'}</div></article><article class="card">${header('A little breathing room', 'Your cushion', button('Edit', 'essentials', 'inline-link'))}<strong class="cushion-value">${money(p.cushionCents)}</strong><p class="detail-help">Money you’ve chosen to keep out of everyday spending.</p></article><article class="card">${header('Your money', 'Spending accounts', button('Manage', 'accounts', 'inline-link'))}<p class="detail-help">${p.manualBalance ? `Available balance confirmed by you on ${date(p.manualBalance.date)}.` : accounts.filter(a => p.selectedAccountIds.includes(a.id)).map(a => esc(a.name)).join(', ') || 'Choose accounts or enter your available balance.'}</p>${button('Update available balance', 'balance', 'back-button')}</article></div></section>`;
     }
     function supported(a) { return a.type === 'depository' && a.currency === 'USD' && a.availableCents !== null; }
     function accountsMarkup() {
@@ -204,7 +209,7 @@
             }
             if (step === 2 && values.get('payday')) {
                 if (!validPlanDate(String(values.get('payday'))) || String(values.get('payday')) <= flowToday()) throw new Error('Choose a future payday or planning date.');
-                next.payday = { nextDate: String(values.get('payday')), frequency: String(values.get('frequency')) };
+                next.payday = { nextDate: String(values.get('payday')), frequency: String(values.get('frequency')), anchorDay: Number(String(values.get('payday')).slice(-2)) };
             }
             if (step === 3 && direction === 'next') next.billsConfirmed = true;
             if (step === 4) {
@@ -253,6 +258,103 @@
             if (suggested) next.dismissedBillSuggestions = (next.dismissedBillSuggestions || []).filter(d => d.key !== suggested.key);
         }, b ? 'Save changes' : 'Add to my bills');
     }
+    function checkInAccountStamp() {
+        const rows = loadBankAccounts();
+        return JSON.stringify(p.selectedAccountIds.map(id => rows.find(a => a.id === id) || null));
+    }
+    function checkInChoices() {
+        return { nextDate: checkIn.nextDate, frequency: checkIn.frequency, balanceMode: checkIn.balanceMode,
+            balanceCents: checkIn.balanceMode === 'manual' ? readCents(checkIn.balance, true) : null,
+            essentialAmounts: checkIn.amounts.map(value => readCents(value)), cushionCents: readCents(checkIn.cushion) };
+    }
+    function checkInEstimate() {
+        const next = preparePaydayCheckIn(p, checkInChoices());
+        return paydayEstimate(next, loadBankAccounts(), loadTransactions());
+    }
+    function startPaydayCheckIn() {
+        load();
+        if (!paydayCheckInDue(p)) throw new Error('Your current plan is still running. You can edit its date and amounts in Plan.');
+        checkIn = { step: 0, base: pageBase, startedOn: flowToday(), nextDate: suggestNextPayday(p), frequency: p.payday.frequency,
+            balanceMode: p.manualBalance || !p.selectedAccountIds.length ? 'manual' : 'bank',
+            balance: p.manualBalance?.date === flowToday() ? (p.manualBalance.cents / 100).toFixed(2) : '',
+            amounts: p.essentials.map(e => (e.amountCents / 100).toFixed(2)), cushion: (p.cushionCents / 100).toFixed(2), accountStamp: '' };
+        renderPaydayCheckIn();
+    }
+    function renderPaydayCheckIn() {
+        const step = checkIn.step;
+        let body;
+        if (step === 0) body = `<p class="detail-help">Your previous plan ended ${date(p.payday.nextDate)}. This date is suggested from your schedule; confirm when you actually expect your next pay. It does not add expected pay to your balance.</p><div class="stack">${field('Next payday or planning end date', 'nextDate', checkIn.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', checkIn.frequency)}</div><p class="detail-help">No regular payday? Choose a date to plan through. Twice-monthly suggestions use the 15th and month end.</p>`;
+        if (step === 1) {
+            const chosen = loadBankAccounts().filter(a => p.selectedAccountIds.includes(a.id));
+            const cached = chosen.length ? `<div class="checkin-account-list">${chosen.map(a => `<div><strong>${esc(a.name)}</strong><span>${supported(a) ? money(a.availableCents) : 'Available balance needed'}</span><small>Retrieved ${esc(new Date(a.retrievedAt).toLocaleString())}${a.bankUpdatedAt ? ' · Bank data ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : ' · Bank date unavailable'}</small></div>`).join('')}</div>` : '<p class="detail-help">No selected cash account is available. Enter the available money you can use today.</p>';
+            body = `<p class="detail-help">Check your available money today. Your paycheck might arrive later than its scheduled date.</p>${cached}${button('Check connected accounts', 'checkin-refresh', 'inline-link')}<div class="stack" style="margin-top:20px"><label class="field">Use for this plan<select name="balanceMode"><option value="bank" ${checkIn.balanceMode === 'bank' ? 'selected' : ''} ${!p.selectedAccountIds.length ? 'disabled' : ''}>Selected cached bank balances</option><option value="manual" ${checkIn.balanceMode === 'manual' ? 'selected' : ''}>Available amount I confirm today</option></select></label><div id="checkin-manual" ${checkIn.balanceMode === 'manual' ? '' : 'hidden'}>${field('Available spending money today', 'checkinBalance', checkIn.balance, 'number', `step="0.01" ${checkIn.balanceMode === 'manual' ? 'required' : 'disabled'}`)}</div><label class="toggle-label"><input type="checkbox" name="moneyChecked" required>I checked this matches the available money I can use today.</label></div><p class="detail-help">Bank amounts are cached. Enter an available amount if they are out of date. Entered balances need a new confirmation on another day.</p>`;
+        }
+        if (step === 2) body = `<p class="detail-help">Start fresh set-asides from today until ${date(checkIn.nextDate)}. These are your usual amounts; adjust them for this period.</p><div class="stack">${p.essentials.map((e, i) => field(esc(e.name), 'checkinEssential-' + i, checkIn.amounts[i], 'number', 'step="0.01" min="0" required')).join('')}${field('Cushion to leave untouched', 'checkinCushion', checkIn.cushion, 'number', 'step="0.01" min="0" required')}</div><div id="checkin-preview" class="checkin-preview"></div><label class="toggle-label"><input type="checkbox" name="planChecked" required>I checked my bills and set-asides for this plan.</label><p class="detail-help">Bill schedules and payment matches carry forward. Unpaid bills stay reserved, including any date that has passed.</p>${button('Review bills in Plan first', 'checkin-bills', 'inline-link')}`;
+        showModal('A quick payday check-in', `<p class="small-label">${['Next payday', 'Available money', 'Your new plan'][step]} · ${step + 1} of 3</p><div class="setup-progress" aria-label="Step ${step + 1} of 3">${[0, 1, 2].map(i => `<span class="${i <= step ? 'active' : ''}"></span>`).join('')}</div><form id="payday-checkin-form">${body}<p class="form-message" role="alert"></p><div class="setup-footer">${step ? button('Back', 'checkin-back', 'back-button') : '<span class="optional">Nothing changes until you finish.</span>'}<button type="submit" class="save-button">${step === 2 ? 'Start new plan' : 'Continue'}</button></div></form>`);
+        const form = dialog.querySelector('#payday-checkin-form');
+        dialog.scrollTop = 0;
+        const title = dialog.querySelector('#payday-dialog-title');
+        title.setAttribute('tabindex', '-1'); title.focus({ preventScroll: true });
+        form.addEventListener('submit', event => { event.preventDefault(); advancePaydayCheckIn(); });
+        if (step === 1) form.querySelector('[name=balanceMode]').addEventListener('change', event => {
+            checkIn.balanceMode = event.target.value;
+            const manual = checkIn.balanceMode === 'manual', input = form.querySelector('[name=checkinBalance]');
+            form.querySelector('#checkin-manual').hidden = !manual; input.disabled = !manual; input.required = manual;
+            form.querySelector('[name=moneyChecked]').checked = false;
+        });
+        if (step === 2) {
+            form.addEventListener('input', event => {
+                if (event.target.name === 'planChecked') return;
+                form.querySelector('[name=planChecked]').checked = false;
+                updateCheckInPreview();
+            });
+            updateCheckInPreview();
+        }
+    }
+    function rememberCheckInFields() {
+        const values = new FormData(dialog.querySelector('#payday-checkin-form'));
+        if (checkIn.step === 0) { checkIn.nextDate = String(values.get('nextDate') || ''); checkIn.frequency = String(values.get('frequency') || ''); }
+        if (checkIn.step === 1) { checkIn.balanceMode = String(values.get('balanceMode')); const input = dialog.querySelector('[name=checkinBalance]'); checkIn.balance = input.value; }
+        if (checkIn.step === 2) { checkIn.amounts = p.essentials.map((_, i) => String(values.get('checkinEssential-' + i))); checkIn.cushion = String(values.get('checkinCushion')); }
+        return values;
+    }
+    function updateCheckInPreview() {
+        try {
+            rememberCheckInFields();
+            const e = checkInEstimate();
+            checkIn.previewStamp = JSON.stringify([localStorage.getItem('bankAccounts'), localStorage.getItem('transactions')]);
+            dialog.querySelector('#checkin-preview').innerHTML = `<div class="breakdown"><div><span>Available money</span><strong>${money(e.balanceCents)}</strong></div><div><span>Unpaid bills through ${date(checkIn.nextDate)}</span><strong>−${money(e.billsCents)}</strong></div><div><span>Fresh essential set-asides</span><strong>−${money(e.essentialsCents)}</strong></div><div><span>Your cushion</span><strong>−${money(e.cushionCents)}</strong></div><div class="breakdown-total"><span>${e.leftCents < 0 ? 'Estimated shortfall' : 'Estimated left'}</span><strong>${e.ready ? money(e.leftCents) : 'Check details'}</strong></div></div>${e.ready ? '' : `<p class="detail-help" role="status">Before starting: ${esc(e.missing.join(' · '))}.</p>`}`;
+        } catch (_) { dialog.querySelector('#checkin-preview').innerHTML = '<p class="detail-help">Enter each amount to preview your new plan. Enter 0 for anything you do not need.</p>'; }
+    }
+    function advancePaydayCheckIn() {
+        const form = dialog.querySelector('#payday-checkin-form');
+        if (!form.reportValidity()) return;
+        try {
+            if (owner !== localStorage.getItem('flow_user_id') || checkIn.base !== localStorage.getItem('flowPlanning')) throw new Error('Your account or plan changed. Close and reopen this check-in before saving.');
+            if (checkIn.startedOn !== flowToday()) throw new Error('A new day started. Close and reopen the check-in to confirm today’s available money.');
+            const values = rememberCheckInFields();
+            if (checkIn.step === 0) {
+                if (!validPlanDate(checkIn.nextDate) || checkIn.nextDate <= flowToday() || planDays(flowToday(), checkIn.nextDate) > 366) throw new Error('Choose a future payday or planning date within the next year.');
+            } else if (checkIn.step === 1) {
+                if (!values.get('moneyChecked')) throw new Error('Check your available money first.');
+                const e = checkInEstimate(), missing = e.missing.filter(value => /balance|account/i.test(value));
+                if (missing.length) throw new Error(missing.join(' · ') + '. Enter your available balance if needed.');
+                checkIn.accountStamp = checkIn.balanceMode === 'bank' ? checkInAccountStamp() : '';
+            } else {
+                if (!values.get('planChecked')) throw new Error('Check your bills and set-asides first.');
+                if (checkIn.balanceMode === 'bank' && checkIn.accountStamp !== checkInAccountStamp()) throw new Error('Your bank balances changed during the check-in. Go Back and check the updated available money.');
+                if (checkIn.previewStamp !== JSON.stringify([localStorage.getItem('bankAccounts'), localStorage.getItem('transactions')])) {
+                    updateCheckInPreview(); form.querySelector('[name=planChecked]').checked = false;
+                    throw new Error('New activity arrived. Check the updated estimate and confirm your plan again.');
+                }
+                const next = preparePaydayCheckIn(p, checkInChoices());
+                const e = paydayEstimate(next, loadBankAccounts(), loadTransactions());
+                if (!e.ready) throw new Error('Before starting: ' + e.missing.join(' · ') + '.');
+                persist(next, checkIn.base); dialog.close(); render(); notify('Your new plan is saved. Bills carried forward and everyday set-asides restarted today.'); return;
+            }
+            checkIn.step++; renderPaydayCheckIn();
+        } catch (error) { form.querySelector('.form-message').textContent = error.message || 'Could not start the new plan. Your previous plan is still saved.'; }
+    }
     function renderSettings() {
         if (!settings) return;
         settings.innerHTML = `<section class="card account-card">${header('Getting comfortable', 'Setup & help')}<div class="plain-list"><div class="row-between"><div><strong class="setting-title">Your setup guide</strong><p>${p.setup.completed ? 'Revisit any choice in your plan.' : 'One small decision at a time.'}</p></div><a href="setup.html" class="back-button">${p.setup.completed ? 'Revisit' : 'Open'}</a></div><div class="row-between"><div><strong class="setting-title">How the payday number works</strong><p>See what’s included and kept aside.</p></div>${button(icon('chevron-right'), 'breakdown', 'icon-button', 'aria-label="Explain payday amount"')}</div><div class="row-between"><div><strong class="setting-title">Spending accounts</strong><p>Available money, sources, and freshness.</p></div>${button('Manage', 'accounts', 'back-button')}</div></div></section><section class="card account-card">${header('Preferences', 'A little help, when you want it')}<label class="toggle-label"><input type="checkbox" data-plan-preference="billReminders" ${p.preferences.billReminders ? 'checked' : ''}>Show upcoming bills in Flow</label><label class="toggle-label"><input type="checkbox" data-plan-preference="autoCategories" ${p.preferences.autoCategories ? 'checked' : ''}>Organize reliable new bank categories automatically</label><p class="detail-help">You can always change an individual category. Mixed-purpose payments stay flexible.</p></section>`;
@@ -274,7 +376,16 @@
                 if (!ids.length) throw new Error('Choose a cash account, or enter an available balance manually.');
                 next.selectedAccountIds = ids; next.manualBalance = null;
             }, 'Use selected accounts');
-            if (action === 'payday') return showModal('Your next payday', `<div class="stack">${field('Next payday or planning end date', 'date', p.payday.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', p.payday.frequency)}</div><p class="detail-help">If your previous payday has passed, confirming a new date starts your usual essential set-asides again from today. Check that your bills are up to date.</p>`, (values, next) => { const date = String(values.get('date')); if (!validPlanDate(date) || date <= flowToday()) throw new Error('Choose a future date.'); if (next.payday.nextDate && next.payday.nextDate <= flowToday()) next.periodStartedOn = flowToday(); next.payday = { nextDate: date, frequency: String(values.get('frequency')) }; });
+            if (action === 'payday-checkin' || action === 'payday' && paydayCheckInDue(p)) return startPaydayCheckIn();
+            if (action === 'checkin-back' && checkIn) { rememberCheckInFields(); checkIn.step--; renderPaydayCheckIn(); return; }
+            if (action === 'checkin-bills' && checkIn) { dialog.close(); location.href = 'budgets.html#bill-tracking'; return; }
+            if (action === 'checkin-refresh' && checkIn) {
+                rememberCheckInFields(); const draft = checkIn; target.disabled = true;
+                const refresh = window.refreshFlowAccounts;
+                if (!refresh) { target.disabled = false; throw new Error('Open Account to check your bank, or enter your available amount.'); }
+                Promise.resolve().then(() => refresh(true)).then(() => { if (checkIn === draft && dialog.open) { renderPaydayCheckIn(); dialog.querySelector('.form-message').textContent = 'Account check finished. Check the dates and amounts before continuing.'; } }).catch(error => { if (checkIn === draft && dialog.open) { target.disabled = false; dialog.querySelector('.form-message').textContent = error.message || 'Could not check accounts. Enter your available amount instead.'; } }); return;
+            }
+            if (action === 'payday') return showModal('Your next payday', `<div class="stack">${field('Next payday or planning end date', 'date', p.payday.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', p.payday.frequency)}</div><p class="detail-help">Editing this date keeps your current set-aside period. When this plan ends, the payday check-in helps you start the next one.</p>`, (values, next) => { const date = String(values.get('date')); if (!validPlanDate(date) || date <= flowToday()) throw new Error('Choose a future date.'); next.payday = { nextDate: date, frequency: String(values.get('frequency')), anchorDay: date === next.payday.nextDate ? next.payday.anchorDay || Number(date.slice(-2)) : Number(date.slice(-2)) }; });
             if (action === 'essentials') return showModal('Keep a little aside', `<div class="stack">${reserveFields()}</div><p class="detail-help">Choose amounts to reserve from today. This starts a fresh reserve period; your bank balances and past transactions stay intact.</p>`, collectReserves);
             if (action === 'bill') return editBill(target.dataset.id);
             if (action === 'suggested-bill') { const suggestion = billSuggestions().find(s => s.key === target.dataset.key); if (suggestion) editBill(null, suggestion); return; }
@@ -315,7 +426,7 @@
         catch (error) { event.target.checked = !event.target.checked; notify(error.message); }
     });
     document.addEventListener('flow-bank-updated', () => { if (setupDirty || dialog.open) notify('New bank activity arrived. Finish your current edit to refresh the view.'); else render(); });
-    dialog.addEventListener('close', () => { if (!setupDirty) render(); });
+    dialog.addEventListener('close', () => { checkIn = null; if (!setupDirty) render(); });
     document.addEventListener('flow-transaction-updated', render);
     document.addEventListener('flow-transaction-view-refresh', render);
     document.addEventListener('flow-accounts-updated', () => { if (setupDirty || dialog.open) notify('Account balances updated. Finish your current edit to refresh the view.'); else render(); });
@@ -336,5 +447,18 @@
         for (const tab of document.querySelectorAll('[data-plan-tab]')) tab.addEventListener('click', () => selectTab(tab.dataset.planTab));
         const params = new URLSearchParams(location.search); selectTab(params.get('view') === 'categories' || params.has('month') ? 'categories' : 'payday');
     }
+    function refreshPlanningDay() {
+        if (renderedDay === flowToday()) return;
+        renderedDay = flowToday();
+        if (dialog.open || setupDirty) notify('A new day started. Finish or close the current edit, then check your plan and available money.');
+        else render();
+    }
+    window.addEventListener('focus', refreshPlanningDay);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshPlanningDay(); });
+    function watchNextDay() {
+        const now = new Date(), midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        setTimeout(() => { refreshPlanningDay(); watchNextDay(); }, Math.max(1000, midnight.getTime() - now.getTime() + 100));
+    }
+    watchNextDay();
     render();
 })();
