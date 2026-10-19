@@ -165,3 +165,21 @@ input[type="checkbox"] {width:18px;height:18px;accent-color:#23644c;flex-shrink:
 .manual-balance-details summary::after {content:'⌄';color:var(--text-light);}
 .manual-balance-details[open] summary::after {content:'⌃';}
 @media(max-width:400px) {.setup-footer {align-items:stretch;} .setup-footer>.save-button {flex:1;} .setup-footer .optional {max-width:95px;} .setup-footer .save-button svg{display:none;}}
+/* Bill suggestions and payment checks share the approved app components. */
+.tracked-bill,.bill-suggestion {display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 0;border-top:1px solid var(--border);}
+.tracked-bill>div:first-child,.bill-suggestion>div:first-child {min-width:0;flex:1;}
+.tracked-bill strong,.bill-suggestion strong {font-size:13px;overflow-wrap:anywhere;}
+.tracked-bill p,.bill-suggestion p {font-size:12px;color:var(--text-light);margin:5px 0;}
+.tracked-bill small,.bill-suggestion small {display:block;font-size:11px;color:var(--text-light);margin-top:6px;}
+.bill-row-actions {display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0;}
+.bill-status {display:inline-block;font-size:10px;line-height:1.6;border-radius:6px;padding:4px 7px;background:#f0f3ec;color:#65775f;}
+.bill-status-check {background:#fbf1df;color:#886520;}
+.bill-status-paid {background:#eaf3e6;color:#39714c;}
+.bill-match-evidence {padding:12px 14px;background:#f2f5ed;border-radius:9px;font-size:12px;line-height:1.8;margin:16px 0;overflow-wrap:anywhere;}
+.bill-review-intro {font-size:13px;line-height:1.9;margin:16px 0 12px;}
+.bill-review-intro strong {font-size:16px;}
+.bill-match-form {margin-top:20px;}
+.bill-match-form .toggle-label {align-items:flex-start;line-height:1.7;}
+.bill-match-form input[type=checkbox] {margin-top:3px;}
+#bill-tracking,#bill-discovery {scroll-margin-top:20px;}
+@media(max-width:768px){.tracked-bill,.bill-suggestion {gap:12px;}.bill-row-actions .back-button {padding:10px 12px;min-height:44px;}.bill-status{font-size:11px;}}

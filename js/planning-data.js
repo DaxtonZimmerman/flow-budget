@@ -8,6 +8,11 @@ function validPlanDate(value) {
         Number.isFinite(Date.parse(value + 'T12:00:00Z')) &&
         new Date(value + 'T12:00:00Z').toISOString().slice(0, 10) === value;
 }
+function planDateAt(timestamp) {
+    const value = new Date(timestamp);
+    if (!Number.isFinite(value.getTime())) return '';
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
 function planDays(from, to) { return Math.round((Date.parse(to + 'T12:00:00Z') - Date.parse(from + 'T12:00:00Z')) / 86400000); }
 function addPlanDays(date, days) { return new Date(Date.parse(date + 'T12:00:00Z') + days * 86400000).toISOString().slice(0, 10); }
 function nextPlanDate(date, frequency, anchorDay = Number(date?.slice(-2))) {
@@ -19,21 +24,22 @@ function nextPlanDate(date, frequency, anchorDay = Number(date?.slice(-2))) {
     if (frequency === 'semimonthly' && day === 15) {
         return `${date.slice(0, 7)}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`;
     }
-    if (!['monthly', 'semimonthly'].includes(frequency)) return '';
-    const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    return `${new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7)}-${String(frequency === 'semimonthly' ? 15 : Math.min(anchorDay, last)).padStart(2, '0')}`;
+    if (!['monthly', 'semimonthly', 'quarterly', 'yearly'].includes(frequency)) return '';
+    const step = frequency === 'quarterly' ? 3 : frequency === 'yearly' ? 12 : 1;
+    const last = new Date(Date.UTC(year, month + step, 0)).getUTCDate();
+    return `${new Date(Date.UTC(year, month + step - 1, 1)).toISOString().slice(0, 7)}-${String(frequency === 'semimonthly' ? 15 : Math.min(anchorDay, last)).padStart(2, '0')}`;
 }
 function defaultFlowPlanning() {
     return { version: 1, setup: { step: 0, completed: false }, periodStartedOn: '',
         selectedAccountIds: [], manualBalance: null, payday: { nextDate: '', frequency: 'biweekly' },
-        bills: [], billsConfirmed: false, essentials: [], cushionCents: 0, reservesConfirmed: false,
+        bills: [], billPaymentDecisions: [], dismissedBillSuggestions: [], billsConfirmed: false, essentials: [], cushionCents: 0, reservesConfirmed: false,
         preferences: { billReminders: true, autoCategories: true } };
 }
 function validFlowPlanning(p) {
     const cents = n => Number.isSafeInteger(n) && n >= 0;
-    const frequencies = ['weekly', 'biweekly', 'semimonthly', 'monthly', 'once', 'irregular'];
+    const frequencies = ['weekly', 'biweekly', 'semimonthly', 'monthly', 'quarterly', 'yearly', 'once', 'irregular'];
     return Boolean(p && p.version === 1 && p.setup && Number.isInteger(p.setup.step) && p.setup.step >= 0 && p.setup.step <= 5 &&
-        typeof p.setup.completed === 'boolean' && (p.setup.reserveDraft === undefined || p.setup.reserveDraft && typeof p.setup.reserveDraft === 'object' && !Array.isArray(p.setup.reserveDraft) && Object.values(p.setup.reserveDraft).every(value => typeof value === 'string' && value.length <= 30)) && (p.periodStartedOn === '' || validPlanDate(p.periodStartedOn)) &&
+        validBillAutomationFields(p) && typeof p.setup.completed === 'boolean' && (p.setup.reserveDraft === undefined || p.setup.reserveDraft && typeof p.setup.reserveDraft === 'object' && !Array.isArray(p.setup.reserveDraft) && Object.values(p.setup.reserveDraft).every(value => typeof value === 'string' && value.length <= 30)) && (p.periodStartedOn === '' || validPlanDate(p.periodStartedOn)) &&
         Array.isArray(p.selectedAccountIds) && p.selectedAccountIds.every(id => typeof id === 'string' && id) && new Set(p.selectedAccountIds).size === p.selectedAccountIds.length &&
         (p.manualBalance === null || p.manualBalance && Number.isSafeInteger(p.manualBalance.cents) && validPlanDate(p.manualBalance.date)) &&
         p.payday && (p.payday.nextDate === '' || validPlanDate(p.payday.nextDate)) && frequencies.includes(p.payday.frequency) &&
@@ -42,6 +48,37 @@ function validFlowPlanning(p) {
         typeof p.billsConfirmed === 'boolean' && Array.isArray(p.essentials) && p.essentials.every(e => e && typeof e.id === 'string' &&
             typeof e.name === 'string' && typeof e.category === 'string' && cents(e.amountCents)) && new Set(p.essentials.map(e => e.category)).size === p.essentials.length && cents(p.cushionCents) &&
         typeof p.reservesConfirmed === 'boolean' && p.preferences && typeof p.preferences.billReminders === 'boolean' && typeof p.preferences.autoCategories === 'boolean');
+}
+function validBillAutomationFields(p) {
+    const text = value => typeof value === 'string' && value.length > 0 && value.length <= 2000;
+    if (!Array.isArray(p.bills)) return false;
+    const historyClaims = new Map();
+    for (const b of p.bills) {
+        if (!b || typeof b !== 'object') return false;
+        if (b.tracking !== undefined && (!b.tracking || !text(b.tracking.merchant) || !text(b.tracking.accountId) || !text(b.tracking.bankConnectionId) || b.tracking.currency !== 'USD')) return false;
+        if (b.paymentHistory !== undefined && (!Array.isArray(b.paymentHistory) || b.paymentHistory.some(h => !h || !text(h.transactionKey) || !text(h.fingerprint) || !validPlanDate(h.dueDate)))) return false;
+        for (const h of b.paymentHistory || []) {
+            if (Array.isArray(p.billPaymentDecisions) && p.billPaymentDecisions.some(d => d?.choice === 'ignore' && d.billId === b.id && d.dueDate === h.dueDate && d.transactionKey === h.transactionKey && d.fingerprint === h.fingerprint)) continue;
+            const owner = b.id + '|' + h.dueDate;
+            if (historyClaims.has(h.transactionKey) && historyClaims.get(h.transactionKey) !== owner) return false;
+            historyClaims.set(h.transactionKey, owner);
+        }
+        if (b.amountChanges !== undefined && (!Array.isArray(b.amountChanges) || b.amountChanges.some(c => !c || !validPlanDate(c.fromDate) || !Number.isSafeInteger(c.amountCents) || c.amountCents <= 0) || new Set(b.amountChanges.map(c => c.fromDate)).size !== b.amountChanges.length)) return false;
+    }
+    if (p.dismissedBillSuggestions !== undefined && (!Array.isArray(p.dismissedBillSuggestions) || p.dismissedBillSuggestions.some(d => !d || !text(d.key) || !text(d.label)))) return false;
+    if (p.billPaymentDecisions === undefined) return true;
+    if (!Array.isArray(p.billPaymentDecisions)) return false;
+    const paidRows = new Set(), paidKeys = new Set();
+    for (const d of p.billPaymentDecisions) {
+        if (!d || !text(d.billId) || !validPlanDate(d.dueDate) || !validPlanDate(d.confirmedOn) || !['paid', 'manual', 'ignore'].includes(d.choice)) return false;
+        if (d.choice !== 'manual' && (!text(d.transactionKey) || !text(d.fingerprint))) return false;
+        if (d.confirmedRefunds !== undefined && (!Array.isArray(d.confirmedRefunds) || d.confirmedRefunds.some(r => !text(r)))) return false;
+        if (d.choice === 'ignore') continue;
+        const key = d.billId + '|' + d.dueDate;
+        if (paidRows.has(key) || d.choice === 'paid' && (paidKeys.has(d.transactionKey) || historyClaims.has(d.transactionKey) && historyClaims.get(d.transactionKey) !== key)) return false;
+        paidRows.add(key); if (d.choice === 'paid') paidKeys.add(d.transactionKey);
+    }
+    return true;
 }
 function loadFlowPlanning() {
     const raw = localStorage.getItem('flowPlanning');
@@ -115,7 +152,8 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
         balanceCents += a.availableCents;
         notes.push(`${a.name}: cached bank balance retrieved ${new Date(a.retrievedAt).toLocaleString()}. Bank data may be older.`);
     }
-    const bills = validPlanDate(planning.payday.nextDate) ? planBillOccurrences(planning, planning.payday.nextDate) : [];
+    const tracking = typeof getBillTrackingState === 'function' ? getBillTrackingState(planning, accounts, transactions, today, now) : null;
+    const bills = validPlanDate(planning.payday.nextDate) ? (tracking ? tracking.rows.filter(b => b.dueDate <= planning.payday.nextDate && !b.paid) : planBillOccurrences(planning, planning.payday.nextDate)) : [];
     if (bills.some(b => b.dueDate < today)) missing.push('Check overdue bills');
     // Release reserves only for posted spending known to precede the balance snapshot.
     // Retrieval time alone does not establish that a cached bank balance reflects a purchase.
@@ -124,9 +162,9 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
         let spent = 0;
         for (const t of transactions) {
             const account = selected.find(a => a.accountId === t.accountId && a.bankConnectionId === t.bankConnectionId);
-            const asOf = planning.manualBalance?.date || (account?.bankUpdatedAt || '').slice(0, 10);
+            const asOf = planning.manualBalance?.date || planDateAt(account?.bankUpdatedAt);
             const key = t.bankConnectionId + ':' + (t.bankTransactionId || t.id);
-            if (!account || seen.has(key) || t.category !== e.category || t.source !== 'bank' ||
+            if (tracking?.excludedPayments.has(billPaymentKey(t)) || !account || seen.has(key) || t.category !== e.category || t.source !== 'bank' ||
                 !validPlanDate(t.date) || !validPlanDate(asOf) || t.date <= planning.periodStartedOn || t.date >= asOf ||
                 t.status === 'pending' || !['Expense', 'Refund'].includes(t.type) || !Number.isFinite(t.amount) || (t.type === 'Expense' ? t.amount >= 0 : t.amount <= 0)) continue;
             seen.add(key);
@@ -134,7 +172,7 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
         }
         return { ...e, spentCents: spent, remainingCents: Math.max(0, e.amountCents - Math.max(0, spent)) };
     });
-    notes.push('Essentials stay reserved until confirmed spending is reflected in a dated balance. Payments made today may still be reserved. Mark a bill paid only after its payment is reflected in your balance.');
+    notes.push('Essentials stay reserved until confirmed spending is reflected in a dated balance. Payments made today may still be reserved. Bill payments are matched once and only released when reflected in a dated balance or confirmed by you.');
     if (transactions.some(t => t.source !== 'bank' && t.date >= planning.periodStartedOn && t.date <= today)) {
         notes.push('Manual and CSV activity may not be reflected in your available balance. Confirm it with your bank when you add purchases.');
     }

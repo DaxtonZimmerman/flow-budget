@@ -27,6 +27,19 @@ Deliberate limits of this release:
 - Progress saves on each setup step, Back, and Save & close. Partially entered essential reserves are retained when leaving a step; unsaved typing warns before navigation.
 - Automatic cached account balances and newly retained bank categories are included in the deployed functions. Missing or unavailable balances still support an explicitly confirmed manual amount. No database migration or secret change was needed. A signed-in user’s first real account refresh remains a private-pilot validation step; the release checks did not retrieve or change the owner’s financial records.
 
+## Recurring-bill increment: approved for publication
+
+Prepared and approved by the owner for publication on 19 October 2026. This increment requires a successful website deployment before it appears on the live site; the release record above describes the preceding version.
+
+- Plan and setup suggest recurring bills from repeated posted payments on the same USD cash account, with payment dates as evidence. Routine shopping and mixed-purpose payment services are excluded. Confirm, edit, dismiss, or restore a suggestion; nothing is reserved until confirmed.
+- Confirmed bills can use an exact merchant/account source to recognize later payments. Weekly, fortnightly, monthly, quarterly, annual, and one-time schedules are supported, including month-end and leap-day anchors. A just-due suggested bill is not silently advanced to another cycle.
+- A unique posted payment is treated as paid only when a fresh, dated bank balance can establish it is reflected, or the user explicitly confirms it against their available balance. Retrieval time alone, pending payments, and same-day payments do not establish that fact. Matching uses imported data and adds no bank API calls or paid products.
+- Changed amounts, ambiguous matches, changed or removed saved payments, matching refunds, and passed due dates ask for a check. “Date passed” does not claim a payment was missed. A matched payment cannot satisfy two bills or also free an everyday spending reserve. Users can reject a match, undo their confirmation, reconsider a rejected payment, or update future bill amounts separately.
+- Confirmations, dismissed suggestions, future amount changes, and earlier recognized payment references survive cloud/device copies and backups. Older plans remain readable. Matching never changes a bank transaction's amount, date, identity, or category. Existing bills and personal setup are not changed by installing this update.
+- 115 automated checks pass. Synthetic browser checks cover discovery through payment confirmation, corrections, price changes, stale edits, the full existing setup/review flow, and desktop/phone layouts. No personal bank records were used for testing. A real pay-cycle comparison remains a private-pilot validation step.
+
+Remaining limits: exact-name matching will need a check when a bank changes a merchant description; variable bills require an amount check; automatic recognition is limited to USD cash accounts. Credit-card bill discovery, transfer pairing, and push/email notifications are not part of this increment. Legacy monthly tracking notes remain separate from confirmed payday bills.
+
 ## Product decision
 
 The first version should answer **“What can I spend until payday?”** This priority was selected by the owner. Flow should import and organize routine activity, explain the answer, and ask short questions when the bank data cannot establish a payment's purpose.

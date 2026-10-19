@@ -67,3 +67,10 @@ test('old review is optional and does not block the recent activity inbox',()=>{
  assert.equal(m.evaluate('needsCurrentTransactionReview',{source:'bank',reviewStatus:'needs-review',date:'2026-10-01',category:'Other'}),false);
  assert.equal(m.evaluate('needsCurrentTransactionReview',{source:'bank',reviewStatus:'needs-review',date:'2026-10-19',category:'Other'}),true);
 });
+
+test('bill confirmations, dismissals, revised amounts and matching history survive cloud and backup round trips',()=>{
+ const m=model(),p=plan(m);p.bills=[{id:'bill',name:'Service',amountCents:1000,nextDate:'2026-11-19',frequency:'monthly',tracking:{merchant:'service',bankConnectionId:'conn',accountId:'cash',currency:'USD'},amountChanges:[{fromDate:'2026-12-19',amountCents:1200}],paymentHistory:[{dueDate:'2026-10-19',transactionKey:'payment',fingerprint:'fingerprint'}]}];
+ p.billPaymentDecisions=[{billId:'bill',dueDate:'2026-10-19',choice:'paid',transactionKey:'payment',fingerprint:'fingerprint',confirmedOn:'2026-10-20',confirmedRefunds:[]}];p.dismissedBillSuggestions=[{key:'source',label:'Not a bill'}];
+ m.evaluate('replaceFlowSnapshot',{transactions:[],flowPlanning:p,bankAccounts:[]});const snapshot=m.evaluate('getFlowSnapshot');assert.equal(JSON.stringify(snapshot.flowPlanning),JSON.stringify(p));assert.equal(m.evaluate('validBackup',{version:1,...snapshot}),true);
+ const malformed={...p,billPaymentDecisions:[{...p.billPaymentDecisions[0],billId:'other-bill'}]};assert.equal(m.evaluate('validFlowPlanning',malformed),false);
+});
