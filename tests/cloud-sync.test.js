@@ -43,7 +43,7 @@ function setupCloud(editing = false) {
         document: {
             body: {},
             querySelector: selector => selector === "#flow-sync-status" ? status
-                : editing && selector === "#transaction-details-dialog[open]" ? {} : null,
+                : editing && selector.includes("#transaction-details-dialog[open]") ? {} : null,
             addEventListener: () => {},
             dispatchEvent: event => events.push(event.type)
         },

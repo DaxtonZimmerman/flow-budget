@@ -18,6 +18,20 @@ let quickReviewLimit = 12;
 const quickReviewDrafts = new Map();
 const expandedReviewGroups = new Set();
 
+let reviewScope = new URLSearchParams(location.search).get('scope') === 'all' ? 'all' : 'new';
+function inReviewScope(item) { return reviewScope === 'all' || !item.date || item.date >= currentReviewStart(); }
+function scopedReviewItems() { return transactions.filter(inReviewScope); }
+for (const tab of document.querySelectorAll('[data-review-scope]')) {
+    tab.addEventListener('click', () => {
+        reviewScope = tab.dataset.reviewScope;
+        quickReviewLimit = 12; quickReviewDrafts.clear();
+        const url = new URL(location.href);
+        if (reviewScope === 'all') url.searchParams.set('scope', 'all'); else url.searchParams.delete('scope');
+        history.replaceState(null, '', url); showReview();
+    });
+}
+
+
 
 function typeChoices(transaction) {
     return transaction.amount < 0 ? ["Expense", "Transfer"]
@@ -88,7 +102,7 @@ function saveReviewData(changes) {
 
 function showInbox() {
     inbox.replaceChildren();
-    const items = transactions.filter(needsTransactionReview);
+    const items = scopedReviewItems().filter(needsTransactionReview);
     document.querySelector("#review-count").textContent =
         `${items.length} item${items.length === 1 ? "" : "s"}`;
     document.querySelector("#review-empty").hidden = items.length > 0;
@@ -232,8 +246,8 @@ function showInbox() {
 
 
 function showQuickReview() {
-    const groups = reviewGroups(transactions);
-    const remaining = transactions.filter(needsTransactionReview).length;
+    const groups = reviewGroups(scopedReviewItems());
+    const remaining = scopedReviewItems().filter(needsTransactionReview).length;
     const likelyTransfers = groups.filter(group => group.likelyTransfer);
     quickReviewBanner.hidden = remaining === 0;
     document.querySelector("#review-all-clear").hidden = remaining > 0;
@@ -499,6 +513,13 @@ function showRules() {
 
 
 function showReview() {
+    for (const tab of document.querySelectorAll('[data-review-scope]')) {
+        const active = tab.dataset.reviewScope === reviewScope;
+        tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active));
+    }
+    document.querySelector('#review-scope-help').textContent = reviewScope === 'all'
+        ? 'Older history is optional. Sort it whenever you want, or open an individual payment in Activity.'
+        : `Recent activity since ${currentReviewStart()}. Older history can wait; it does not block your payday setup.`;
     showInbox();
     showQuickReview();
     showRecurring();
@@ -512,7 +533,7 @@ document.querySelector("#close-quick-review").addEventListener("click", function
     quickReviewDialog.close();
 });
 document.querySelector("#accept-review-defaults").addEventListener("click", function() {
-    const selected = reviewGroups(transactions)
+    const selected = reviewGroups(scopedReviewItems())
         .filter(group => !group.likelyTransfer)
         .flatMap(group => group.items);
     const before = JSON.stringify(transactions);
@@ -531,8 +552,8 @@ document.querySelector("#accept-review-defaults").addEventListener("click", func
 showReview();
 
 const firstRunKey = `flow_quick_review_seen_${localStorage.getItem("flow_user_id") || "device"}`;
-if ((new URLSearchParams(location.search).get("quick") === "1" && transactions.some(needsTransactionReview)) ||
-    (transactions.filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
+if ((new URLSearchParams(location.search).get("quick") === "1" && scopedReviewItems().some(needsTransactionReview)) ||
+    (scopedReviewItems().filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
     sessionStorage.getItem(firstRunKey) !== "1")) {
     sessionStorage.setItem(firstRunKey, "1");
     quickReviewDialog.showModal();

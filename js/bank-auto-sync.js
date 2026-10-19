@@ -113,7 +113,7 @@ async function updateBanksAutomatically() {
 
         document.dispatchEvent(new Event("flow-bank-updated"));
 
-        if (changed && !document.querySelector("#transaction-form, #budget-form, #transaction-details-dialog[open]")) {
+        if (changed && !document.querySelector("#transaction-form, #budget-form, #transaction-details-dialog[open], #payday-dialog[open], #setup-form")) {
             window.location.reload();
         }
     } catch (_error) {

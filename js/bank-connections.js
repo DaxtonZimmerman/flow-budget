@@ -159,6 +159,10 @@ async function showBankConnections() {
                     localStorage.removeItem(
                         `flow_bank_applied_at_${localStorage.getItem("flow_user_id")}_${connection.id}`
                     );
+                    const accounts = JSON.parse(localStorage.getItem("bankAccounts") || "[]");
+                    localStorage.setItem("bankAccounts", JSON.stringify(accounts.filter(a => a.bankConnectionId !== connection.id)));
+                    await flowDataChanged();
+                    document.dispatchEvent(new Event("flow-accounts-updated"));
                     item.remove();
                     bankMessage.textContent = `${connection.institution_name} disconnected.`;
                     await showBankConnections();

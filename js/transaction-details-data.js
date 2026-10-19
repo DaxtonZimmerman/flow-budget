@@ -27,7 +27,7 @@ function transactionWithDetails(current, values, opened) {
     const updated = { ...current, type: values.type, date: date,
         category: values.type === "Transfer" ? current.category || "Other" : values.category.trim(),
         notes: values.notes.trim(), categoryReason: "Chosen by you",
-        categoryRuleId: undefined, reviewStatus: "reviewed" };
+        categoryRuleId: undefined, bankCategoryAuto: false, reviewStatus: "reviewed" };
     if (current.source === "bank") {
         updated.typeOverride = values.type !== inferredType;
         updated.bankTypeRuleId = values.type === current.type ? current.bankTypeRuleId : undefined;

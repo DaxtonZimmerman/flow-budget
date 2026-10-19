@@ -23,18 +23,24 @@ function getFlowSnapshot() {
         budgets: JSON.parse(localStorage.getItem("budgets")) || [],
         budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {},
         categoryRules: JSON.parse(localStorage.getItem("categoryRules")) || [],
-        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || []
+        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || [],
+        bankAccounts: JSON.parse(localStorage.getItem("bankAccounts")) || [],
+        flowPlanning: typeof loadFlowPlanning === "function" ? loadFlowPlanning() : JSON.parse(localStorage.getItem("flowPlanning") || "null")
     };
 }
 
 
 function replaceFlowSnapshot(data) {
+    if (data.flowPlanning && typeof validFlowPlanning === "function" && !validFlowPlanning(data.flowPlanning)) throw new Error("Unsupported payday plan. Download your cloud copy before replacing data.");
+    if (data.bankAccounts && typeof validBankAccounts === "function" && !validBankAccounts(data.bankAccounts)) throw new Error("Invalid account snapshot.");
     const oldData = {
         transactions: localStorage.getItem("transactions"),
         budgets: localStorage.getItem("budgets"),
         budgetsByMonth: localStorage.getItem("budgetsByMonth"),
         categoryRules: localStorage.getItem("categoryRules"),
-        recurringItems: localStorage.getItem("recurringItems")
+        recurringItems: localStorage.getItem("recurringItems"),
+        bankAccounts: localStorage.getItem("bankAccounts"),
+        flowPlanning: localStorage.getItem("flowPlanning")
     };
 
     try {
@@ -43,6 +49,9 @@ function replaceFlowSnapshot(data) {
         localStorage.setItem("budgetsByMonth", JSON.stringify(data.budgetsByMonth || {}));
         localStorage.setItem("categoryRules", JSON.stringify(data.categoryRules || []));
         localStorage.setItem("recurringItems", JSON.stringify(data.recurringItems || []));
+        localStorage.setItem("bankAccounts", JSON.stringify(data.bankAccounts || []));
+        if (data.flowPlanning) localStorage.setItem("flowPlanning", JSON.stringify(data.flowPlanning));
+        else localStorage.removeItem("flowPlanning");
     } catch (error) {
         for (const key of Object.keys(oldData)) {
             if (oldData[key] === null) localStorage.removeItem(key);
@@ -168,7 +177,7 @@ async function flowSync() {
         } else if (cloudRevision > localRevision) {
             replaceFlowSnapshot(cloud.data);
             localStorage.setItem("flow_revision", String(cloudRevision));
-            if (document.querySelector("#transaction-details-dialog[open]")) {
+            if (document.querySelector("#transaction-details-dialog[open], #payday-dialog[open], #setup-form")) {
                 document.dispatchEvent(new Event("flow-transaction-data-updated"));
             } else window.location.reload();
         } else if (cloudRevision < localRevision) {

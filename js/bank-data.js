@@ -1,5 +1,13 @@
 /* turn bank updates into Flow transactions */
 
+function suggestedBankCategory(name, type, category) {
+    if (!category || !['HIGH', 'VERY_HIGH'].includes(category.confidence_level) ||
+        /\b(venmo|zelle|cash\s*app|paypal)\b/i.test(name) || type === 'Transfer' || type === 'Refund') return null;
+    if (type === 'Income') return category.primary === 'INCOME' && /WAGES|PAYROLL/.test(category.detailed || '') ? 'Salary' : null;
+    return ({ FOOD_AND_DRINK: 'Food', TRANSPORTATION: 'Transport', TRAVEL: 'Transport',
+        ENTERTAINMENT: 'Entertainment', GENERAL_MERCHANDISE: 'Shopping', RENT_AND_UTILITIES: 'Bills' })[category.primary] || null;
+}
+
 function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const amount = Math.round(Number(item.amount) * 100) / -100;
     const inferredType = amount < 0 ? "Expense" : "Income";
@@ -20,6 +28,12 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const useRule = rule && (!previous || previous.reviewStatus !== "reviewed" ||
         previous.categoryRuleId === rule.id);
     const removedTypeRule = previous && previous.bankTypeRuleId && !useTransferRule;
+    const metadata = item.personal_finance_category || previous?.bankCategory || null;
+    let automatic = true;
+    try { if (typeof loadFlowPlanning === 'function') automatic = loadFlowPlanning().preferences.autoCategories; } catch (_) { automatic = false; }
+    const suggestion = automatic ? suggestedBankCategory(name, type, metadata) : null;
+    const useBankCategory = suggestion && !useRule && !useTransferRule &&
+        (!previous || previous.bankCategoryAuto === true && previous.categoryReason === 'Bank category');
 
     return {
         id: previous && previous.bankTransactionId === item.transaction_id
@@ -34,13 +48,15 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
         name: name,
         amount: amount,
         date: item.date,
-        category: useRule ? rule.category : previous ? previous.category
+        category: useRule ? rule.category : useBankCategory ? suggestion : previous ? previous.category
             : (type === "Income" ? "Income" : "Other"),
         notes: previous ? previous.notes : "",
-        categoryReason: useRule ? `Rule for ${rule.label || rule.name}`
+        bankCategory: metadata,
+        bankCategoryAuto: Boolean(useBankCategory),
+        categoryReason: useRule ? `Rule for ${rule.label || rule.name}` : useBankCategory ? 'Bank category'
             : previous ? previous.categoryReason : "",
         categoryRuleId: useRule ? rule.id : previous ? previous.categoryRuleId : undefined,
-        reviewStatus: useRule || useTransferRule ? "reviewed" : removedTypeRule ? "needs-review"
+        reviewStatus: useRule || useTransferRule || useBankCategory ? "reviewed" : removedTypeRule ? "needs-review"
             : previous ? previous.reviewStatus : "needs-review"
     };
 }

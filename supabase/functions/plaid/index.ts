@@ -80,7 +80,11 @@ function keepTransaction(item) {
         name: item.name,
         merchant_name: item.merchant_name,
         pending: item.pending,
-        pending_transaction_id: item.pending_transaction_id
+        pending_transaction_id: item.pending_transaction_id,
+        personal_finance_category: item.personal_finance_category ? {
+            primary: item.personal_finance_category.primary, detailed: item.personal_finance_category.detailed,
+            confidence_level: item.personal_finance_category.confidence_level
+        } : null
     };
 }
 
@@ -361,6 +365,24 @@ Deno.serve(async function(request) {
             }
 
             return reply({ reconnected: true });
+        }
+
+        if (body.action === "accounts") {
+            if (typeof body.connection_id !== "string") return reply({ error: "Choose a bank connection." }, 400);
+            const { data: connection, error } = await database.from("plaid_connections")
+                .select("id,access_token,environment").eq("id", body.connection_id)
+                .eq("user_id", userData.user.id).maybeSingle();
+            if (error || !connection) return reply({ error: "Bank connection not found." }, 404);
+            const result = await plaidRequest("/accounts/get", {
+                access_token: connection.access_token
+            }, connectionEnvironment(connection));
+            return reply({ accounts: (result.accounts || []).map(account => ({
+                account_id: account.account_id, name: account.name, type: account.type, subtype: account.subtype,
+                balances: { available: account.balances?.available ?? null,
+                    current: account.balances?.current ?? null,
+                    iso_currency_code: account.balances?.iso_currency_code ?? null,
+                    last_updated_datetime: account.balances?.last_updated_datetime ?? null }
+            })), retrieved_at: new Date().toISOString(), balance_source: "cached" });
         }
 
         if (body.action === "sync") {

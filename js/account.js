@@ -20,7 +20,7 @@ function countFlowData(data) {
 
     return `${data.transactions.length} transactions, ${budgetCount} budgets, ` +
         `${(data.categoryRules || []).length} category rules, and ` +
-        `${(data.recurringItems || []).length} monthly decisions`;
+        `${(data.recurringItems || []).length} monthly decisions` + (data.flowPlanning ? ", plus a saved payday plan" : "");
 }
 
 
@@ -226,6 +226,8 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
         localStorage.removeItem("budgetsByMonth");
         localStorage.removeItem("categoryRules");
         localStorage.removeItem("recurringItems");
+        localStorage.removeItem("flowPlanning");
+        localStorage.removeItem("bankAccounts");
         localStorage.removeItem("flow_user_id");
         localStorage.removeItem("flow_revision");
     }
@@ -260,7 +262,7 @@ document.querySelector("#delete-account").addEventListener("click", async functi
         // The deleted account can no longer access cloud data.
     }
     for (const key of ["transactions", "budgets", "budgetsByMonth",
-        "categoryRules", "recurringItems",
+        "categoryRules", "recurringItems", "flowPlanning", "bankAccounts",
         "flow_user_id", "flow_revision", "flow_pending"]) {
         localStorage.removeItem(key);
     }

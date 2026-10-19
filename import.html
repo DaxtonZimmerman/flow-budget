@@ -13,10 +13,12 @@
     <link rel="apple-touch-icon" href="assets/flow-icon-192.png">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/payday.css">
     <script src="js/app-shell.js" defer></script>
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
     <script src="js/cloud-config.js" defer></script>
+    <script src="js/planning-data.js" defer></script>
     <script src="js/cloud-sync.js" defer></script>
     <script src="js/money-data.js" defer></script>
     <script src="js/review-data.js" defer></script>
@@ -28,9 +30,9 @@
     <div class="app">
         <aside class="sidebar">
             <div class="sidebar-top">
-                <a class="brand" href="index.html" aria-label="Flow overview"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
+                <a class="brand" href="index.html" aria-label="Flow home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
                 <p class="nav-caption">Your workspace</p>
-                <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Overview</span></a><a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
+                <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Home</span></a><a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
             </div>
             <div class="sidebar-bottom">
                 <div class="sidebar-note"><span class="sidebar-note-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><strong>A little clarity.<br>A little more room.</strong><p>Make a plan that fits your life.</p></div>

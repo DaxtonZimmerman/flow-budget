@@ -100,6 +100,8 @@ async function verifyWebhook(jwt: string | null, rawBody: string) {
 }
 
 function keepTransaction(item: Record<string, unknown>) {
+    const category = item.personal_finance_category && typeof item.personal_finance_category === "object"
+        ? item.personal_finance_category as Record<string, unknown> : null;
     return {
         transaction_id: item.transaction_id,
         account_id: item.account_id,
@@ -108,7 +110,9 @@ function keepTransaction(item: Record<string, unknown>) {
         name: item.name,
         merchant_name: item.merchant_name,
         pending: item.pending,
-        pending_transaction_id: item.pending_transaction_id
+        pending_transaction_id: item.pending_transaction_id,
+        personal_finance_category: category ? { primary: category.primary, detailed: category.detailed,
+            confidence_level: category.confidence_level } : null
     };
 }
 

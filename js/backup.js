@@ -14,7 +14,9 @@ downloadBackup.addEventListener("click", function() {
         budgets: JSON.parse(localStorage.getItem("budgets")) || [],
         budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {},
         categoryRules: JSON.parse(localStorage.getItem("categoryRules")) || [],
-        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || []
+        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || [],
+        bankAccounts: JSON.parse(localStorage.getItem("bankAccounts") || "[]"),
+        flowPlanning: typeof loadFlowPlanning === "function" ? loadFlowPlanning() : null
     };
 
     const file = new Blob([JSON.stringify(backup, null, 2)], {
@@ -109,6 +111,8 @@ function validBackup(backup) {
         return false;
     }
 
+    if (backup.flowPlanning != null && (typeof validFlowPlanning !== "function" || !validFlowPlanning(backup.flowPlanning))) return false;
+    if (backup.bankAccounts !== undefined && (typeof validBankAccounts !== "function" || !validBankAccounts(backup.bankAccounts))) return false;
     return true;
 
 }
@@ -141,7 +145,7 @@ restoreBackup.addEventListener("click", async function() {
     }
 
     const shouldRestore = window.confirm(
-        "Restore this backup? It will replace transactions, budgets, category rules, and monthly choices saved in this browser."
+        "Restore this backup? It will replace transactions, budgets, category rules, monthly choices, account snapshots, and your payday plan saved in this browser."
     );
 
     if (!shouldRestore) {
@@ -160,6 +164,8 @@ restoreBackup.addEventListener("click", async function() {
     const oldMonths = localStorage.getItem("budgetsByMonth");
     const oldRules = localStorage.getItem("categoryRules");
     const oldRecurring = localStorage.getItem("recurringItems");
+    const oldAccounts = localStorage.getItem("bankAccounts");
+    const oldPlanning = localStorage.getItem("flowPlanning");
 
     try {
         localStorage.setItem("transactions", JSON.stringify(backup.transactions));
@@ -167,6 +173,9 @@ restoreBackup.addEventListener("click", async function() {
         localStorage.setItem("budgetsByMonth", JSON.stringify(backup.budgetsByMonth));
         localStorage.setItem("categoryRules", JSON.stringify(backup.categoryRules || []));
         localStorage.setItem("recurringItems", JSON.stringify(backup.recurringItems || []));
+        localStorage.setItem("bankAccounts", JSON.stringify(backup.bankAccounts || []));
+        if (backup.flowPlanning) localStorage.setItem("flowPlanning", JSON.stringify(backup.flowPlanning));
+        else localStorage.removeItem("flowPlanning");
         if (typeof flowDataChanged === "function") flowDataChanged();
     } catch (error) {
         if (oldTransactions === null) localStorage.removeItem("transactions");
@@ -183,6 +192,11 @@ restoreBackup.addEventListener("click", async function() {
 
         if (oldRecurring === null) localStorage.removeItem("recurringItems");
         else localStorage.setItem("recurringItems", oldRecurring);
+
+        if (oldAccounts === null) localStorage.removeItem("bankAccounts");
+        else localStorage.setItem("bankAccounts", oldAccounts);
+        if (oldPlanning === null) localStorage.removeItem("flowPlanning");
+        else localStorage.setItem("flowPlanning", oldPlanning);
 
         backupMessage.textContent = "Could not restore this backup. Your saved data is unchanged.";
         return;

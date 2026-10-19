@@ -1,4 +1,4 @@
-/* Shared transaction popup for Activity, Overview, and grouped review. */
+/* Shared transaction popup for Activity, Home, and grouped review. */
 (function () {
     const dialog = document.createElement('dialog');
     dialog.id = 'transaction-details-dialog';
@@ -14,6 +14,7 @@
                 <div class="form-group"><label for="transaction-details-type">Type</label><select id="transaction-details-type"></select></div>
                 <div class="form-group"><label for="transaction-details-category" id="transaction-details-category-label">Category</label><select id="transaction-details-category" autofocus></select></div>
             </div>
+            <p id="transaction-details-category-source" class="transaction-details-help"></p>
             <p id="transaction-details-type-help" class="transaction-details-help" hidden>Use Transfer for money moved between accounts you own.</p>
             <div class="form-group" id="transaction-details-date-field"><label for="transaction-details-date">Date</label><input id="transaction-details-date" type="date"></div>
             <div class="form-group"><label for="transaction-details-notes">What was it for? <span class="optional-label">Optional</span></label><textarea id="transaction-details-notes" rows="3" placeholder="For example, dinner with friends"></textarea></div>
@@ -61,6 +62,9 @@
         if (!transaction) return false;
         active = { transaction: { ...transaction }, owner: localStorage.getItem('flow_user_id') };
         message.textContent = '';
+        const source = dialog.querySelector('#transaction-details-category-source');
+        source.textContent = transaction.categoryReason === 'Bank category' ? 'Sorted from a reliable category supplied by your bank. You can change this payment without changing the others.' : transaction.categoryReason || '';
+        source.hidden = !source.textContent;
         dialog.querySelector('#transaction-details-title').textContent = transaction.name;
         dialog.querySelector('#transaction-details-amount').textContent = `${transaction.amount < 0 ? '−' : '+'}${formatMoney(transaction.amount)}`;
         const formattedDate = transaction.date ? new Date(`${transaction.date}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Date needed';

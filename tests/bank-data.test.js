@@ -278,3 +278,15 @@ test("an invalidated transfer rule returns its linked bank entry to review", () 
     assert.equal(removed[0].type, "Expense");
     assert.equal(removed[0].reviewStatus, "needs-review");
 });
+
+test('reliable bank categories automate new ordinary purchases but keep mixed-purpose and low-confidence payments in review',()=>{
+ const metadata={primary:'FOOD_AND_DRINK',detailed:'FOOD_AND_DRINK_RESTAURANTS',confidence_level:'VERY_HIGH'};
+ const mapped=applyBankChanges([], 'checking', {added:[bankItem('food',12,{personal_finance_category:metadata})]}).transactions[0];
+ assert.equal(mapped.category,'Food');assert.equal(mapped.reviewStatus,'reviewed');
+ for(const [name,confidence] of [['Venmo','VERY_HIGH'],['PayPal','HIGH'],['Ordinary store','LOW']]) {
+ const row=applyBankChanges([], 'checking',{added:[bankItem(name,12,{name,personal_finance_category:{...metadata,confidence_level:confidence}})]}).transactions[0];
+ assert.equal(row.category,'Other');assert.equal(row.reviewStatus,'needs-review');}
+ mapped.category='Shopping';mapped.categoryReason='Chosen by you';mapped.bankCategoryAuto=false;
+ const changed=applyBankChanges([mapped],'checking',{modified:[bankItem('food',15,{personal_finance_category:metadata})]}).transactions[0];
+ assert.equal(changed.category,'Shopping');assert.equal(changed.amount,-15);
+});

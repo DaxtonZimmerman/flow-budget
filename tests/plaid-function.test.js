@@ -151,6 +151,7 @@ function makeServer(options = {}) {
             return {
                 ok: true,
                 json: async () => {
+                    if (url.endsWith("/accounts/get")) return {accounts: options.accounts || []};
                     if (exchange) {
                         return { item_id: "item-1", access_token: "access-secret-test" };
                     }
@@ -468,4 +469,16 @@ test("account deletion keeps the user if revoked Item cleanup fails", async () =
 
     assert.equal(result.status, 500);
     assert.deepEqual(server.deletedUsers, []);
+});
+
+test('cached account balances require authentication and ownership, stay in the connection environment, and omit secrets',async()=>{
+ const server=makeServer({connectionEnvironment:'production',accounts:[{account_id:'cash',name:'Checking',type:'depository',subtype:'checking',mask:'1234',access_token:'never-send',balances:{available:null,current:42.5,iso_currency_code:'USD',limit:5000}}]});
+ assert.equal((await server.request({action:'accounts',connection_id:'connection-1'},'invalid-token')).status,401);
+ assert.equal((await server.request({action:'accounts',connection_id:'other-user-connection'})).status,404);
+ assert.equal(server.calls.length,0);
+ const result=await server.request({action:'accounts',connection_id:'connection-1'});
+ assert.equal(result.status,200);assert.equal(result.body.accounts[0].balances.available,null);assert.equal(result.body.accounts[0].balances.current,42.5);
+ assert.equal(result.body.balance_source,'cached');assert.ok(result.body.retrieved_at);
+ const encoded=JSON.stringify(result.body);for(const privateValue of ['never-send','1234','production-secret-test','access-secret-test','5000'])assert.equal(encoded.includes(privateValue),false);
+ assert.equal(server.calls.length,1);assert.equal(server.calls[0].url,'https://production.plaid.com/accounts/get');
 });

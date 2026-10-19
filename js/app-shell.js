@@ -68,7 +68,7 @@
         if (typeof needsTransactionReview !== 'function') return;
         try {
             const items = JSON.parse(localStorage.getItem('transactions')) || [];
-            const count = items.filter(needsTransactionReview).length;
+            const count = items.filter(typeof needsCurrentTransactionReview === 'function' ? needsCurrentTransactionReview : needsTransactionReview).length;
             for (const badge of document.querySelectorAll('[data-review-badge]')) {
                 badge.hidden = count === 0;
                 badge.textContent = count > 99 ? '99+' : String(count);

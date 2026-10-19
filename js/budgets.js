@@ -22,7 +22,7 @@ document.querySelector('a[href="add-transaction.html"]').href =
 
 budgetMonth.addEventListener("change", function() {
     if (budgetMonth.value) {
-        window.location.href = `budgets.html?month=${budgetMonth.value}`;
+        window.location.href = `budgets.html?view=categories&month=${budgetMonth.value}`;
     }
 });
 
