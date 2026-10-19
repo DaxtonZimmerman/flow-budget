@@ -4,7 +4,7 @@ Prepared 18 October 2026. The plan below remains a roadmap; the implementation s
 
 ## Approved design release: implementation status
 
-The approved whole-app prototype has been implemented in the existing app, using saved user data rather than demo figures. Publication and the three Edge Function deployments are pending owner review as of this update.
+The approved whole-app prototype has been implemented in the existing app, using saved user data rather than demo figures. Published on 19 October 2026 after owner approval. The website release is `f730ac7`; GitHub Pages deployment [passed](https://github.com/DaxtonZimmerman/flow-budget/actions/runs/39208482315). All three matching Edge Function updates (`plaid`, `plaid-webhook`, `plaid-production-webhook`) were deployed to the existing Supabase project. Each editor’s complete source was compared with the tested local file before deployment. The signed-in function retains gateway JWT verification; both webhooks retain their signature-verification configuration. Unsigned requests were rejected by all three endpoints. No database migration, secret change, paid product, new bank connection, or deletion was performed.
 
 Implemented and tested:
 
@@ -15,7 +15,7 @@ Implemented and tested:
 - Monthly due-date anchors, repeated bills through the horizon, overdue-bill checks, explicit paid-bill confirmation, and renewed essential reserves after an expired payday is confirmed.
 - Conservative high-confidence category mapping for new bank activity. Generic mixed-purpose payment names remain in review. Explicit personal categories and saved rules retain precedence.
 - Recent activity review by default; full history remains optional. Setup does not require historical category cleanup.
-- Synthetic browser checks of full setup, arithmetic, bill confirmation, set-aside edits, existing category controls, review scope, and individual editing. Six screens checked at 1440, 1024, 768, 390, and 320 pixels.
+- 95 automated checks passed locally and in the release workflow. Synthetic browser checks covered full setup, arithmetic, bill confirmation, set-aside edits, account selection, stale-edit protection, partially entered setup reserves, existing category controls, review scope, and individual editing. Six screens checked at 1440, 1024, 768, 390, and 320 pixels. Published page and script bytes match the release; the live signed-out Home rendered without console errors.
 
 Deliberate limits of this release:
 
@@ -25,7 +25,7 @@ Deliberate limits of this release:
 - Credit accounts cannot be selected as spending cash. The user must include unpaid card repayments as bills; comprehensive card planning is future work.
 - Payday suggestions, monthly bill patterns, and category confidence reduce routine work. Transfer pairing, variable-income forecasts, automatic bill matching, batch undo enhancements, and measured new-user/pay-cycle validation remain future roadmap items.
 - Progress saves on each setup step, Back, and Save & close. Partially entered essential reserves are retained when leaving a step; unsaved typing warns before navigation.
-- The cash/bill preview works with a confirmed manual balance before the server update. Automatic account balances and newly retained bank categories require deployment of `plaid`, `plaid-webhook`, and `plaid-production-webhook`. No database migration or secret change is required.
+- Automatic cached account balances and newly retained bank categories are included in the deployed functions. Missing or unavailable balances still support an explicitly confirmed manual amount. No database migration or secret change was needed. A signed-in user’s first real account refresh remains a private-pilot validation step; the release checks did not retrieve or change the owner’s financial records.
 
 ## Product decision
 
