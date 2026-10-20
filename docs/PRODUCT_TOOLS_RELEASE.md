@@ -33,7 +33,7 @@ The interface preserves Flow's current identity and five-tab structure. Advanced
 ## Verification completed locally
 
 - **178 automated checks pass**: existing behavior plus exact split/refund math, money coverage, sparse-history suggestions, goal/bill union and consumption, variable/partial bills, full/fixed card reserves, pending replacement, card payment matching, paused rules, reminders, versioned sync, and backup compatibility.
-- **38 JavaScript files parse.** Static build succeeds and excludes tests, server code, SQL, documentation, and environment files.
+- **40 JavaScript files parse.** Static build succeeds and excludes tests, server code, SQL, documentation, and environment files.
 - Isolated desktop and 390px/320px Chrome checks pass for demo isolation, previews, goals, custom categories, split editing, reconciliation, weekly check-in, preferences, help, stale-save guards, navigation, and horizontal overflow.
 - A separate synthetic financial workflow passes for variable/one-off/partial bills, a linked goal, card configuration/purchase/repayment/reconfirmation, correction-preserving rule editing and undo, demo-export rejection, and a full backup restore.
 - Real service-worker tests pass for installation, offline reload/navigation/edit persistence, queued owner edits, recovery status, keyboard dialog focus/Escape, and exclusion of private/auth request URLs from caches.
@@ -72,3 +72,7 @@ For rollback, keep the database guard and retained version-2 data. Do not remove
 This implements steps 1–8; it does not prove demand or complete every acceptance gate. Observe fresh beginners, compare estimates and bill/card behavior through complete private pay cycles, and check other institutions/account lifecycles deliberately. Safari/Firefox/mobile-install behavior, assistive-technology review, representative large-history performance, independent security review, protected server recovery, monitoring, public support/policies, ownership, and commercial provider costs need separate validation. No new users have been invited and no subscription system has been enabled.
 
 Use the proposed evidence gates in [the product plan](PAID_PRODUCT_PLAN.md) to decide what improves next. The owner's no-spend constraint and commit/publication review preference remain in effect.
+
+## Live cache correction — 19 October 2026
+
+The initial live check exposed a browser with older shared files cached: the new demo markup was mixed with previous code reading the normal device workspace. No edit action was taken in that mismatched demo. The corrected build fingerprints public asset URLs, bypasses the old HTTP cache when preparing offline files, and matches script/style cache entries to the requested version. A dedicated warm-cache browser regression verifies the sample amount and transactions, unchanged synthetic native workspace data, and offline isolation; desktop/phone and offline journeys also pass. Existing installations use the explicit Update app action before reloading the corrected version. The database guard remains applied.

@@ -4,7 +4,7 @@ const base=process.env.FLOW_TEST_URL||'http://127.0.0.1:4329/';
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.FLOW_CHROME_PATH || undefined});
  const context=await browser.newContext({viewport:{width:1440,height:1100},serviceWorkers:'block'});
- await context.route('**/*',route=>{const u=route.request().url();if(u.endsWith('/js/cloud-config.js'))return route.fulfill({contentType:'text/javascript',body:'const flowCloudUrl="";const flowCloudKey="";'});if(!u.startsWith(base))return route.abort();return route.continue();});
+ await context.route('**/*',route=>{const u=route.request().url();if(new URL(u).pathname.endsWith('/js/cloud-config.js'))return route.fulfill({contentType:'text/javascript',body:'const flowCloudUrl="";const flowCloudKey="";'});if(!u.startsWith(base))return route.abort();return route.continue();});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.stack));page.setDefaultTimeout(6000);
  const go=path=>page.goto(base+path,{waitUntil:'domcontentloaded'}),tool=()=>page.locator('#flow-tools-dialog'),click=action=>page.locator(`[data-tool="${action}"]`).first().click();
  async function close(){if(await tool().isVisible())await tool().getByRole('button',{name:'Close',exact:true}).click();}

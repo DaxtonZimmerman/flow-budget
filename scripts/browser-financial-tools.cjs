@@ -5,7 +5,7 @@ const base=process.env.FLOW_TEST_URL||'http://127.0.0.1:4329/';
  const browser=await chromium.launch({headless:true,executablePath:process.env.FLOW_CHROME_PATH||undefined});
  try{
   const context=await browser.newContext({viewport:{width:390,height:950},serviceWorkers:'block'});
-  await context.route('**/*',r=>{const url=r.request().url();if(url.endsWith('/js/cloud-config.js'))return r.fulfill({contentType:'text/javascript',body:'const flowCloudUrl="";const flowCloudKey="";'});return url.startsWith(base)?r.continue():r.abort();});
+  await context.route('**/*',r=>{const url=r.request().url();if(new URL(url).pathname.endsWith('/js/cloud-config.js'))return r.fulfill({contentType:'text/javascript',body:'const flowCloudUrl="";const flowCloudKey="";'});return url.startsWith(base)?r.continue():r.abort();});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.stack));page.setDefaultTimeout(7000);
   const go=f=>page.goto(base+f,{waitUntil:'domcontentloaded'}),d=()=>page.locator('#flow-tools-dialog'),submit=()=>d().locator('button[type=submit]').click(),close=()=>d().getByRole('button',{name:'Close',exact:true}).click();
   const action=async(a)=>{if(['bill-occurrence','partial-bill'].includes(a)){const disclosure=page.locator('#flow-plan-tools details');if(!await disclosure.getAttribute('open'))await disclosure.locator('summary').click();}return page.locator(`[data-tool="${a}"]`).first().click();},expectLeft=async value=>assert.match(await page.locator('.plan-summary').innerText(),new RegExp(value.replace('.','\\.')));

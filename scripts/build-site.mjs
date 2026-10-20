@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+await import("./build-assets.mjs");
 await import("./build-demo.mjs");
 await import("./build-offline.mjs");
 

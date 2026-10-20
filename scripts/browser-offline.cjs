@@ -31,7 +31,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
   await page.getByRole('link',{name:'Home',exact:true}).first().click();await page.locator('[data-tool=purchase]').click();
   for(let i=0;i<10;i++){await page.keyboard.press('Tab');const focus=await page.evaluate(()=>({inside:document.querySelector('#flow-tools-dialog').contains(document.activeElement),element:document.activeElement.outerHTML.slice(0,240)}));assert.equal(focus.inside,true,JSON.stringify(focus));}
   await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
-  await context.setOffline(false);await page.waitForFunction(()=>navigator.onLine);assert.equal(await page.locator('#flow-connectivity').isVisible(),false);
+  await context.setOffline(false);await page.waitForFunction(()=>navigator.onLine);await page.locator('#flow-connectivity').waitFor({state:'hidden'});assert.equal(await page.locator('#flow-connectivity').isVisible(),false);
   await page.screenshot({path:'/private/tmp/flow-product-offline-recovered.png',animations:'disabled'});
   assert.deepEqual(errors,[]);console.log('PASS: offline installation/reopen/navigation/edit persistence, queued owner changes, no private/auth caching, recovery indicator, keyboard modal focus trap and Escape.');
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
