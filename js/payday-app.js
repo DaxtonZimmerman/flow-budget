@@ -4,8 +4,9 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const home = document.querySelector('#payday-home');
     const plan = document.querySelector('#payday-plan');
     const setup = document.querySelector('#payday-setup');
+    const billsPage = document.querySelector('#payday-bills');
     const settings = document.querySelector('#payday-settings');
-    if (!home && !plan && !setup && !settings) return;
+    if (!home && !plan && !setup && !settings && !billsPage) return;
     const frequencyNames = { weekly: 'Every week', biweekly: 'Every two weeks', semimonthly: 'Twice a month (15th and month end)', monthly: 'Every month', quarterly: 'Every three months', yearly: 'Every year', irregular: 'No regular payday', once: 'One time' };
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -16,12 +17,13 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const amountField = (label, name, cents = null, extra = '') => field(label, name, cents == null ? '' : (cents / 100).toFixed(2), 'number', `step="0.01" min="0" required ${extra}`);
     const selectFrequency = (name, value, bill = false) => `<label class="field">${bill ? 'Repeats' : 'How often?'}<select name="${name}">${Object.entries(frequencyNames).filter(([key]) => bill ? !['irregular', 'semimonthly'].includes(key) : !['once', 'quarterly', 'yearly'].includes(key)).map(([key, label]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`;
     const header = (eyebrow, title, action = '') => `<div class="section-top"><div><p class="small-label">${eyebrow}</p><h3>${title}</h3></div>${action}</div>`;
+    let modalInvoker = null;
     let p, accounts, transactions, pageBase, owner = flowStorage.getItem('flow_user_id'), modalBase, setupDirty = false, checkIn = null, renderedDay = flowToday();
     const dialog = document.createElement('dialog');
     dialog.id = 'payday-dialog'; dialog.className = 'transaction-details-dialog'; dialog.setAttribute('aria-labelledby', 'payday-dialog-title');
     document.body.appendChild(dialog);
     const message = document.createElement('p'); message.className = 'payday-message'; message.setAttribute('role', 'status'); message.setAttribute('aria-live', 'polite');
-    (setup || home || plan || settings).after(message);
+    (setup || home || plan || settings || billsPage).after(message);
     function notify(text) { message.textContent = text; }
     function icons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
     function load() { p = loadFlowPlanning(); accounts = loadBankAccounts(); transactions = loadTransactions(); pageBase = flowStorage.getItem('flowPlanning'); }
@@ -70,30 +72,90 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         const nameIcon = t.type === 'Transfer' ? 'arrow-left-right' : t.amount > 0 ? 'banknote' : ({ Food: 'utensils', Transport: 'fuel', Shopping: 'shopping-bag', Entertainment: 'music', Bills: 'file-text' })[t.category] || 'receipt';
         return `<button type="button" class="transaction-row payday-transaction" data-plan-action="transaction" data-id="${esc(t.id)}"><span class="transaction-left"><span class="merchant-icon blue-icon">${icon(nameIcon)}</span><span><strong>${esc(displayName)}</strong><span>${esc(category)}${t.status === 'pending' ? ' · Pending' : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</span></span></span><span class="transaction-right"><strong class="${t.amount > 0 && t.type !== 'Transfer' ? 'income-text' : ''}">${t.amount < 0 ? '−' : '+'}${money(Math.abs(Math.round(t.amount * 100)))}</strong><span>${validPlanDate(t.date) ? date(t.date) : 'Date needed'}</span></span></button>`;
     }
-    function categoryBars() {
-        const today = flowToday();
-        const days = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate();
-        const categories = Object.entries(getSpendingBreakdown(transactions, today.slice(0, 7), days).categorySpending).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-        const max = Math.max(1, ...categories.map(([, n]) => n));
-        return categories.length ? `<div class="categories-mini">${categories.slice(0, 8).map(([name, value]) => `<div class="category-mini"><div class="row-between"><span>${esc(name)}</span><strong>${money(Math.round(value * 100))}</strong></div><div class="progress-bar"><div class="progress-fill" style="width:${value / max * 100}%"></div></div></div>`).join('')}</div>` : `<p class="detail-help">Your spending breakdown appears as activity arrives.</p>`;
+    function categoryBars(month) {
+        const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+        const categories = Object.entries(getSpendingBreakdown(transactions, month, days).categorySpending).filter(([, n]) => n !== 0).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+        const max = Math.max(1, ...categories.map(([, n]) => Math.abs(n)));
+        return categories.length ? `<div class="categories-mini" role="list" aria-label="Expenses by category">${categories.map(([name, value]) => `<div class="category-mini ${value < 0 ? 'net-refund' : ''}" role="listitem"><div class="row-between"><span>${esc(name)}</span><strong>${money(Math.round(value * 100))}</strong></div><div class="progress-bar" aria-hidden="true"><div class="progress-fill" style="width:${Math.abs(value) / max * 100}%"></div></div></div>`).join('')}</div>` : `<p class="detail-help">No expenses recorded for this month yet.</p>`;
+    }
+    function homeOverview() {
+        const requestedMonth = new URLSearchParams(location.search).get('month');
+        const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth || '') ? requestedMonth : flowToday().slice(0, 7);
+        const label = new Date(month + '-01T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const totals = getMoneyTotals(transactions, month);
+        return `<section class="home-panel home-overview" aria-labelledby="home-overview-title"><div class="home-panel-heading"><div><p class="home-muted">Recorded activity</p><h2 id="home-overview-title">${esc(label)}</h2></div><a class="home-text-link" href="transactions.html?month=${month}">See activity ${icon('chevron-right')}</a></div><dl class="home-totals"><div><dt>Total income</dt><dd id="home-income">${money(moneyToCents(totals.income))}</dd></div><div><dt>Total expenses</dt><dd id="home-expenses">${money(moneyToCents(totals.spending))}</dd></div><div><dt>Remaining balance</dt><dd id="home-balance" ${totals.net < 0 ? 'class="home-negative"' : ''}>${money(moneyToCents(totals.net))}</dd></div></dl><p class="home-overview-note">Income minus expenses, separate from your bank balance.</p><div class="home-category-chart"><h3>Expenses by category</h3>${categoryBars(month)}</div><p class="home-footnote">Transfers and pending payments excluded. Refunds reduce expenses.</p></section>`;
     }
     function recoveryAction(e, cls = 'save-button') {
         if (!p.setup.completed) return `<a class="${cls}" href="setup.html">Start the short setup ${icon('arrow-right')}</a>`;
         if (paydayCheckInDue(p)) return button('Start payday check-in', 'payday-checkin', cls);
-        if (e.missing.some(item => /balance|spending account/i.test(item))) return button('Confirm available balance', 'balance', cls);
+        if (e.missing.some(item => /repayment|card/i.test(item) || accounts.some(a => a.type === 'credit' && a.name && item.toLowerCase().includes(a.name.toLowerCase())))) return '<button type="button" class="' + cls + '" data-tool="card">Check card repayment ' + icon('arrow-right') + '</button>';
+        if (e.missing.some(item => /overdue bills/i.test(item))) return '<a class="' + cls + '" href="bills.html#bill-tracking">Check overdue bills</a>';
+        if (e.missing.some(item => /balance|spending account/i.test(item))) return '<button type="button" class="' + cls + '" data-tool="reconcile">Check available money</button>';
         if (e.missing.some(item => /payday/i.test(item))) return button('Confirm next payday', 'payday', cls);
-        if (e.missing.some(item => /bills/i.test(item))) return '<a class="' + cls + '" href="budgets.html#bill-tracking">Check upcoming bills</a>';
+        if (e.missing.some(item => /bills/i.test(item))) return '<a class="' + cls + '" href="setup.html?step=3">Confirm upcoming bills</a>';
         return '<a class="' + cls + '" href="setup.html?step=4">Check money to keep aside</a>';
     }
     function paydayCheckInCard() {
         if (!paydayCheckInDue(p)) return '';
         return `<section class="card payday-checkin-card">${header('A fresh plan', p.payday.nextDate === flowToday() ? 'It’s your planning day.' : 'Ready for your next plan?', icon('sunrise'))}<p>Your previous plan ended ${date(p.payday.nextDate)}. Confirm your next payday, today’s available money, and your set-asides. Your bills come with you.</p>${button('Start payday check-in', 'payday-checkin')}<small>No pay is assumed to have arrived. Nothing changes until you finish.</small></section>`;
     }
+    let homeSlideKey = 'spending', homeSlides = [], homeChanges = [], homeBaseline;
+    function homeSource() { return flowHomeSourceStatus(p, accounts, flowToday()); }
+    function homeTask(task, cls = 'home-next-main') {
+        const content = '<span class="home-next-icon">' + icon(task.icon) + '</span><span><strong>' + esc(task.title) + '</strong><small>' + esc(task.text) + '</small></span>' + icon('chevron-right');
+        if (task.href) return '<a class="' + cls + '" href="' + esc(task.href) + '">' + content + '</a>';
+        return '<button type="button" class="' + cls + '" ' + (task.tool ? 'data-tool="' + task.tool + '"' : 'data-plan-action="' + task.action + '"') + '>' + content + '</button>';
+    }
+    function homeTasks(e) {
+        const reminders = typeof flowReminderItems === 'function' ? flowReminderItems(p, e, accounts, transactions) : [];
+        return flowHomeTasks(p, e, billState(), transactions.filter(needsCurrentTransactionReview).length, reminders, paydayCheckInDue(p));
+    }
+    function homeHighlights(e) {
+        const week = flowWeeklySummary(p, transactions, accounts), slides = [];
+        if (week.transactions) {
+            const days = Array.from({ length: 7 }, (_, i) => addPlanDays(week.since, i));
+            const daily = days.map(day => Math.round(getMoneyTotals(transactions.filter(t => t.date === day)).spending * 100));
+            const max = Math.max(1, ...daily.map(Math.abs));
+            slides.push({ key: 'spending', label: 'Recorded spending',
+                body: '<strong class="home-highlight-amount">' + money(week.spendingCents) + '</strong><p>' + date(week.since) + '–' + date(flowToday()) + ' · posted, net of refunds</p><div class="home-spark" role="img" aria-label="' + esc(days.map((d, i) => date(d) + ': ' + money(daily[i])).join('; ')) + '">' + daily.map((n, i) => '<span class="home-spark-day"><span class="home-spark-bar ' + (n < 0 ? 'refund' : '') + '" style="height:' + Math.abs(n) / max * 22 + 'px"></span><span class="home-spark-label">' + new Date(days[i] + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'narrow' }) + '</span></span>').join('') + '</div>' });
+        }
+        const goal = (e.goals || flowFeatures(p).goals)[0];
+        if (goal) {
+            const saved = goal.remainingCents ?? goal.reservedCents;
+            slides.push({ key: 'goal', label: goal.name, body: '<strong class="home-highlight-amount">' + money(saved) + '</strong><p>of ' + money(goal.targetCents) + ' · ' + (goal.location === 'inside' ? 'kept in spending money' : 'held outside spending money') + '</p><progress value="' + Math.min(saved, goal.targetCents) + '" max="' + goal.targetCents + '" aria-label="' + esc(goal.name) + ' progress"></progress><button type="button" class="home-text-link" data-tool="goal" data-id="' + esc(goal.id) + '">Open goal ' + icon('chevron-right') + '</button>' });
+        }
+        if (homeBaseline === undefined) { try { homeBaseline = JSON.parse(flowStorage.getItem('flowLastEstimate') || 'null'); } catch (_) { homeBaseline = null; } }
+        const current = flowEstimateSnapshot(p, e);
+        homeChanges = flowExplainChange(homeBaseline, current);
+        if (homeChanges.length) slides.push({ key: 'changes', label: 'Since your last saved view', body: '<strong class="home-highlight-amount">' + homeChanges.length + ' plan ' + (homeChanges.length === 1 ? 'input' : 'inputs') + ' changed</strong><p>See which amounts changed in this payday plan.</p>' + button('See changes ' + icon('chevron-right'), 'home-changes', 'home-text-link') });
+        if (e.ready && !document.hidden) try { flowStorage.setItem('flowLastEstimate', JSON.stringify(current)); } catch (_) { /* Optional view comparisons must not block Home. */ }
+        if (p.preferences.weeklyReminders === true) slides.push({ key: 'weekly', label: 'Your weekly check-in', body: '<strong class="home-highlight-amount">' + (week.due ? 'A quick reset' : 'All checked') + '</strong><p>' + (week.due ? 'Money, bills, and what changed.' : 'Last checked ' + date(flowFeatures(p).checkIn.date) + '.') + '</p><button type="button" class="home-text-link" data-tool="weekly">' + (week.due ? 'Start check-in' : 'View check-in') + ' ' + icon('chevron-right') + '</button>' });
+        homeSlides = slides;
+        if (!slides.length) return '';
+        if (!slides.some(slide => slide.key === homeSlideKey)) homeSlideKey = slides[0].key;
+        const selected = slides.find(slide => slide.key === homeSlideKey), index = slides.indexOf(selected);
+        return '<section class="home-panel home-highlights" aria-roledescription="carousel" aria-label="Your highlights"><div class="home-panel-heading"><h2>Your highlights</h2>' + (slides.length > 1 ? '<div class="home-carousel-arrows">' + button(icon('chevron-left'), 'home-slide', 'icon-button', 'data-step="-1" aria-label="Previous highlight"') + button(icon('chevron-right'), 'home-slide', 'icon-button', 'data-step="1" aria-label="Next highlight"') + '</div>' : '') + '</div><div class="home-highlight-content" aria-live="polite" aria-atomic="true"><span class="home-muted">' + esc(selected.label) + '</span>' + selected.body + '</div>' + (slides.length > 1 ? '<div class="home-carousel-dots" aria-label="Choose a highlight">' + slides.map((slide, i) => button('<span></span>', 'home-slide', 'home-slide-dot', 'data-key="' + slide.key + '" aria-label="' + (i + 1) + ' of ' + slides.length + ': ' + esc(slide.label) + '" aria-pressed="' + (i === index) + '"')).join('') + '</div>' : '') + '</section>';
+    }
     function renderHome() {
         if (!home) return;
-        const e = estimate(); const reviewCount = transactions.filter(needsCurrentTransactionReview).length; const bills = billState();
-        const recent = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
-        home.innerHTML = `<div class="page-header"><div><p class="small-label">Your money, in focus</p><h2>A little clarity for your day<span class="heading-dot">.</span></h2><p>${e.ready ? `Your plan through ${date(p.payday.nextDate)}.` : 'A few small decisions, more room to breathe.'}</p></div></div>${paydayCheckInCard()}<section class="payday-grid"><article class="spending-overview payday-hero"><div><div class="hero-top"><span class="hero-eyebrow"><span class="live-dot"></span>${e.ready ? (e.leftCents < 0 ? 'Estimated shortfall until payday' : 'Estimated left until payday') : 'Your payday plan'}</span><span class="hero-period">${e.ready ? e.days + ' days to go' : ''}</span></div><h3>${e.ready ? money(e.leftCents) : p.setup.completed ? 'A quick check' : 'Let’s make a plan'}</h3><p class="hero-caption">${e.ready ? 'After bills and all money kept aside.' : esc(e.missing[0]) + ' to see what’s left until payday.'}</p>${e.ready ? button('See how this is calculated ' + icon('arrow-up-right'), 'breakdown', 'hero-link') : recoveryAction(e, 'hero-link')}</div><div class="hero-metrics"><div><span>${icon('calendar-days')} Next payday</span><strong>${date(p.payday.nextDate)}</strong></div><div><span>${e.ready ? (e.leftCents < 0 ? 'Review your plan' : 'About this much per day') : p.setup.completed ? 'Plan status' : 'Your progress'}</span><strong>${e.ready ? (e.leftCents < 0 ? 'Adjust set-asides' : money(Math.floor(e.leftCents / e.days))) : p.setup.completed ? (paydayCheckInDue(p) ? 'Check-in due' : 'Needs a check') : `Step ${p.setup.step + 1} of 6`}</strong></div></div></article><article class="card">${header('Coming up', 'Before payday', '<a href="budgets.html">Manage</a>')}${p.preferences.billReminders ? timeline() : '<p class="detail-help">Upcoming bill reminders are hidden. You can still see and edit every bill in Plan.</p>'}<p class="detail-help">Confirmed unpaid bills are set aside in your estimate.</p></article></section><section class="card attention-card">${header('Your next step', reviewCount || !e.ready || bills.alerts.length || bills.suggestions.length ? 'Just a little attention' : 'You’re up to date', '<span class="subtle-icon">' + icon('sparkles') + '</span>')}<div class="attention-list">${bills.alerts.length ? `<a class="attention-item row-between" href="budgets.html#bill-tracking"><span><strong>${bills.alerts.length} bill ${bills.alerts.length === 1 ? 'needs' : 'need'} a check</strong><small>Check payments, changed amounts, or dates that have passed.</small></span><span>↗</span></a>` : bills.suggestions.length ? `<a class="attention-item row-between" href="budgets.html#bill-discovery"><span><strong>${bills.suggestions.length} possible ${bills.suggestions.length === 1 ? 'bill' : 'bills'} to confirm</strong><small>A quick check now can save work next time.</small></span><span>↗</span></a>` : ''}${reviewCount ? `<a class="attention-item row-between" href="review.html?quick=1"><span><strong>${reviewCount} ${reviewCount === 1 ? 'payment needs' : 'payments need'} a decision</strong><small>Choose categories for the few payments that vary.</small></span><span>↗</span></a>` : ''}${!e.ready ? `<a class="attention-item row-between" href="setup.html"><span><strong>${p.setup.completed ? 'Refresh your plan' : 'Take the short setup guide'}</strong><small>${esc(e.missing.slice(0, 2).join(' · '))}</small></span><span>↗</span></a>` : !reviewCount && !bills.alerts.length && !bills.suggestions.length ? '<p class="detail-help">Your new activity is sorted. Your categories stay editable in Activity.</p>' : ''}</div></section><section class="bottom-grid"><article class="card recent-card">${header('Latest activity', 'Recent transactions', '<a href="transactions.html">See all</a>')}<div class="transaction-list">${recent.map(recentRow).join('') || '<p class="detail-help">Connect a bank or add your first transaction to get started.</p><a class="back-button" href="account.html">Open Account</a>'}</div></article><article class="card">${header('This month', 'Where it went')}${categoryBars()}</article></section>`;
+        home.dataset.design = 'payday-path';
+        const e = estimate(), source = homeSource(), tasks = homeTasks(e), today = flowToday();
+        const recent = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 3);
+        const upcoming = p.billsConfirmed ? e.bills.filter(b => b.dueDate >= today && b.dueDate <= p.payday.nextDate).slice(0, 2) : [];
+        let notice = '';
+        if (p.setup.completed && !e.ready) notice = '<div class="home-notice" role="status">' + icon('circle-help') + '<div><strong>Your plan needs a check</strong><p>' + esc(e.missing[0]) + '.</p></div>' + button('See checks' + (e.missing.length > 1 ? ' (' + e.missing.length + ')' : ''), 'breakdown', 'home-text-link') + '</div>';
+        else if (e.ready && e.leftCents < 0) notice = '<div class="home-notice">' + icon('triangle-alert') + '<div><strong>Your plan needs adjusting</strong><p>Bills and set-asides exceed your available money.</p></div></div>';
+        else if (e.ready && source.caution) notice = '<div class="home-notice">' + icon('clock-3') + '<div><strong>' + esc(source.label) + '</strong><p>A recent update check does not establish the bank’s balance date.</p></div>' + button('Details', 'home-source', 'home-text-link') + '</div>';
+        const heroAction = !e.ready ? recoveryAction(e, 'home-primary') : e.leftCents < 0 ? '<a class="home-primary" href="budgets.html">Adjust my plan ' + icon('arrow-right') + '</a>' : '<button type="button" class="home-primary" data-tool="purchase">Can I spend this? ' + icon('arrow-right') + '</button>';
+        const hero = '<section class="payday-hero home-hero" id="flow-decision-tools" aria-labelledby="home-money-title"><div class="home-hero-period">' + icon('sun') + ' ' + (validPlanDate(p.payday.nextDate) ? 'Until ' + date(p.payday.nextDate) + ' payday' : 'Your payday plan') + '</div><h3 class="home-amount">' + (e.ready ? money(Math.abs(e.leftCents)) : p.setup.completed ? 'Let’s check' : 'Let’s make a plan') + '</h3><h2 id="home-money-title">' + (e.ready ? e.leftCents < 0 ? 'Estimated shortfall' : 'Estimated left until payday' : p.setup.completed ? 'Confirm your plan' : 'Start with your next payday') + '</h2><div class="home-hero-meta">' + button(esc(source.label), 'home-source', 'home-source-button') + button('How it works ' + icon('chevron-right'), 'breakdown', 'home-text-link') + '</div>' + heroAction + '</section>';
+        const path = '<section class="home-panel"><div class="home-panel-heading"><h2>Your payday path</h2><a class="home-text-link" href="bills.html">All bills</a></div><div class="home-path"><div class="home-path-stop"><span class="home-path-dot">' + icon('circle-dot') + '</span><strong>Today</strong><small>' + date(today) + '</small></div>' + upcoming.map(b => button('<span class="home-path-dot">' + icon('receipt') + '</span><strong>' + esc(b.name) + '</strong><small>' + date(b.dueDate) + '</small>', 'bill', 'home-path-stop', 'data-id="' + esc(b.id) + '" aria-label="View ' + esc(b.name) + ', due ' + date(b.dueDate) + '"')).join('') + button('<span class="home-path-dot">' + icon('flag') + '</span><strong>Payday</strong><small>' + date(p.payday.nextDate) + '</small>', 'payday', 'home-path-stop') + '</div>' + (!p.billsConfirmed ? '<p class="home-footnote">Confirm your bills in setup to add them to the path.</p>' : '') + '</section>';
+        const next = e.ready && tasks.length ? '<section class="home-next">' + homeTask(tasks[0]) + (tasks.length > 1 ? button('See all ' + tasks.length + ' tasks', 'home-tasks', 'home-all-tasks') : '') + '</section>' : '';
+        const highlights = homeOverview() + homeHighlights(e);
+        home.innerHTML = '<h1 class="sr-only">Home</h1>' + notice + '<div class="home-layout"><div class="home-main-column">' + hero + path + next + '</div><div class="home-side-column">' + highlights + '<section class="home-panel home-recent"><div class="home-panel-heading"><h2>Recent activity</h2><a class="home-text-link" href="transactions.html">See all</a></div><div class="transaction-list">' + (recent.map(recentRow).join('') || '<div class="home-empty"><p>Your payments will appear here.</p><a href="account.html#bank-connections" class="home-text-link">Connect a bank ' + icon('chevron-right') + '</a><a href="add-transaction.html" class="home-text-link">Add a payment ' + icon('chevron-right') + '</a></div>') + '</div></section></div></div>';
+    }
+    function renderBills() {
+        if (!billsPage) return;
+        billsPage.innerHTML = '<div class="page-header"><h1>Bills</h1>' + button('Add bill ' + icon('plus'), 'bill', 'save-button') + '</div><section class="card">' + header('', 'Before payday') + timeline(true) + '</section>' + billManagementCards();
     }
     function renderPlan() {
         if (!plan) return;
@@ -370,12 +432,29 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (!settings) return;
         settings.innerHTML = `<section class="card account-card">${header('Getting comfortable', 'Setup & help')}<div class="plain-list"><div class="row-between"><div><strong class="setting-title">Your setup guide</strong><p>${p.setup.completed ? 'Revisit any choice in your plan.' : 'One small decision at a time.'}</p></div><a href="setup.html" class="back-button">${p.setup.completed ? 'Revisit' : 'Open'}</a></div><div class="row-between"><div><strong class="setting-title">How the payday number works</strong><p>See what’s included and kept aside.</p></div>${button(icon('chevron-right'), 'breakdown', 'icon-button', 'aria-label="Explain payday amount"')}</div><div class="row-between"><div><strong class="setting-title">Spending accounts</strong><p>Available money, sources, and freshness.</p></div>${button('Manage', 'accounts', 'back-button')}</div></div></section><section class="card account-card">${header('Preferences', 'A little help, when you want it')}<label class="toggle-label"><input type="checkbox" data-plan-preference="billReminders" ${p.preferences.billReminders ? 'checked' : ''}>Show upcoming bills in Flow</label><label class="toggle-label"><input type="checkbox" data-plan-preference="autoCategories" ${p.preferences.autoCategories ? 'checked' : ''}>Organize reliable new bank categories automatically</label><p class="detail-help">You can always change an individual category. Mixed-purpose payments stay flexible.</p></section>`;
     }
-    function render() { if (setup && setupDirty) return; try { load(); renderHome(); renderPlan(); renderSettings(); if (setup && !setupDirty) renderSetup(); icons(); document.dispatchEvent(new Event('flow-payday-rendered')); } catch (error) { notify(error.message); } }
+    function render() { if (setup && setupDirty) return; try { load(); renderHome(); renderPlan(); renderBills(); renderSettings(); if (setup && !setupDirty) renderSetup(); icons(); document.dispatchEvent(new Event('flow-payday-rendered')); } catch (error) { notify(error.message); } }
     document.addEventListener('click', event => {
         const target = event.target.closest('[data-plan-action]'); if (!target) return;
         const action = target.dataset.planAction;
+        if (!dialog.open) modalInvoker = window.FlowApp?.describeControl(target);
         try {
             if (action === 'close') return dialog.close();
+            if (action === 'home-slide') {
+                const focused = { key: target.dataset.key, step: target.dataset.step };
+                const current = homeSlides.findIndex(slide => slide.key === homeSlideKey);
+                homeSlideKey = target.dataset.key || homeSlides[(current + Number(target.dataset.step) + homeSlides.length) % homeSlides.length]?.key;
+                renderHome(); icons();
+                [...home.querySelectorAll('[data-plan-action="home-slide"]')].find(control => focused.key ? control.dataset.key === focused.key : control.dataset.step === focused.step)?.focus({ preventScroll: true });
+                return;
+            }
+            if (action === 'home-tasks') return showModal('Your next steps', '<div class="home-task-list">' + homeTasks(estimate()).map(task => homeTask(task)).join('') + '</div>');
+            if (action === 'home-changes') return showModal('What changed in your plan', '<div class="breakdown">' + homeChanges.map(c => '<div><span>' + esc(c.label) + '</span><strong>' + (c.deltaCents >= 0 ? '+' : '') + money(c.deltaCents) + '</strong></div>').join('') + '</div><p class="detail-help">Changes to saved plan inputs, not a claim that every bank payment has arrived or been reconciled.</p>');
+            if (action === 'home-source') {
+                const selected = accounts.filter(a => p.selectedAccountIds.includes(a.id));
+                const details = p.manualBalance ? '<p class="detail-help">Available money confirmed by you on ' + date(p.manualBalance.date) + '. Manual amounts need confirmation on a new day.</p>' : selected.map(a => '<div class="home-source-row"><strong>' + esc(a.name) + '</strong><p>' + (a.bankUpdatedAt && Number.isFinite(Date.parse(a.bankUpdatedAt)) ? 'Bank balance dated ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : 'Bank balance date unavailable') + '.</p><small>Retrieved ' + (Number.isFinite(Date.parse(a.retrievedAt)) ? esc(new Date(a.retrievedAt).toLocaleString()) : 'at an unknown time') + '.</small></div>').join('') || '<p class="detail-help">Choose spending accounts or confirm your available money in setup.</p>';
+                return showModal('Your spending money', details + '<p class="detail-help">A check for bank updates does not force a new transaction or balance from your bank. Available balances can already include pending holds.</p><div class="heading-actions"><button type="button" class="back-button" data-tool="reconcile">Check my plan</button><a class="back-button" href="account.html#bank-connections">Account & banks</a></div>');
+            }
+
             if (action === 'transaction') return window.FlowTransactionDetails.open(target.dataset.id);
             if (action === 'setup-back' || action === 'save-close') return advanceSetup(setup.querySelector('form'), action === 'setup-back' ? 'back' : 'close');
             if (setupDirty && ['bill', 'suggested-bill', 'refresh-accounts'].includes(action)) { notify('Continue or save this step before opening another decision.'); return; }
@@ -395,7 +474,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             }, 'Use selected accounts');
             if (action === 'payday-checkin' || action === 'payday' && paydayCheckInDue(p)) return startPaydayCheckIn();
             if (action === 'checkin-back' && checkIn) { rememberCheckInFields(); checkIn.step--; renderPaydayCheckIn(); return; }
-            if (action === 'checkin-bills' && checkIn) { dialog.close(); location.href = 'budgets.html#bill-tracking'; return; }
+            if (action === 'checkin-bills' && checkIn) { dialog.close(); location.href = 'bills.html#bill-tracking'; return; }
             if (action === 'checkin-refresh' && checkIn) {
                 rememberCheckInFields(); const draft = checkIn; target.disabled = true;
                 const refresh = window.refreshFlowAccounts;
@@ -443,7 +522,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         catch (error) { event.target.checked = !event.target.checked; notify(error.message); }
     });
     document.addEventListener('flow-bank-updated', () => { if (setupDirty || dialog.open) notify('New bank activity arrived. Finish your current edit to refresh the view.'); else render(); });
-    dialog.addEventListener('close', () => { checkIn = null; if (!setupDirty) render(); });
+    dialog.addEventListener('close', () => { checkIn = null; if (!setupDirty) render(); window.FlowApp?.restoreControl(modalInvoker); });
     document.addEventListener('flow-transaction-updated', render);
     document.addEventListener('flow-transaction-view-refresh', render);
     document.addEventListener('flow-accounts-updated', () => { if (setupDirty || dialog.open) notify('Account balances updated. Finish your current edit to refresh the view.'); else render(); });

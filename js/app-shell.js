@@ -4,6 +4,28 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const searchDialog = document.querySelector('#app-search-dialog');
     const installDialog = document.querySelector('#install-dialog');
     let installPrompt = null;
+    const accountDialog = document.querySelector('#app-account-dialog');
+    const describeControl = element => element ? Object.fromEntries(['data-tool','data-plan-action','data-id','data-key','data-step','data-open-account'].filter(name => element.hasAttribute(name)).map(name => [name, element.getAttribute(name)])) : null;
+    function restoreControl(record) {
+        requestAnimationFrame(() => {
+            if (document.querySelector('dialog[open]')) return;
+            const match = record && Object.keys(record).length && [...document.querySelectorAll('button,a[href]')].find(element => element.getClientRects().length && !element.closest('dialog:not([open])') && Object.entries(record).every(([name,value]) => element.getAttribute(name) === value));
+            (match || document.querySelector('[data-open-account]'))?.focus({preventScroll:true});
+        });
+    }
+    window.FlowApp = {describeControl,restoreControl};
+    for (const button of document.querySelectorAll('[data-open-account]')) button.addEventListener('click', () => accountDialog?.showModal());
+    accountDialog?.addEventListener('click', event => { if (event.target.closest('a[href]')) accountDialog.close(); });
+    accountDialog?.addEventListener('close', () => restoreControl({'data-open-account':''}));
+    function openHashTarget() {
+        let target; try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch (_) { return; }
+        if (!target) return;
+        const details = target.tagName === 'DETAILS' ? target : target.closest('details');
+        if (details) { details.open = true; requestAnimationFrame(() => target.scrollIntoView({block:'start'})); }
+    }
+    window.addEventListener('hashchange', openHashTarget);
+    document.addEventListener('DOMContentLoaded', openHashTarget);
+
 
     for (const button of document.querySelectorAll('[data-open-search]')) {
         button.addEventListener('click', () => searchDialog.showModal());
@@ -91,6 +113,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const status = document.querySelector('#flow-sync-status');
     if (status) {
         new MutationObserver(() => {
+            status.classList.toggle('sync-quiet', /^All changes saved\.$/.test(status.textContent.trim()));
             status.classList.toggle('sync-warning', /could not|changes on two|choose which|data changed|different account/i.test(status.textContent));
         }).observe(status, { childList: true, characterData: true, subtree: true });
     }

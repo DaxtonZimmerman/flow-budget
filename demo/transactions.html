@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="../css/app.css?v=c91e86205087de8d">
     <link rel="stylesheet" href="../css/payday.css?v=66114351f438f117">
     <script src="../js/storage.js?v=2f7e2302da412706" defer></script>
-    <script src="../js/app-shell.js?v=1b2de99a2915a99b" defer></script>
+    <script src="../js/app-shell.js?v=67b6e5097e19e886" defer></script>
     <script src="../js/app-offline.js?v=550eab51741ec331" defer></script>
 
     <script src="../vendor/lucide.min.js?v=f01557cbefed1c14" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
@@ -38,31 +38,30 @@
     <script src="../js/transactions.js?v=234c6f58a2e4de5f" defer></script>
     <script src="../js/transfer-app.js?v=85312566e1227586" defer></script>
     <link rel="stylesheet" href="../css/product.css?v=69e4237b7169e882">
-    <script src="../js/product-app.js?v=3e78f051fd15d426" defer></script>
+    <script src="../js/product-app.js?v=56bf3901e645172d" defer></script>
+    <link rel="stylesheet" href="../css/redesign.css?v=c769f7fb387cb9c6">
 </head>
 
-<body data-page="activity">
+<body class="app-redesign" data-page="activity">
 
     <div class="app">
 
         <aside class="sidebar">
             <div class="sidebar-top">
                 <a class="brand" href="index.html" aria-label="Flow home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
-                <p class="nav-caption">Your workspace</p>
-                <nav class="nav" aria-label="Main navigation"><a href="index.html" id="history-dashboard-link" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Home</span></a><a href="transactions.html" class="nav-link active" aria-current="page"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" id="history-budgets-link" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
+                <nav class="nav" aria-label="Main navigation"><a href="index.html" id="history-dashboard-link" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Home</span></a><a href="transactions.html" class="nav-link active" aria-current="page"><i data-lucide="arrow-down-up" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" id="history-budgets-link" class="nav-link"><i data-lucide="wallet" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="bills.html" class="nav-link"><i data-lucide="calendar-days" class="nav-icon" aria-hidden="true"></i><span>Bills</span></a></nav>
             </div>
             <div class="sidebar-bottom">
-                <div class="sidebar-note"><span class="sidebar-note-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><strong>A little clarity.<br>A little more room.</strong><p>Make a plan that fits your life.</p></div>
-                <button type="button" class="install-button" data-install-app><i data-lucide="panel-top" aria-hidden="true"></i><span>Get the app experience</span><i data-lucide="arrow-up-right" aria-hidden="true"></i></button>
-                <a href="account.html" class="workspace-account"><span class="workspace-avatar"><i data-lucide="user-round" aria-hidden="true"></i></span><span><strong>My workspace</strong><small>Account &amp; connected banks</small></span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+                <a href="account.html#flow-product-settings" class="shell-help"><i data-lucide="circle-help" aria-hidden="true"></i>Help &amp; tips</a>
+                <button type="button" class="install-button" data-install-app><i data-lucide="panel-top" aria-hidden="true"></i><span>Install Flow</span></button>
             </div>
         </aside>
 
 
         <main class="main">
             <div class="app-toolbar">
-                <div class="app-breadcrumb"><span>My workspace</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Activity</strong></div>
-                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a></div>
+                <a class="toolbar-brand" href="index.html" aria-label="Flow home"><span class="logo">Flow<span class="brand-dot">.</span></span></a><span class="toolbar-title">Activity</span>
+                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a><button type="button" class="profile-launch" data-open-account aria-label="Open account and banks" aria-haspopup="dialog"><i data-lucide="user-round" aria-hidden="true"></i></button></div>
             </div>
 
             <div class="page-header">
@@ -268,6 +267,16 @@
         <form action="transactions.html" method="get" class="app-search-form"><input id="search-month" type="hidden" name="month"><label for="app-search-input" class="sr-only">Name, category, or notes</label><i data-lucide="search" aria-hidden="true"></i><input id="app-search-input" name="search" type="search" placeholder="Name, category, or notes" autocomplete="off"><button type="submit" class="save-button">Search</button></form><p class="dialog-help">Search across your saved activity.</p>
     </dialog>
     <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title"><div class="dialog-heading"><span class="install-symbol"><i data-lucide="panel-top" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-dialog aria-label="Close install instructions"><i data-lucide="x" aria-hidden="true"></i></button></div><h2 id="install-title">Give Flow a place of its own.</h2><p>Open Flow from your home screen or dock, in its own app window.</p><ol id="install-steps"></ol><button class="save-button" type="button" data-close-dialog>Got it</button></dialog>
+    <dialog id="app-account-dialog" class="account-menu" aria-labelledby="app-account-title">
+        <div class="dialog-heading"><h2 id="app-account-title">Account &amp; banks</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close account menu"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <nav class="account-menu-links" aria-label="Account">
+            <a href="account.html#bank-connections"><i data-lucide="landmark" aria-hidden="true"></i><span>Account &amp; bank connections</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#payday-settings"><i data-lucide="settings-2" aria-hidden="true"></i><span>Preferences &amp; setup</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="setup.html"><i data-lucide="sprout" aria-hidden="true"></i><span>Setup guide</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#flow-product-settings"><i data-lucide="circle-help" aria-hidden="true"></i><span>Help &amp; weekly check-in</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#account-backups"><i data-lucide="download" aria-hidden="true"></i><span>Backups &amp; privacy</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+        </nav>
+    </dialog>
 </body>
 
 </html>

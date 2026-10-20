@@ -10,7 +10,7 @@
     const option = (value,label,current) => `<option value="${esc(value)}" ${value===current?'selected':''}>${esc(label)}</option>`;
     const categories = (p,current='Other',name='category') => `<label class="field">Category<select name="${name}">${[...new Set([...flowCategories(p),current])].map(c=>option(c,c,current)).join('')}</select></label>`;
     const dialog = document.createElement('dialog'); dialog.id='flow-tools-dialog';dialog.className='transaction-details-dialog flow-tools-dialog';dialog.setAttribute('aria-labelledby','flow-tools-title');document.body.append(dialog);
-    let opened = null, ruleUndo = null, reconciliation = null;
+    let opened = null, ruleUndo = null, reconciliation = null, toolInvoker = null;
     function read() {
         const snapshot = getFlowSnapshot();
         return { snapshot, p: snapshot.flowPlanning || defaultFlowPlanning(), tx: snapshot.transactions, accounts: snapshot.bankAccounts || [], rules: snapshot.categoryRules || [] };
@@ -200,7 +200,7 @@
         if(!document.querySelector('.main'))return;
         let s,e;try{s=read();e=estimate(s);}catch(error){announce(error.message);return;}
         const f=flowFeatures(s.p),home=document.querySelector('#payday-home'),plan=document.querySelector('#payday-plan'),settings=document.querySelector('#payday-settings');
-        if(home){
+        if(home && home.dataset.design !== 'payday-path'){
             home.querySelector('#flow-decision-tools')?.remove();
             const section=document.createElement('section');section.id='flow-decision-tools';section.className='card product-decision';
             section.innerHTML=`<div class="section-top"><div><p class="small-label">Make a decision</p><h3>Your money, explained.</h3></div>${button('Quick guide','help','','inline-link')}</div><p class="freshness-label">${esc(freshness(s))}</p><div class="tool-actions">${button('Can I spend this?','purchase','','save-button')}${button('Check my plan','reconcile')}${button('Weekly check-in','weekly')}</div>${help('Your essentials are already kept aside. The headline is the extra flexible money after those needs.')}<div class="tools-reminders">${flowReminderItems(s.p,e,s.accounts,s.tx).slice(0,3).map(r=>`<div class="reminder-row"><div><strong>${esc(r.title)}</strong><p>${esc(r.text)}</p></div>${button('Open',r.action)}${button('Tomorrow','snooze',`data-id="${esc(r.id)}"`,'inline-link')}</div>`).join('')}</div><div id="flow-change-summary"></div>`;
@@ -223,13 +223,14 @@
     }
     document.addEventListener('click',event=>{
         const target=event.target.closest('[data-tool]');if(!target)return;const action=target.dataset.tool;
+        if(!dialog.open)toolInvoker=window.FlowApp?.describeControl(target);
         if(['add-split-row','remove-split-row'].includes(action))return;
         try{
             if(action==='close')return dialog.close();
             const operations={purchase,reconcile,adjustments:adjustment,goal:()=>goal(target.dataset.id),contribute:()=>contribute(target.dataset.id),card:()=>card(target.dataset.id),'card-payments':payments,categories:categoryManager,category:()=>categoryManager(target.dataset.id),rules,rule:()=>rules(target.dataset.id),weekly,help:helpSheet,split:()=>split(target.dataset.id),refund:()=>refund(target.dataset.id),'partial-bill':()=>partialBill(target.dataset.id,target.dataset.date),'bill-occurrence':()=>billOccurrence(target.dataset.id,target.dataset.date)};
-            if(operations[action])return operations[action]();
+            if(operations[action]){document.querySelector('#payday-dialog[open]')?.close();return operations[action]();}
             if(action==='reconcile-back'){guard();reconciliation.step=Math.max(0,reconciliation.step-1);return reconcile(false);}
-            if(action==='bills'){location.href='budgets.html#bill-tracking';return;}
+            if(action==='bills'){location.href='bills.html#bill-tracking';return;}
             if(action==='payday-checkin'){document.querySelector('[data-plan-action="payday-checkin"]')?.click();return;}
             if(action==='snooze'){const s=read();opened={state:s,stamp:stamp(),owner:storage.getItem('flow_user_id'),day:flowToday()};const f=features(s);f.reminders=f.reminders.filter(r=>r.id!==target.dataset.id);f.reminders.push({id:target.dataset.id,until:addPlanDays(flowToday(),1)});return commit(s,'Reminder snoozed through tomorrow.');}
             guard();const s=opened.state;
@@ -244,7 +245,7 @@
     });
     document.addEventListener('change',event=>{const key=event.target.dataset.toolsPreference;if(!['remindersEnabled','weeklyReminders'].includes(key))return;try{const s=read();opened={state:s,owner:storage.getItem('flow_user_id'),stamp:stamp(),day:flowToday()};s.p.preferences[key]=event.target.checked;commit(s,'Reminder preference saved.');}catch(error){event.target.checked=!event.target.checked;announce(error.message);}});
     dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const b=dialog.getBoundingClientRect();if(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom)dialog.close();});
-    dialog.addEventListener('close',()=>{if(!dialog.open)opened=null;});
+    dialog.addEventListener('close',()=>{if(!dialog.open){opened=null;window.FlowApp?.restoreControl(toolInvoker);}});
     for(const event of ['flow-payday-rendered','flow-transaction-view-refresh','flow-accounts-updated','flow-review-updated'])document.addEventListener(event,()=>{if(!dialog.open)render();});
     document.addEventListener('DOMContentLoaded',render);
     window.FlowTools={openTransaction:transactionTools,openPurchase:purchase,openReconciliation:reconcile,render};

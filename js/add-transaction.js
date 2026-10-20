@@ -90,9 +90,7 @@ const day = String(today.getDate()).padStart(2, "0");
 
 const currentMonth = `${year}-${month}`;
 
-dateInput.value = selectedMonth && selectedMonth !== currentMonth
-    ? `${selectedMonth}-01`
-    : `${currentMonth}-${day}`;
+dateInput.value = `${currentMonth}-${day}`;
 
 
 /* fill the form when editing */
@@ -342,6 +340,10 @@ transactionForm.addEventListener("submit", function(event) {
     }
     flowDataChanged();
 
+
+    if (editId === null && selectedMonth && date.slice(0, 7) !== selectedMonth) {
+        returnPage = `${returnPage.split("?")[0]}?month=${date.slice(0, 7)}`;
+    }
 
     window.location.href = returnPage;
 
