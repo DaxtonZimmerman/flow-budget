@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* Versioned payday planning. Money is stored as integer cents. */
 function flowToday() {
     const now = new Date();
@@ -39,7 +40,7 @@ function validFlowPlanning(p) {
     const cents = n => Number.isSafeInteger(n) && n >= 0;
     const frequencies = ['weekly', 'biweekly', 'semimonthly', 'monthly', 'quarterly', 'yearly', 'once', 'irregular'];
     return Boolean(p && p.version === 1 && p.setup && Number.isInteger(p.setup.step) && p.setup.step >= 0 && p.setup.step <= 5 &&
-        validBillAutomationFields(p) && typeof p.setup.completed === 'boolean' && (p.setup.reserveDraft === undefined || p.setup.reserveDraft && typeof p.setup.reserveDraft === 'object' && !Array.isArray(p.setup.reserveDraft) && Object.values(p.setup.reserveDraft).every(value => typeof value === 'string' && value.length <= 30)) && (p.periodStartedOn === '' || validPlanDate(p.periodStartedOn)) &&
+        (typeof validFlowFeatures !== 'function' ? p.features === undefined : validFlowFeatures(p.features) && validFlowPlanningExtras(p)) && validBillAutomationFields(p) && typeof p.setup.completed === 'boolean' && (p.setup.reserveDraft === undefined || p.setup.reserveDraft && typeof p.setup.reserveDraft === 'object' && !Array.isArray(p.setup.reserveDraft) && Object.values(p.setup.reserveDraft).every(value => typeof value === 'string' && value.length <= 30)) && (p.periodStartedOn === '' || validPlanDate(p.periodStartedOn)) &&
         Array.isArray(p.selectedAccountIds) && p.selectedAccountIds.every(id => typeof id === 'string' && id) && new Set(p.selectedAccountIds).size === p.selectedAccountIds.length &&
         (p.manualBalance === null || p.manualBalance && Number.isSafeInteger(p.manualBalance.cents) && validPlanDate(p.manualBalance.date)) &&
         p.payday && (p.payday.nextDate === '' || validPlanDate(p.payday.nextDate)) && frequencies.includes(p.payday.frequency) &&
@@ -56,7 +57,7 @@ function validBillAutomationFields(p) {
     if (!Array.isArray(p.bills)) return false;
     const historyClaims = new Map();
     for (const b of p.bills) {
-        if (!b || typeof b !== 'object') return false;
+        if (!b || typeof b !== 'object' || typeof validFlowBillExtras === 'function' && !validFlowBillExtras(b)) return false;
         if (b.tracking !== undefined && (!b.tracking || !text(b.tracking.merchant) || !text(b.tracking.accountId) || !text(b.tracking.bankConnectionId) || b.tracking.currency !== 'USD')) return false;
         if (b.paymentHistory !== undefined && (!Array.isArray(b.paymentHistory) || b.paymentHistory.some(h => !h || !text(h.transactionKey) || !text(h.fingerprint) || !validPlanDate(h.dueDate)))) return false;
         for (const h of b.paymentHistory || []) {
@@ -83,7 +84,7 @@ function validBillAutomationFields(p) {
     return true;
 }
 function loadFlowPlanning() {
-    const raw = localStorage.getItem('flowPlanning');
+    const raw = flowStorage.getItem('flowPlanning');
     if (!raw) return defaultFlowPlanning();
     const planning = JSON.parse(raw);
     if (!validFlowPlanning(planning)) throw new Error('Your payday plan could not be read. Download a backup from Account before restoring a saved copy.');
@@ -91,7 +92,7 @@ function loadFlowPlanning() {
 }
 function saveFlowPlanning(planning) {
     if (!validFlowPlanning(planning)) throw new Error('Check the dates and amounts in your plan.');
-    localStorage.setItem('flowPlanning', JSON.stringify(planning));
+    flowStorage.setItem('flowPlanning', JSON.stringify(planning));
     if (typeof flowDataChanged === 'function') flowDataChanged();
     if (typeof document !== 'undefined') document.dispatchEvent(new Event('flow-planning-updated'));
 }
@@ -119,6 +120,7 @@ function preparePaydayCheckIn(planning, choices, today = flowToday()) {
         anchorDay: keepAnchor ? planning.payday.anchorDay || Number(planning.payday.nextDate.slice(-2)) : Number(choices.nextDate.slice(-2)) };
     next.manualBalance = choices.balanceMode === 'manual' ? { cents: choices.balanceCents, date: today } : null;
     next.periodStartedOn = today;
+    next.reservePeriodKey = `${today}:${Date.now()}:${Math.random()}`;
     next.essentials = next.essentials.map((e, i) => ({ ...e, amountCents: choices.essentialAmounts[i] }));
     next.cushionCents = choices.cushionCents;
     next.billsConfirmed = true; next.reservesConfirmed = true;
@@ -135,7 +137,7 @@ function validBankAccounts(accounts) {
         typeof a.retrievedAt === 'string' && Number.isFinite(Date.parse(a.retrievedAt))) && new Set(accounts.map(a => a.id)).size === accounts.length;
 }
 function loadBankAccounts() {
-    const accounts = JSON.parse(localStorage.getItem('bankAccounts') || '[]');
+    const accounts = JSON.parse(flowStorage.getItem('bankAccounts') || '[]');
     if (!validBankAccounts(accounts)) throw new Error('Your saved account balances could not be read. Open Account to sync again.');
     return accounts;
 }
@@ -155,7 +157,7 @@ function planBillOccurrences(planning, through) {
     for (const bill of planning.bills) {
         let date = bill.nextDate;
         for (let n = 0; n < 180 && date && date <= through; n++) {
-            result.push({ ...bill, dueDate: date });
+            if (typeof flowBillIncluded !== 'function' || flowBillIncluded(bill,date)) result.push({ ...bill, dueDate: date, amountCents: typeof billAmountAt === 'function' ? billAmountAt(bill,date) : bill.amountCents });
             date = nextPlanDate(date, bill.frequency, bill.anchorDay || Number(bill.nextDate.slice(-2)));
         }
     }
@@ -214,9 +216,10 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
     const essentialsCents = reserves.reduce((n, e) => n + e.remainingCents, 0);
     const leftCents = balanceCents - billsCents - essentialsCents - planning.cushionCents;
     if (![balanceCents, billsCents, essentialsCents, leftCents].every(Number.isSafeInteger)) missing.push('Check your plan amounts');
-    return { ready: missing.length === 0, missing: [...new Set(missing)], notes, balanceCents, billsCents, essentialsCents,
+    const result = { ready: missing.length === 0, missing: [...new Set(missing)], notes, balanceCents, billsCents, essentialsCents,
         cushionCents: planning.cushionCents, leftCents, bills, reserves,
-        days: validPlanDate(planning.payday.nextDate) ? Math.max(1, planDays(today, planning.payday.nextDate)) : null };
+        days: validPlanDate(planning.payday.nextDate) ? Math.max(1, planDays(today, planning.payday.nextDate)) : null, excludedPayments: tracking?.excludedPayments, billRows: tracking?.rows };
+    return typeof flowEnhanceEstimate === 'function' ? flowEnhanceEstimate(result, planning, accounts, transactions, today, now) : result;
 }
 function currentReviewStart(today = flowToday()) {
     try { const p = loadFlowPlanning(); return p.setup.completed && validPlanDate(p.periodStartedOn) ? p.periodStartedOn : addPlanDays(today, -14); }

@@ -1,15 +1,16 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* shared budget data */
 
 function loadBudgets(month) {
 
-    const savedMonths = localStorage.getItem("budgetsByMonth");
+    const savedMonths = flowStorage.getItem("budgetsByMonth");
     const budgetsByMonth = JSON.parse(savedMonths) || {};
 
     if (budgetsByMonth[month]) {
         const budgets = budgetsByMonth[month];
 
         if (addMissingIds(budgets)) {
-            localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
+            flowStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
 
             if (typeof flowDataChanged === "function") flowDataChanged();
         }
@@ -17,13 +18,13 @@ function loadBudgets(month) {
         return budgets;
     }
 
-    const savedBudgets = localStorage.getItem("budgets");
+    const savedBudgets = flowStorage.getItem("budgets");
 
     if (savedBudgets !== null) {
         const budgets = JSON.parse(savedBudgets) || [];
 
         if (addMissingIds(budgets)) {
-            localStorage.setItem("budgets", JSON.stringify(budgets));
+            flowStorage.setItem("budgets", JSON.stringify(budgets));
 
             if (typeof flowDataChanged === "function") flowDataChanged();
         }
@@ -31,7 +32,7 @@ function loadBudgets(month) {
         return budgets;
     }
 
-    localStorage.setItem("budgets", "[]");
+    flowStorage.setItem("budgets", "[]");
 
     return [];
 
@@ -40,12 +41,12 @@ function loadBudgets(month) {
 
 function saveBudgets(month, budgets) {
 
-    const savedMonths = localStorage.getItem("budgetsByMonth");
+    const savedMonths = flowStorage.getItem("budgetsByMonth");
     const budgetsByMonth = JSON.parse(savedMonths) || {};
 
     budgetsByMonth[month] = budgets;
 
-    localStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
+    flowStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
     if (typeof flowDataChanged === "function") flowDataChanged();
 
 }
@@ -76,36 +77,13 @@ function getSelectedMonth() {
 
 
 function getBudgetSpending(category, transactions, month) {
-
-    let spentCents = 0;
-    const seenIds = new Set();
-
-    for (const transaction of transactions) {
-
-        if (
-            transaction.category === category &&
-            transaction.date &&
-            transaction.date.slice(0, 7) === month &&
-            transaction.status !== "pending" &&
-            transaction.type !== "Transfer"
-        ) {
-            const id = String(transaction.id);
-
-            if (transaction.id !== undefined && seenIds.has(id)) {
-                continue;
-            }
-
-            seenIds.add(id);
-
-            if (transaction.type === "Refund") {
-                spentCents -= moneyToCents(transaction.amount);
-            } else if (transaction.amount < 0) {
-                spentCents += Math.abs(moneyToCents(transaction.amount));
-            }
-        }
-
+    let cents = 0; const seen = new Set();
+    for (const t of transactions) {
+        if (!t.date || t.date.slice(0, 7) !== month || t.status === 'pending' || t.type === 'Transfer' || t.id !== undefined && seen.has(String(t.id))) continue;
+        if (t.id !== undefined) seen.add(String(t.id));
+        if (t.type !== 'Refund' && t.amount >= 0) continue;
+        const parts = typeof flowTransactionParts === 'function' ? flowTransactionParts(t) : [{ category: t.category || 'Other', cents: Math.abs(moneyToCents(t.amount)) }];
+        for (const part of parts) if (!part.income && part.category === category) cents += (t.type === 'Refund' ? -1 : 1) * part.cents;
     }
-
-    return centsToMoney(spentCents);
-
+    return centsToMoney(cents);
 }

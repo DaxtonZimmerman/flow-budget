@@ -9,6 +9,9 @@ function transactionWithDetails(current, values, opened) {
         }
     }
     if (JSON.stringify(current.transferPair) !== JSON.stringify(opened.transferPair)) throw new Error("This transfer match changed. Reopen it to see the latest details.");
+    for (const key of ['allocations', 'relatedExpense', 'cardPayment']) if (JSON.stringify(current[key]) !== JSON.stringify(opened[key])) throw new Error('The payment details changed. Reopen this transaction.');
+    if (current.cardPayment && values.type !== current.type) throw new Error('Undo the card payment link before changing its type.');
+    if (current.allocations?.length && values.type !== current.type) throw new Error('Remove the split before changing the payment type.');
     if (current.transferPair && values.type !== current.type) throw new Error("Undo the transfer match before changing its type.");
     const inferredType = current.amount < 0 ? "Expense" : "Income";
     const allowed = current.source === "bank"

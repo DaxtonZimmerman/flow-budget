@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* Small, shared app controls. No network calls or financial data writes. */
 (function () {
     const searchDialog = document.querySelector('#app-search-dialog');
@@ -11,6 +12,15 @@
         button.addEventListener('click', () => button.closest('dialog').close());
     }
     document.addEventListener('keydown', event => {
+        if (event.key === 'Tab') {
+            const modal = [...document.querySelectorAll('dialog[open]')].at(-1);
+            if (modal) {
+                const items = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]')].filter(item=>item.getClientRects().length);
+                const first=items[0],last=items.at(-1);
+                if (first && event.shiftKey && document.activeElement===first) {event.preventDefault();last.focus();}
+                else if (last && !event.shiftKey && document.activeElement===last) {event.preventDefault();first.focus();}
+            }
+        }
         const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '') || document.activeElement?.isContentEditable;
         if ((event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) || (event.key === '/' && !typing)) {
             if (document.querySelector('dialog[open]')) return;
@@ -67,7 +77,7 @@
     function updateReviewBadge() {
         if (typeof needsTransactionReview !== 'function') return;
         try {
-            const items = JSON.parse(localStorage.getItem('transactions')) || [];
+            const items = JSON.parse(flowStorage.getItem('transactions')) || [];
             const count = items.filter(typeof needsCurrentTransactionReview === 'function' ? needsCurrentTransactionReview : needsTransactionReview).length;
             for (const badge of document.querySelectorAll('[data-review-badge]')) {
                 badge.hidden = count === 0;
@@ -118,7 +128,7 @@
             } else installDialog.showModal();
         });
     }
-    if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
+    if ((typeof flowDemoMode !== 'undefined' && flowDemoMode) || matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
         for (const button of document.querySelectorAll('[data-install-app]')) button.hidden = true;
     }
 })();

@@ -11,23 +11,23 @@ function suggestedBankCategory(name, type, category) {
 function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const amount = Math.round(Number(item.amount) * 100) / -100;
     const inferredType = amount < 0 ? "Expense" : "Income";
-    const keepOverride = previous && previous.typeOverride && !previous.bankTypeRuleId &&
+    const keepOverride = previous && previous.typeOverride && (!previous.bankTypeRuleId || rules.some(r => r.id === previous.bankTypeRuleId && r.paused)) &&
         (previous.type === "Transfer" ||
             (previous.type === "Refund" && amount > 0));
     const name = item.merchant_name || item.name || "Bank transaction";
     const normalized = String(name).trim().toLowerCase().replace(/\s+/g, " ");
-    const transferRule = rules.find(candidate => candidate.bankType === "Transfer" &&
+    const transferRule = rules.find(candidate => !candidate.paused && candidate.bankType === "Transfer" &&
         candidate.name === normalized && candidate.type === inferredType &&
         typeof candidate.accountId === "string" && candidate.accountId.length > 0 &&
         candidate.accountId === accountId && amount !== 0);
     const useTransferRule = transferRule && !keepOverride &&
         (!previous || previous.reviewStatus !== "reviewed" || previous.bankTypeRuleId === transferRule.id);
     const type = keepOverride ? previous.type : useTransferRule ? "Transfer" : inferredType;
-    const rule = rules.find(candidate => !candidate.bankType && candidate.name === normalized &&
+    const rule = rules.find(candidate => !candidate.paused && !candidate.bankType && candidate.name === normalized &&
         candidate.type === type);
     const useRule = rule && (!previous || previous.reviewStatus !== "reviewed" ||
         previous.categoryRuleId === rule.id);
-    const removedTypeRule = previous && previous.bankTypeRuleId && !useTransferRule;
+    const removedTypeRule = previous && previous.bankTypeRuleId && !useTransferRule && !keepOverride;
     const metadata = item.personal_finance_category || previous?.bankCategory || null;
     let automatic = true;
     try { if (typeof loadFlowPlanning === 'function') automatic = loadFlowPlanning().preferences.autoCategories; } catch (_) { automatic = false; }
@@ -35,16 +35,17 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
     const useBankCategory = suggestion && !useRule && !useTransferRule &&
         (!previous || previous.bankCategoryAuto === true && previous.categoryReason === 'Bank category');
 
-    return {
+    const next = {
         id: previous && previous.bankTransactionId === item.transaction_id
             ? previous.id : `bank-${accountId}-${item.transaction_id}`,
         source: "bank",
         accountId: accountId,
         bankTransactionId: item.transaction_id,
+        pendingTransactionId: item.pending_transaction_id || previous?.pendingTransactionId || null,
         status: item.pending ? "pending" : "posted",
         type: type,
         typeOverride: Boolean(keepOverride || useTransferRule),
-        bankTypeRuleId: useTransferRule ? transferRule.id : undefined,
+        bankTypeRuleId: useTransferRule ? transferRule.id : keepOverride && previous?.bankTypeRuleId && rules.some(r => r.id === previous.bankTypeRuleId && r.paused) ? previous.bankTypeRuleId : undefined,
         name: name,
         amount: amount,
         date: item.date,
@@ -62,6 +63,7 @@ function bankTransactionFromPlaid(item, accountId, previous, rules = []) {
         reviewStatus: useRule || useTransferRule || useBankCategory ? "reviewed" : removedTypeRule ? "needs-review"
             : previous ? previous.reviewStatus : "needs-review"
     };
+    return typeof flowPreserveTransactionExtras === 'function' ? flowPreserveTransactionExtras(next, previous) : next;
 }
 
 

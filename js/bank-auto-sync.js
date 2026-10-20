@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* Read available bank updates while Flow is visible. Never force a bank refresh. */
 let bankRefreshing = false;
 const bankDisconnectingIds = new Set();
@@ -45,7 +46,7 @@ function showBankSyncStatus(phase, message) {
     bankSyncState = { phase, message };
     if (!document.body) return;
     let panel = document.querySelector('#flow-bank-sync');
-    const owner = localStorage.getItem('flow_user_id');
+    const owner = flowStorage.getItem('flow_user_id');
     if (!owner || !getFlowClient()) { if (panel) panel.hidden = true; return; }
     if (!panel) {
         const main = document.querySelector('.main'); if (!main) return;
@@ -62,14 +63,14 @@ function validBankCheckTime(value) {
     const time = Number(value); return Number.isFinite(time) && time > 0 && time <= Date.now() + 5000 ? time : 0;
 }
 function bankCheckLabel(owner) {
-    const time = validBankCheckTime(localStorage.getItem(`flow_bank_checked_at_${owner}`));
+    const time = validBankCheckTime(flowStorage.getItem(`flow_bank_checked_at_${owner}`));
     return time ? `Auto sync on · checked for bank updates ${new Date(time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. New activity may arrive later.` : 'Auto sync on · waiting to check available bank updates.';
 }
 function bankOwnerIsCurrent(owner) {
-    return Boolean(owner && localStorage.getItem('flow_user_id') === owner);
+    return Boolean(owner && flowStorage.getItem('flow_user_id') === owner);
 }
 async function syncBankConnection(connectionId) {
-    const owner = localStorage.getItem('flow_user_id');
+    const owner = flowStorage.getItem('flow_user_id');
     if (!owner || !getFlowClient()) throw new Error('Sign in to update your bank.');
     const key = owner + '|' + connectionId;
     if (bankSyncRequests.has(key)) return bankSyncRequests.get(key);
@@ -78,7 +79,7 @@ async function syncBankConnection(connectionId) {
         if (!bankOwnerIsCurrent(owner)) throw new Error('Your signed-in account changed. Reopen Flow before syncing.');
         if (bankDisconnectingIds.has(connectionId)) return { ...result, changed: false };
         const current = getFlowSnapshot().transactions;
-        const rules = JSON.parse(localStorage.getItem('categoryRules') || '[]');
+        const rules = JSON.parse(flowStorage.getItem('categoryRules') || '[]');
         let merged = mergeBankSnapshot(current, connectionId, result.transactions, rules);
         if (typeof reconcileTransferRecords === 'function' && typeof loadBankAccounts === 'function') {
             const accounts = loadBankAccounts();
@@ -86,13 +87,13 @@ async function syncBankConnection(connectionId) {
         }
         const changed = JSON.stringify(current) !== JSON.stringify(merged);
         if (changed) {
-            localStorage.setItem('transactions', JSON.stringify(merged));
+            flowStorage.setItem('transactions', JSON.stringify(merged));
             if (typeof refreshFlowDataViews === 'function') refreshFlowDataViews();
             else document.dispatchEvent(new Event('flow-transaction-view-refresh'));
             await flowDataChanged();
         }
         if (!bankOwnerIsCurrent(owner)) return { changed: false };
-        if (!bankDisconnectingIds.has(connectionId)) localStorage.setItem(`flow_bank_applied_at_${owner}_${connectionId}`, String(Date.parse(result.last_synced_at) || Date.now()));
+        if (!bankDisconnectingIds.has(connectionId)) flowStorage.setItem(`flow_bank_applied_at_${owner}_${connectionId}`, String(Date.parse(result.last_synced_at) || Date.now()));
         if (changed) document.dispatchEvent(new CustomEvent('flow-bank-updated', { detail: { changed: true } }));
         return { ...result, changed };
     })();
@@ -100,19 +101,19 @@ async function syncBankConnection(connectionId) {
     try { return await request; } finally { bankSyncRequests.delete(key); }
 }
 async function updateBanksAutomatically(options = {}) {
-    const owner = localStorage.getItem('flow_user_id'), client = getFlowClient();
+    const owner = flowStorage.getItem('flow_user_id'), client = getFlowClient();
     if (!owner || !client) { showBankSyncStatus('none', ''); return; }
     if (document.hidden || bankRefreshing || typeof flowSyncing !== 'undefined' && flowSyncing) return;
     if (!navigator.onLine) { showBankSyncStatus('offline', 'Offline · bank updates will resume when you reconnect.'); return; }
-    if (localStorage.getItem('flow_pending') === '1') { showBankSyncStatus('waiting', 'Bank updates will resume after your changes are saved.'); return; }
+    if (flowStorage.getItem('flow_pending') === '1') { showBankSyncStatus('waiting', 'Bank updates will resume after your changes are saved.'); return; }
     if (bankAutoOwner !== owner) { bankAutoOwner = owner; bankFailureCount = 0; bankRetryAt = 0; }
-    const checkedAt = validBankCheckTime(localStorage.getItem(`flow_bank_checked_at_${owner}`));
-    const attemptedAt = validBankCheckTime(localStorage.getItem(`flow_bank_attempted_at_${owner}`));
+    const checkedAt = validBankCheckTime(flowStorage.getItem(`flow_bank_checked_at_${owner}`));
+    const attemptedAt = validBankCheckTime(flowStorage.getItem(`flow_bank_attempted_at_${owner}`));
     const minimum = options.force ? 10 * 1000 : bankCheckInterval;
-    if (['idle', 'none', 'waiting', 'offline'].includes(bankSyncState.phase) && checkedAt && localStorage.getItem(`flow_bank_connections_present_${owner}`) === '1') showBankSyncStatus('ready', bankCheckLabel(owner));
+    if (['idle', 'none', 'waiting', 'offline'].includes(bankSyncState.phase) && checkedAt && flowStorage.getItem(`flow_bank_connections_present_${owner}`) === '1') showBankSyncStatus('ready', bankCheckLabel(owner));
     if (Date.now() - Math.max(checkedAt, attemptedAt) < minimum || !options.force && Date.now() < bankRetryAt) return;
     bankRefreshing = true; let failed = false, reconnect = false;
-    localStorage.setItem(`flow_bank_attempted_at_${owner}`, String(Date.now()));
+    flowStorage.setItem(`flow_bank_attempted_at_${owner}`, String(Date.now()));
     showBankSyncStatus('checking', 'Checking for available bank updates…');
     try {
         const user = await client.auth.getUser();
@@ -121,13 +122,13 @@ async function updateBanksAutomatically(options = {}) {
         const data = await bankRequest('connections');
         if (!bankOwnerIsCurrent(owner)) return;
         if (!Array.isArray(data.connections)) throw new Error('Bank connections are unavailable.');
-        localStorage.setItem(`flow_bank_connections_present_${owner}`, data.connections.length ? '1' : '0');
-        if (!data.connections.length) { showBankSyncStatus('none', ''); localStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now())); return; }
+        flowStorage.setItem(`flow_bank_connections_present_${owner}`, data.connections.length ? '1' : '0');
+        if (!data.connections.length) { showBankSyncStatus('none', ''); flowStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now())); return; }
         for (const connection of data.connections) {
-            if (!bankOwnerIsCurrent(owner) || localStorage.getItem('flow_pending') === '1') return;
+            if (!bankOwnerIsCurrent(owner) || flowStorage.getItem('flow_pending') === '1') return;
             if (connection.needs_reconnect) { reconnect = true; continue; }
             const lastSync = Date.parse(connection.last_synced_at || '') || 0;
-            const appliedAt = validBankCheckTime(localStorage.getItem(`flow_bank_applied_at_${owner}_${connection.id}`));
+            const appliedAt = validBankCheckTime(flowStorage.getItem(`flow_bank_applied_at_${owner}_${connection.id}`));
             const lastPull = validBankCheckTime(sessionStorage.getItem(`flow_bank_pulled_at_${owner}_${connection.id}`));
             if (!options.force && appliedAt && lastSync <= appliedAt && Date.now() - Math.max(lastSync, lastPull) < bankPullInterval) continue;
             try {
@@ -138,7 +139,7 @@ async function updateBanksAutomatically(options = {}) {
         }
         if (!bankOwnerIsCurrent(owner)) return;
         if (!failed) {
-            localStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now()));
+            flowStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now()));
             sessionStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now()));
             bankFailureCount = 0; bankRetryAt = 0;
         } else { bankFailureCount++; bankRetryAt = Date.now() + Math.min(bankPullInterval, bankCheckInterval * 2 ** Math.min(bankFailureCount - 1, 4)); }
@@ -151,12 +152,12 @@ async function updateBanksAutomatically(options = {}) {
     } finally {
         bankRefreshing = false;
         if (!bankOwnerIsCurrent(owner)) showBankSyncStatus('none', '');
-        else if (bankSyncState.phase === 'checking' && localStorage.getItem('flow_pending') === '1') showBankSyncStatus('waiting', 'Bank updates will resume after your changes are saved.');
+        else if (bankSyncState.phase === 'checking' && flowStorage.getItem('flow_pending') === '1') showBankSyncStatus('waiting', 'Bank updates will resume after your changes are saved.');
     }
 }
 async function checkBanksOnReturn(force = false) {
     if (bankReturnChecking) return;
-    if (document.hidden || !localStorage.getItem('flow_user_id') || !getFlowClient()) { if (!localStorage.getItem('flow_user_id')) showBankSyncStatus('none', ''); return; }
+    if (document.hidden || !flowStorage.getItem('flow_user_id') || !getFlowClient()) { if (!flowStorage.getItem('flow_user_id')) showBankSyncStatus('none', ''); return; }
     if (!navigator.onLine) { showBankSyncStatus('offline', 'Offline · bank updates will resume when you reconnect.'); return; }
     if (!force && Date.now() - bankLastReturn < 1000) return;
     bankLastReturn = Date.now();
@@ -178,8 +179,8 @@ window.addEventListener('online', () => checkBanksOnReturn());
 window.addEventListener('offline', () => showBankSyncStatus('offline', 'Offline · bank updates will resume when you reconnect.'));
 window.addEventListener('storage', event => {
     if (event.key === 'flow_user_id') { bankAutoOwner = ''; showBankSyncStatus('none', ''); return; }
-    if (!localStorage.getItem('flow_user_id')) return;
+    if (!flowStorage.getItem('flow_user_id')) return;
     if (['transactions', 'bankAccounts', 'flowPlanning', 'budgets', 'budgetsByMonth', 'categoryRules'].includes(event.key) && typeof refreshFlowDataViews === 'function') refreshFlowDataViews();
-    if (event.key === `flow_bank_checked_at_${localStorage.getItem('flow_user_id')}`) showBankSyncStatus('ready', bankCheckLabel(localStorage.getItem('flow_user_id')));
+    if (event.key === `flow_bank_checked_at_${flowStorage.getItem('flow_user_id')}`) showBankSyncStatus('ready', bankCheckLabel(flowStorage.getItem('flow_user_id')));
 });
 scheduleBankCheck();

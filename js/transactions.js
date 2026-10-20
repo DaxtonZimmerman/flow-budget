@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 if (typeof lucide !== "undefined") {
     lucide.createIcons();
 }
@@ -354,7 +355,7 @@ if (transactions.length === 0) {
                 return item.id !== transaction.id;
             });
 
-            localStorage.setItem(
+            flowStorage.setItem(
                 "transactions",
                 JSON.stringify(transactions)
             );

@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* Shared transaction popup for Activity, Home, and grouped review. */
 (function () {
     const dialog = document.createElement('dialog');
@@ -19,7 +20,7 @@
             <p id="transaction-details-type-help" class="transaction-details-help" hidden>Use Transfer for money moved between accounts you own.</p>
             <div class="form-group" id="transaction-details-date-field"><label for="transaction-details-date">Date</label><input id="transaction-details-date" type="date"></div>
             <div class="form-group"><label for="transaction-details-notes">What was it for? <span class="optional-label">Optional</span></label><textarea id="transaction-details-notes" rows="3" placeholder="For example, dinner with friends"></textarea></div>
-            <p id="transaction-details-message" class="form-message" role="status" aria-live="polite"></p>
+            <div id="transaction-tools-entry"></div><p id="transaction-details-message" class="form-message" role="status" aria-live="polite"></p>
             <div class="transaction-details-footer"><p>Only this transaction will change.</p><button type="submit" class="save-button">Save this transaction</button></div>
         </form>`;
     document.body.appendChild(dialog);
@@ -38,9 +39,9 @@
     }
 
     function updateType() {
-        category.disabled = type.value === 'Transfer';
+        category.disabled = type.value === 'Transfer' || Boolean(active?.transaction.allocations?.length);
         dialog.querySelector('#transaction-details-category-label').textContent =
-            category.disabled ? 'Category · not needed' : 'Category';
+            type.value === 'Transfer' ? 'Category · not needed' : active?.transaction.allocations?.length ? 'Category · split below' : 'Category';
         dialog.querySelector('#transaction-details-type-help').hidden = type.value !== 'Transfer';
     }
     type.addEventListener('change', updateType);
@@ -62,10 +63,11 @@
     function open(id) {
         const transaction = loadTransactions().find(item => String(item.id) === String(id));
         if (!transaction) return false;
-        active = { transaction: { ...transaction }, owner: localStorage.getItem('flow_user_id') };
+        active = { transaction: { ...transaction }, owner: flowStorage.getItem('flow_user_id') };
         message.textContent = '';
         const source = dialog.querySelector('#transaction-details-category-source');
         source.textContent = transaction.transferMatchIssue ? 'A transfer match was removed after bank details changed. Check this entry’s type and save your choice.' : transaction.categoryReason === 'Bank category' ? 'Sorted from a reliable category supplied by your bank. You can change this payment without changing the others.' : transaction.categoryReason || '';
+        if(transaction.allocationIssue) source.textContent='The bank amount changed. Open split details below to check its allocations.';
         source.hidden = !source.textContent;
         dialog.querySelector('#transaction-details-title').textContent = transaction.name;
         dialog.querySelector('#transaction-details-amount').textContent = `${transaction.amount < 0 ? '−' : '+'}${formatMoney(transaction.amount)}`;
@@ -77,7 +79,7 @@
         type.replaceChildren();
         for (const value of choices) type.add(new Option(value, value));
         type.value = transaction.type || (transaction.amount < 0 ? 'Expense' : 'Income');
-        type.disabled = transaction.source !== 'bank' || Boolean(transaction.transferPair);
+        type.disabled = transaction.source !== 'bank' || Boolean(transaction.transferPair || transaction.cardPayment);
         const transferInfo = dialog.querySelector('#transaction-transfer-info');
         transferInfo.replaceChildren(); transferInfo.hidden = true;
         if (transaction.source === 'bank' && typeof FlowTransfers !== 'undefined') {
@@ -99,12 +101,21 @@
             }
         }
         category.replaceChildren();
-        const allCategories = [...new Set([...standardCategories, transaction.category].filter(Boolean))];
+        const allCategories = [...new Set([...(typeof flowCategories === 'function' ? flowCategories() : standardCategories), transaction.category].filter(Boolean))];
         for (const value of allCategories) category.add(new Option(value, value));
         category.value = transaction.category || 'Other';
         date.value = transaction.date || '';
         dialog.querySelector('#transaction-details-date-field').hidden = transaction.source === 'bank';
         notes.value = transaction.notes || '';
+        const tools = dialog.querySelector('#transaction-tools-entry'); tools.replaceChildren();
+        if (typeof FlowTools !== 'undefined') {
+            const action = document.createElement('button'); action.type='button';action.className='back-button';
+            action.textContent=transaction.allocations?.length ? 'View split / reimbursement details' : 'Split payment / link reimbursement';
+            action.addEventListener('click',()=>{
+                if (notes.value !== (transaction.notes || '') || type.value !== transaction.type || category.value !== (transaction.category || 'Other')) {message.textContent='Save or close your edits before opening payment tools.';return;}
+                dialog.close();FlowTools.openTransaction(transaction.id);
+            });tools.append(action);
+        }
         updateType();
         if (!dialog.open) dialog.showModal();
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -118,13 +129,13 @@
         let current;
         const id = active.transaction.id;
         try {
-            if (active.owner !== localStorage.getItem('flow_user_id')) throw new Error('Your signed-in account changed. Close this window and reopen the transaction.');
-            current = JSON.parse(localStorage.getItem('transactions') || '[]');
+            if (active.owner !== flowStorage.getItem('flow_user_id')) throw new Error('Your signed-in account changed. Close this window and reopen the transaction.');
+            current = JSON.parse(flowStorage.getItem('transactions') || '[]');
             const index = current.findIndex(item => String(item.id) === String(id));
             const updated = transactionWithDetails(current[index], { type: type.value, category: category.value,
                 date: date.value, notes: notes.value }, active.transaction);
             current[index] = updated;
-            localStorage.setItem('transactions', JSON.stringify(current));
+            flowStorage.setItem('transactions', JSON.stringify(current));
         } catch (error) {
             message.textContent = error instanceof SyntaxError ? 'Flow could not read this transaction. Close this window and refresh.'
                 : error.name === 'QuotaExceededError' ? 'Flow could not save. Free some browser storage and try again.'

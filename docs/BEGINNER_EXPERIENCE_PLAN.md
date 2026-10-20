@@ -202,3 +202,13 @@ The repository already contains a 12-app interface comparison in `docs/DESIGN_RE
 - [Plaid Accounts API](https://plaid.com/docs/api/accounts/): `/accounts/get` is documented as free and returns cached account data; available balances can be absent and are not guaranteed to be real time. Verify actual team access and bank output during implementation. This does not imply that every Plaid product or unlimited bank connections are free.
 - [Plaid Transactions API](https://plaid.com/docs/api/products/transactions/): category intent and confidence metadata can support conservative automatic categorization. Missing/ambiguous categories still need explicit handling.
 
+
+## Implementation record — 19 October 2026, steps 1–8
+
+The local review build now implements the reconciliation, sample workspace, custom categories/splits/reimbursements, rule management, decision preview/change explanations, goals/variable bills, everyday card repayment planning, weekly routine, and offline/recovery tools described in [the product tools release review](PRODUCT_TOOLS_RELEASE.md). The earlier “Later” list records the original sequencing; these features are now built for review. Rich variable-income/debt modeling, household sharing, and external notifications remain later work.
+
+178 automated checks and isolated desktop/phone/offline/database tests pass. Publication and the required client-version migration are pending approval. No real financial data or provider settings changed during the build. Observed beginner outcomes, complete real pay-cycle validation, and independent security/operational gates remain open; a synthetic passing test is not evidence that those customer gates have passed.
+
+### Release approval — 19 October 2026
+
+The owner approved committing and publishing the steps 1–8 build and applying its compatibility guard. Supabase reported success applying the guard before frontend publication. The earlier pending-review statements record the preparation stage. Remaining customer and operational validation gates are unchanged.

@@ -49,6 +49,7 @@ const budgetRemaining = document.querySelector("#budget-remaining");
 /* show saved budgets */
 
 function showBudgets() {
+    if (typeof flowCategories === 'function') for (const name of flowCategories()) if (![...categoryInput.options].some(o=>o.value===name)) categoryInput.add(new Option(name,name));
 
     budgetList.replaceChildren();
     emptyBudgets.hidden = budgets.length > 0;
@@ -245,3 +246,5 @@ showBudgets();
 document.addEventListener('flow-transaction-view-refresh', () => {
     transactions = loadTransactions(); budgets = loadBudgets(selectedMonth); showBudgets();
 });
+
+document.addEventListener('flow-transaction-updated', () => { transactions=loadTransactions(); budgets=loadBudgets(selectedMonth); showBudgets(); });

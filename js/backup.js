@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 const downloadBackup = document.querySelector("#download-backup");
 const restoreBackup = document.querySelector("#restore-backup");
 const backupFile = document.querySelector("#backup-file");
@@ -10,12 +11,14 @@ downloadBackup.addEventListener("click", function() {
 
     const backup = {
         version: 1,
+        clientSchemaVersion: 2,
+        demo: typeof flowDemoMode !== 'undefined' && flowDemoMode,
         transactions: loadTransactions(),
-        budgets: JSON.parse(localStorage.getItem("budgets")) || [],
-        budgetsByMonth: JSON.parse(localStorage.getItem("budgetsByMonth")) || {},
-        categoryRules: JSON.parse(localStorage.getItem("categoryRules")) || [],
-        recurringItems: JSON.parse(localStorage.getItem("recurringItems")) || [],
-        bankAccounts: JSON.parse(localStorage.getItem("bankAccounts") || "[]"),
+        budgets: JSON.parse(flowStorage.getItem("budgets")) || [],
+        budgetsByMonth: JSON.parse(flowStorage.getItem("budgetsByMonth")) || {},
+        categoryRules: JSON.parse(flowStorage.getItem("categoryRules")) || [],
+        recurringItems: JSON.parse(flowStorage.getItem("recurringItems")) || [],
+        bankAccounts: JSON.parse(flowStorage.getItem("bankAccounts") || "[]"),
         flowPlanning: typeof loadFlowPlanning === "function" ? loadFlowPlanning() : null
     };
 
@@ -26,7 +29,7 @@ downloadBackup.addEventListener("click", function() {
     const link = document.createElement("a");
 
     link.href = fileUrl;
-    link.download = "flow-backup.json";
+    link.download = typeof flowDemoMode !== 'undefined' && flowDemoMode ? "flow-demo-backup.json" : "flow-backup.json";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -61,6 +64,8 @@ function validBudgets(budgets) {
 
 
 function validBackup(backup) {
+    if (backup?.demo && !(typeof flowDemoMode !== 'undefined' && flowDemoMode)) return false;
+    if (backup?.clientSchemaVersion !== undefined && ![1, 2].includes(backup.clientSchemaVersion)) return false;
 
     if (!backup || backup.version !== 1 ||
         !Array.isArray(backup.transactions) ||
@@ -72,6 +77,7 @@ function validBackup(backup) {
     }
 
     for (const transaction of backup.transactions) {
+        if (typeof validFlowTransactionExtras === 'function' && !validFlowTransactionExtras(transaction)) return false;
         if (typeof validTransferFields === "function" && !validTransferFields(transaction)) return false;
         if (!transaction || typeof transaction.name !== "string" ||
             typeof transaction.category !== "string" ||
@@ -123,6 +129,8 @@ function validBackup(backup) {
 
 restoreBackup.addEventListener("click", async function() {
 
+    const restoreOwner = flowStorage.getItem('flow_user_id');
+    const restoreBase = typeof getFlowSnapshot === 'function' ? JSON.stringify(getFlowSnapshot()) : null;
     const file = backupFile.files[0];
     backupMessage.textContent = "";
 
@@ -140,6 +148,8 @@ restoreBackup.addEventListener("click", async function() {
         return;
     }
 
+    if (backup?.demo && !(typeof flowDemoMode !== 'undefined' && flowDemoMode)) { backupMessage.textContent = 'This is a sample-workspace backup. It cannot replace your real Flow data.'; return; }
+
     if (!validBackup(backup)) {
         backupMessage.textContent = "That file is not a valid Flow backup.";
         return;
@@ -153,6 +163,10 @@ restoreBackup.addEventListener("click", async function() {
         return;
     }
 
+    if (restoreOwner !== flowStorage.getItem('flow_user_id') || restoreBase !== null && restoreBase !== JSON.stringify(getFlowSnapshot())) {
+        backupMessage.textContent = 'Your account or saved data changed while reading the file. Reopen restore before replacing anything.';
+        return;
+    }
     addMissingIds(backup.transactions);
     addMissingIds(backup.budgets);
 
@@ -160,49 +174,50 @@ restoreBackup.addEventListener("click", async function() {
         addMissingIds(backup.budgetsByMonth[month]);
     }
 
-    const oldTransactions = localStorage.getItem("transactions");
-    const oldBudgets = localStorage.getItem("budgets");
-    const oldMonths = localStorage.getItem("budgetsByMonth");
-    const oldRules = localStorage.getItem("categoryRules");
-    const oldRecurring = localStorage.getItem("recurringItems");
-    const oldAccounts = localStorage.getItem("bankAccounts");
-    const oldPlanning = localStorage.getItem("flowPlanning");
+    const oldTransactions = flowStorage.getItem("transactions");
+    const oldBudgets = flowStorage.getItem("budgets");
+    const oldMonths = flowStorage.getItem("budgetsByMonth");
+    const oldRules = flowStorage.getItem("categoryRules");
+    const oldRecurring = flowStorage.getItem("recurringItems");
+    const oldAccounts = flowStorage.getItem("bankAccounts");
+    const oldPlanning = flowStorage.getItem("flowPlanning");
 
     try {
-        localStorage.setItem("transactions", JSON.stringify(backup.transactions));
-        localStorage.setItem("budgets", JSON.stringify(backup.budgets));
-        localStorage.setItem("budgetsByMonth", JSON.stringify(backup.budgetsByMonth));
-        localStorage.setItem("categoryRules", JSON.stringify(backup.categoryRules || []));
-        localStorage.setItem("recurringItems", JSON.stringify(backup.recurringItems || []));
-        localStorage.setItem("bankAccounts", JSON.stringify(backup.bankAccounts || []));
-        if (backup.flowPlanning) localStorage.setItem("flowPlanning", JSON.stringify(backup.flowPlanning));
-        else localStorage.removeItem("flowPlanning");
+        flowStorage.setItem("transactions", JSON.stringify(backup.transactions));
+        flowStorage.setItem("budgets", JSON.stringify(backup.budgets));
+        flowStorage.setItem("budgetsByMonth", JSON.stringify(backup.budgetsByMonth));
+        flowStorage.setItem("categoryRules", JSON.stringify(backup.categoryRules || []));
+        flowStorage.setItem("recurringItems", JSON.stringify(backup.recurringItems || []));
+        flowStorage.setItem("bankAccounts", JSON.stringify(backup.bankAccounts || []));
+        if (backup.flowPlanning) flowStorage.setItem("flowPlanning", JSON.stringify(backup.flowPlanning));
+        else flowStorage.removeItem("flowPlanning");
         if (typeof flowDataChanged === "function") flowDataChanged();
     } catch (error) {
-        if (oldTransactions === null) localStorage.removeItem("transactions");
-        else localStorage.setItem("transactions", oldTransactions);
+        if (oldTransactions === null) flowStorage.removeItem("transactions");
+        else flowStorage.setItem("transactions", oldTransactions);
 
-        if (oldBudgets === null) localStorage.removeItem("budgets");
-        else localStorage.setItem("budgets", oldBudgets);
+        if (oldBudgets === null) flowStorage.removeItem("budgets");
+        else flowStorage.setItem("budgets", oldBudgets);
 
-        if (oldMonths === null) localStorage.removeItem("budgetsByMonth");
-        else localStorage.setItem("budgetsByMonth", oldMonths);
+        if (oldMonths === null) flowStorage.removeItem("budgetsByMonth");
+        else flowStorage.setItem("budgetsByMonth", oldMonths);
 
-        if (oldRules === null) localStorage.removeItem("categoryRules");
-        else localStorage.setItem("categoryRules", oldRules);
+        if (oldRules === null) flowStorage.removeItem("categoryRules");
+        else flowStorage.setItem("categoryRules", oldRules);
 
-        if (oldRecurring === null) localStorage.removeItem("recurringItems");
-        else localStorage.setItem("recurringItems", oldRecurring);
+        if (oldRecurring === null) flowStorage.removeItem("recurringItems");
+        else flowStorage.setItem("recurringItems", oldRecurring);
 
-        if (oldAccounts === null) localStorage.removeItem("bankAccounts");
-        else localStorage.setItem("bankAccounts", oldAccounts);
-        if (oldPlanning === null) localStorage.removeItem("flowPlanning");
-        else localStorage.setItem("flowPlanning", oldPlanning);
+        if (oldAccounts === null) flowStorage.removeItem("bankAccounts");
+        else flowStorage.setItem("bankAccounts", oldAccounts);
+        if (oldPlanning === null) flowStorage.removeItem("flowPlanning");
+        else flowStorage.setItem("flowPlanning", oldPlanning);
 
         backupMessage.textContent = "Could not restore this backup. Your saved data is unchanged.";
         return;
     }
 
+    flowStorage.removeItem('flowLastEstimate');
     window.location.reload();
 
 });

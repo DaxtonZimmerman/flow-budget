@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 const bankPanel = document.querySelector("#bank-connections");
 const bankButton = document.querySelector("#connect-bank");
 const bankIntro = document.querySelector("#bank-intro");
@@ -13,7 +14,7 @@ async function showBankConnections() {
     const result = await client.auth.getUser();
 
     if (result.error || !result.data.user ||
-        localStorage.getItem("flow_user_id") !== result.data.user.id) return;
+        flowStorage.getItem("flow_user_id") !== result.data.user.id) return;
 
     bankPanel.hidden = false;
 
@@ -65,7 +66,7 @@ async function showBankConnections() {
                 try {
                     const update = await syncBankConnection(connection.id);
                     sessionStorage.setItem(
-                        `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`,
+                        `flow_bank_checked_at_${flowStorage.getItem("flow_user_id")}`,
                         String(Date.now())
                     );
                     updated.textContent = `Checked for updates ${new Date(update.last_synced_at).toLocaleString()}`;
@@ -135,7 +136,7 @@ async function showBankConnections() {
                     `Disconnect ${connection.institution_name} and remove its transactions from Flow?`
                 )) return;
 
-                if (localStorage.getItem("flow_pending") === "1" ||
+                if (flowStorage.getItem("flow_pending") === "1" ||
                     flowSyncing || bankRefreshing) {
                     bankMessage.textContent = "Wait for your current changes to finish saving, then disconnect.";
                     return;
@@ -150,17 +151,17 @@ async function showBankConnections() {
                     if (result.data) replaceFlowSnapshot(result.data);
                     else {
                         const current = getFlowSnapshot().transactions;
-                        localStorage.setItem("transactions", JSON.stringify(current.filter(
+                        flowStorage.setItem("transactions", JSON.stringify(current.filter(
                             transaction => transaction.bankConnectionId !== connection.id
                         )));
                     }
-                    localStorage.setItem("flow_revision", String(result.revision));
-                    localStorage.removeItem("flow_pending");
-                    localStorage.removeItem(
-                        `flow_bank_applied_at_${localStorage.getItem("flow_user_id")}_${connection.id}`
+                    flowStorage.setItem("flow_revision", String(result.revision));
+                    flowStorage.removeItem("flow_pending");
+                    flowStorage.removeItem(
+                        `flow_bank_applied_at_${flowStorage.getItem("flow_user_id")}_${connection.id}`
                     );
-                    const accounts = JSON.parse(localStorage.getItem("bankAccounts") || "[]");
-                    localStorage.setItem("bankAccounts", JSON.stringify(accounts.filter(a => a.bankConnectionId !== connection.id)));
+                    const accounts = JSON.parse(flowStorage.getItem("bankAccounts") || "[]");
+                    flowStorage.setItem("bankAccounts", JSON.stringify(accounts.filter(a => a.bankConnectionId !== connection.id)));
                     await flowDataChanged();
                     document.dispatchEvent(new Event("flow-accounts-updated"));
                     item.remove();
@@ -212,7 +213,7 @@ bankButton.addEventListener("click", async function() {
                     bankMessage.textContent = "Bank connected. Checking transactions…";
                     await showBankConnections();
                     sessionStorage.removeItem(
-                        `flow_bank_checked_at_${localStorage.getItem("flow_user_id")}`
+                        `flow_bank_checked_at_${flowStorage.getItem("flow_user_id")}`
                     );
                     await updateBanksAutomatically();
                 } catch (error) {

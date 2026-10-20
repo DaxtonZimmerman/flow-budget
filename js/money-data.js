@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* shared money data */
 
 function moneyToCents(amount) {
@@ -47,10 +48,10 @@ function addMissingIds(records) {
 
 
 function loadTransactions() {
-    const transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+    const transactions = JSON.parse(flowStorage.getItem("transactions")) || [];
 
     if (addMissingIds(transactions)) {
-        localStorage.setItem("transactions", JSON.stringify(transactions));
+        flowStorage.setItem("transactions", JSON.stringify(transactions));
 
         if (typeof flowDataChanged === "function") {
             flowDataChanged();
@@ -91,7 +92,10 @@ function getMoneyTotals(transactions, month) {
             continue;
         }
 
-        if (transaction.type === "Refund") {
+        if (typeof flowReportingAmounts === 'function') {
+            const totals = flowReportingAmounts(transaction);
+            incomeCents += totals.incomeCents; spendingCents += totals.spendingCents;
+        } else if (transaction.type === "Refund") {
             spendingCents -= amountCents;
         } else if (amountCents > 0) {
             incomeCents += amountCents;
@@ -110,7 +114,7 @@ function getMoneyTotals(transactions, month) {
 
 function getSpendingBreakdown(transactions, month, daysInMonth) {
     const weeklyCents = Array(Math.ceil(daysInMonth / 7)).fill(0);
-    const categoryCents = {};
+    const categoryCents = Object.create(null);
     const seenIds = new Set();
 
     for (const transaction of transactions) {
@@ -139,8 +143,12 @@ function getSpendingBreakdown(transactions, month, daysInMonth) {
             continue;
         }
 
-        const category = transaction.category || "Other";
-        categoryCents[category] = (categoryCents[category] || 0) + spentCents;
+        const parts = typeof flowTransactionParts === 'function' ? flowTransactionParts(transaction) : [{ category: transaction.category || 'Other', cents: Math.abs(spentCents) }];
+        for (const part of parts) {
+            if (part.income) continue;
+            categoryCents[part.category] = (categoryCents[part.category] || 0) + (transaction.type === 'Refund' ? -1 : 1) * part.cents;
+        }
+        if (typeof flowReportingAmounts === 'function') spentCents = flowReportingAmounts(transaction).spendingCents;
 
         const day = Number(transaction.date.slice(8, 10));
 
@@ -150,7 +158,7 @@ function getSpendingBreakdown(transactions, month, daysInMonth) {
         }
     }
 
-    const categorySpending = {};
+    const categorySpending = Object.create(null);
 
     for (const category in categoryCents) {
         categorySpending[category] = centsToMoney(categoryCents[category]);

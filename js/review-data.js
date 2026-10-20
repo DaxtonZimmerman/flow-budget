@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* category rules and recurring suggestions */
 
 function normalizedName(name) {
@@ -6,25 +7,25 @@ function normalizedName(name) {
 
 
 function loadCategoryRules() {
-    return JSON.parse(localStorage.getItem("categoryRules")) || [];
+    return JSON.parse(flowStorage.getItem("categoryRules")) || [];
 }
 
 
 function loadRecurringItems() {
-    return JSON.parse(localStorage.getItem("recurringItems")) || [];
+    return JSON.parse(flowStorage.getItem("recurringItems")) || [];
 }
 
 
 function findCategoryRule(transaction, rules) {
     return rules.find(function(rule) {
-        return !rule.bankType && rule.name === normalizedName(transaction.name) &&
+        return !rule.paused && !rule.bankType && rule.name === normalizedName(transaction.name) &&
             rule.type === transaction.type;
     });
 }
 
 
 function needsTransactionReview(transaction) {
-    if (!transaction.date) return true;
+    if (!transaction.date || transaction.allocationIssue) return true;
     if (transaction.reviewStatus === "reviewed") return false;
 
     return transaction.reviewStatus === "needs-review" ||

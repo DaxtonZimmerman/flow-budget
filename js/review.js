@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 let flowReviewDraft = false;
 window.hasFlowReviewDraft = () => flowReviewDraft;
 for (const name of ['input', 'change']) document.addEventListener(name, event => {
@@ -8,8 +9,8 @@ if (typeof lucide !== "undefined") lucide.createIcons();
 let transactions = loadTransactions();
 let categoryRules = loadCategoryRules();
 let recurringItems = loadRecurringItems();
-const reviewOwner = localStorage.getItem('flow_user_id');
-function reviewStorageStamp() { return JSON.stringify(['transactions', 'categoryRules', 'recurringItems'].map(key => localStorage.getItem(key))); }
+const reviewOwner = flowStorage.getItem('flow_user_id');
+function reviewStorageStamp() { return JSON.stringify(['transactions', 'categoryRules', 'recurringItems'].map(key => flowStorage.getItem(key))); }
 let reviewStorageBase = reviewStorageStamp();
 function reloadReviewData() {
     transactions = loadTransactions(); categoryRules = loadCategoryRules(); recurringItems = loadRecurringItems();
@@ -25,7 +26,7 @@ const quickReviewBanner = document.querySelector("#quick-review-banner");
 const quickReviewDialog = document.querySelector("#quick-review-dialog");
 const quickReviewGroups = document.querySelector("#quick-review-groups");
 const quickReviewMessage = document.querySelector("#quick-review-message");
-const categories = ["Salary", "Income", "Food", "Transport", "Entertainment", "Shopping", "Bills", "Other"];
+let categories = typeof flowCategories === 'function' ? flowCategories() : ["Salary", "Income", "Food", "Transport", "Entertainment", "Shopping", "Bills", "Other"];
 let quickReviewLimit = 12;
 const quickReviewDrafts = new Map();
 const expandedReviewGroups = new Set();
@@ -85,7 +86,7 @@ function makeButton(text, className, action) {
 /* save all changed lists together */
 
 function saveReviewData(changes) {
-    if (reviewOwner !== localStorage.getItem('flow_user_id') || reviewStorageBase !== reviewStorageStamp()) {
+    if (reviewOwner !== flowStorage.getItem('flow_user_id') || reviewStorageBase !== reviewStorageStamp()) {
         const message = 'New activity or saved changes arrived. Your last choice was not applied. Check the refreshed list and try again.';
         reviewMessage.textContent = message; quickReviewMessage.textContent = message;
         reloadReviewData(); return false;
@@ -93,17 +94,17 @@ function saveReviewData(changes) {
     const previous = {};
 
     for (const key of Object.keys(changes)) {
-        previous[key] = localStorage.getItem(key);
+        previous[key] = flowStorage.getItem(key);
     }
 
     try {
         for (const key of Object.keys(changes)) {
-            localStorage.setItem(key, JSON.stringify(changes[key]));
+            flowStorage.setItem(key, JSON.stringify(changes[key]));
         }
     } catch (error) {
         for (const key of Object.keys(previous)) {
-            if (previous[key] === null) localStorage.removeItem(key);
-            else localStorage.setItem(key, previous[key]);
+            if (previous[key] === null) flowStorage.removeItem(key);
+            else flowStorage.setItem(key, previous[key]);
         }
         reviewMessage.textContent = "Flow could not save this choice. Check browser storage and try again.";
         reloadReviewData();
@@ -527,6 +528,7 @@ function showRules() {
 
 
 function showReview() {
+    if (typeof flowCategories === 'function') categories = flowCategories();
     flowReviewDraft = false;
     for (const tab of document.querySelectorAll('[data-review-scope]')) {
         const active = tab.dataset.reviewScope === reviewScope;
@@ -564,7 +566,7 @@ document.querySelector("#accept-review-defaults").addEventListener("click", func
 
 showReview();
 
-const firstRunKey = `flow_quick_review_seen_${localStorage.getItem("flow_user_id") || "device"}`;
+const firstRunKey = `flow_quick_review_seen_${flowStorage.getItem("flow_user_id") || "device"}`;
 if (location.hash !== '#transfer-review-card' && ((new URLSearchParams(location.search).get("quick") === "1" && scopedReviewItems().some(needsTransactionReview)) ||
     (scopedReviewItems().filter(item => item.source === "bank" && needsTransactionReview(item)).length >= 20 &&
     sessionStorage.getItem(firstRunKey) !== "1"))) {

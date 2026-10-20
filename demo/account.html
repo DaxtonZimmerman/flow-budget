@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Account | Flow</title>
+    <meta name="theme-color" content="#163f35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="../assets/flow-icon.svg">
+    <link rel="apple-touch-icon" href="../assets/flow-icon-192.png">
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/payday.css">
+    <script src="../js/storage.js" defer></script>
+    <script src="../js/app-shell.js" defer></script>
+    <script src="../js/app-offline.js" defer></script>
+
+    <script src="../vendor/lucide.min.js" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js" defer></script>
+    <script src="../js/cloud-config.js" defer></script>
+    <script src="../js/planning-data.js" defer></script>
+    <script src="../js/product-data.js" defer></script>
+    <script src="../js/bill-data.js" defer></script>
+    <script src="../js/cloud-sync.js" defer></script>
+    <script src="../js/transfer-data.js" defer></script>
+    <script src="../js/bank-data.js" defer></script>
+    <script src="../js/bank-auto-sync.js" defer></script>
+    <script src="../js/bank-accounts.js" defer></script>
+    <script src="../js/money-data.js" defer></script>
+    <script src="../js/review-data.js" defer></script>
+    <script src="../js/backup.js" defer></script>
+    <script src="../js/account.js" defer></script>
+    <script src="../js/payday-app.js" defer></script>
+    <script src="../js/bank-connections.js" defer></script>
+    <script src="../js/transfer-app.js" defer></script>
+    <link rel="stylesheet" href="../css/product.css">
+    <script src="../js/product-app.js" defer></script>
+</head>
+
+<body data-page="account">
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <a class="brand" href="index.html" aria-label="Flow home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
+                <p class="nav-caption">Your workspace</p>
+                <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Home</span></a><a href="transactions.html" class="nav-link"><i data-lucide="arrow-left-right" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="chart-pie" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="review.html" class="nav-link"><i data-lucide="inbox" class="nav-icon" aria-hidden="true"></i><span>Review</span><span class="nav-badge" data-review-badge hidden></span></a><a href="account.html" class="nav-link active" aria-current="page"><i data-lucide="sliders-horizontal" class="nav-icon" aria-hidden="true"></i><span>Account</span></a></nav>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="sidebar-note"><span class="sidebar-note-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><strong>A little clarity.<br>A little more room.</strong><p>Make a plan that fits your life.</p></div>
+                <button type="button" class="install-button" data-install-app><i data-lucide="panel-top" aria-hidden="true"></i><span>Get the app experience</span><i data-lucide="arrow-up-right" aria-hidden="true"></i></button>
+                <a href="account.html" class="workspace-account"><span class="workspace-avatar"><i data-lucide="user-round" aria-hidden="true"></i></span><span><strong>My workspace</strong><small>Account &amp; connected banks</small></span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            </div>
+        </aside>
+
+        <main class="main account-main">
+            <div class="app-toolbar">
+                <div class="app-breadcrumb"><span>My workspace</span><i data-lucide="chevron-right" aria-hidden="true"></i><strong>Account</strong></div>
+                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a></div>
+            </div>
+            <header class="welcome">
+                <div>
+                    <p class="small-label">Your space</p>
+                    <h2>Account &amp; banks<span class="heading-dot">.</span></h2>
+                    <p>Your sign-in, bank connections, and data. All in one place.</p>
+                </div>
+            </header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <section id="account-setup" class="card account-card" hidden>
+                <p class="small-label">Setup needed</p>
+                <h3>Cloud sync is unavailable here</h3>
+                <p>Your saved data still works on this device. Reconnect to the internet and reload to sign in or sync your cloud copy.</p>
+            </section>
+            <section id="account-sign-in" class="card account-card" hidden>
+                <p class="small-label">Sign in</p>
+                <h3>Use your email</h3>
+                <p>We’ll send you a sign-in link. Open it on this device to connect your data.</p>
+                <form id="sign-in-form" class="account-form">
+                    <label for="account-email">Email address</label>
+                    <input id="account-email" type="email" autocomplete="email" required>
+                    <button class="save-button" type="submit">Send sign-in link</button>
+                </form>
+            </section>
+            <section id="account-choose" class="card account-card" hidden>
+                <p class="small-label">Connect this device</p>
+                <h3>Choose the copy to keep</h3>
+                <p id="copy-preview"></p>
+                <p>Download either copy before replacing it. Flow will never combine two copies without showing you what will happen.</p>
+                <div class="account-actions">
+                    <button id="download-local" class="back-button" type="button">Download device backup</button>
+                    <button id="download-cloud" class="back-button" type="button">Download cloud backup</button>
+                    <button id="use-device" class="save-button" type="button">Use this device’s data</button>
+                    <button id="use-cloud" class="back-button" type="button">Use cloud data</button>
+                </div>
+            </section>
+<p id="account-message" class="form-message" aria-live="polite"></p>
+<div class="account-columns"><div>
+            <section id="account-connected" class="card account-card" hidden>
+                <p class="small-label">Signed in</p>
+                <h3 id="account-address"></h3>
+                <p>Flow keeps a copy on this device so you can still enter transactions while offline.</p>
+                <div class="account-actions">
+                    <button id="sync-now" class="save-button" type="button">Sync now</button>
+                    <button id="sign-out" class="back-button" type="button">Sign out on this device</button>
+                </div>
+            </section>
+            <section id="bank-connections" class="card account-card" hidden>
+                <p class="small-label">Bank connections</p>
+                <h3>Bring in your transactions</h3>
+                <p id="bank-intro">Connect a test bank in Plaid Sandbox. Flow checks for new transactions when you open it, and you can sync here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.</p>
+                <button id="connect-bank" class="save-button" type="button">Connect test bank</button>
+                <p id="bank-message" class="account-status" aria-live="polite"></p>
+                <ul id="connected-banks" class="bank-list"></ul>
+            </section>
+            <details class="settings-disclosure"><summary><span><i data-lucide="archive" aria-hidden="true"></i> Backup &amp; restore</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>            <section class="card backup-card">
+
+                <div class="section-top">
+                    <div>
+                        <p class="small-label">Your data</p>
+                        <h3>Backup and restore</h3>
+                    </div>
+                </div>
+
+                <p>Download your transactions, budgets, category rules, account snapshots, and payday plan. Restoring a backup replaces the data saved in this browser.</p>
+
+                <div class="backup-actions">
+                    <button id="download-backup" class="save-button" type="button">
+                        Download backup
+                    </button>
+
+                    <label for="backup-file">Backup file</label>
+                    <input id="backup-file" type="file" accept=".json,application/json">
+
+                    <button id="restore-backup" class="back-button" type="button">
+                        Restore backup
+                    </button>
+                </div>
+
+                <p id="backup-message" class="form-message" aria-live="polite"></p>
+
+            </section>
+
+</details>
+</div><div><div id="payday-settings"></div>
+            <section class="card account-card app-install-card"><span class="subtle-icon"><i data-lucide="panel-top" aria-hidden="true"></i></span><h3>A place on your home screen.</h3><p>Give Flow its own window and a shortcut on your home screen or dock.</p><button type="button" class="back-button" data-install-app>Install Flow <i data-lucide="arrow-up-right" aria-hidden="true"></i></button></section>
+            <section id="account-delete" class="card account-card" hidden>
+                <p class="small-label">Privacy</p>
+                <h3>Your data is yours</h3>
+                <p>Download a backup under Backup &amp; restore below whenever you want. Deleting your account removes your cloud data and signs you out here.</p>
+                <button id="delete-account" class="delete-transaction-button" type="button">Delete account and cloud data</button>
+            </section>
+</div></div>
+        </main>
+    </div>
+    <dialog id="app-search-dialog" class="app-search-dialog" aria-labelledby="app-search-title">
+        <div class="dialog-heading"><h2 id="app-search-title">Find a transaction</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close search"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <form action="transactions.html" method="get" class="app-search-form"><input id="search-month" type="hidden" name="month"><label for="app-search-input" class="sr-only">Name, category, or notes</label><i data-lucide="search" aria-hidden="true"></i><input id="app-search-input" name="search" type="search" placeholder="Name, category, or notes" autocomplete="off"><button type="submit" class="save-button">Search</button></form><p class="dialog-help">Search across your saved activity.</p>
+    </dialog>
+    <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title"><div class="dialog-heading"><span class="install-symbol"><i data-lucide="panel-top" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-dialog aria-label="Close install instructions"><i data-lucide="x" aria-hidden="true"></i></button></div><h2 id="install-title">Give Flow a place of its own.</h2><p>Open Flow from your home screen or dock, in its own app window.</p><ol id="install-steps"></ol><button class="save-button" type="button" data-close-dialog>Got it</button></dialog>
+</body>
+
+</html>

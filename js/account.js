@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 const setupPanel = document.querySelector("#account-setup");
 const signInPanel = document.querySelector("#account-sign-in");
 const connectedPanel = document.querySelector("#account-connected");
@@ -51,11 +52,11 @@ async function showAccount() {
 
         const cloud = await getCloudData(client, accountUser.id);
         previewRevision = cloud ? cloud.revision : 0;
-        const linkedUser = localStorage.getItem("flow_user_id");
-        const localRevision = Number(localStorage.getItem("flow_revision") || 0);
+        const linkedUser = flowStorage.getItem("flow_user_id");
+        const localRevision = Number(flowStorage.getItem("flow_revision") || 0);
         const hasConflict = linkedUser === accountUser.id &&
             previewRevision !== localRevision &&
-            (localStorage.getItem("flow_pending") === "1" ||
+            (flowStorage.getItem("flow_pending") === "1" ||
                 previewRevision < localRevision);
 
         if (linkedUser !== accountUser.id || hasConflict) {
@@ -114,9 +115,9 @@ document.querySelector("#use-device").addEventListener("click", async function()
 
     try {
         const revision = await saveCloudData(client, previewRevision, getFlowSnapshot());
-        localStorage.setItem("flow_user_id", accountUser.id);
-        localStorage.setItem("flow_revision", String(revision));
-        localStorage.removeItem("flow_pending");
+        flowStorage.setItem("flow_user_id", accountUser.id);
+        flowStorage.setItem("flow_revision", String(revision));
+        flowStorage.removeItem("flow_pending");
         window.location.reload();
     } catch (error) {
         accountMessage.textContent =
@@ -146,9 +147,9 @@ document.querySelector("#use-cloud").addEventListener("click", async function() 
         replaceFlowSnapshot(cloud ? cloud.data : {
             transactions: [], budgets: [], budgetsByMonth: {}
         });
-        localStorage.setItem("flow_user_id", accountUser.id);
-        localStorage.setItem("flow_revision", String(previewRevision));
-        localStorage.removeItem("flow_pending");
+        flowStorage.setItem("flow_user_id", accountUser.id);
+        flowStorage.setItem("flow_revision", String(previewRevision));
+        flowStorage.removeItem("flow_pending");
         window.location.reload();
     } catch (error) {
         accountMessage.textContent = "Could not load cloud data. Try again.";
@@ -157,7 +158,7 @@ document.querySelector("#use-cloud").addEventListener("click", async function() 
 
 
 function downloadFlowCopy(data, name) {
-    const backup = { version: 1, ...data };
+    const backup = { version: 1, ...data, demo: typeof flowDemoMode !== 'undefined' && flowDemoMode };
     const file = new Blob([JSON.stringify(backup, null, 2)], {
         type: "application/json"
     });
@@ -200,7 +201,7 @@ document.querySelector("#sync-now").addEventListener("click", flowSync);
 
 
 document.querySelector("#sign-out").addEventListener("click", async function() {
-    if (localStorage.getItem("flow_pending") === "1") {
+    if (flowStorage.getItem("flow_pending") === "1") {
         accountMessage.textContent =
             "This device has unsynced changes. Sync or download a backup first.";
         return;
@@ -220,16 +221,18 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
         return;
     }
 
-    if (localStorage.getItem("flow_user_id") === accountUser.id) {
-        localStorage.removeItem("transactions");
-        localStorage.removeItem("budgets");
-        localStorage.removeItem("budgetsByMonth");
-        localStorage.removeItem("categoryRules");
-        localStorage.removeItem("recurringItems");
-        localStorage.removeItem("flowPlanning");
-        localStorage.removeItem("bankAccounts");
-        localStorage.removeItem("flow_user_id");
-        localStorage.removeItem("flow_revision");
+    if (flowStorage.getItem("flow_user_id") === accountUser.id) {
+        flowStorage.removeItem("transactions");
+        flowStorage.removeItem("budgets");
+        flowStorage.removeItem("budgetsByMonth");
+        flowStorage.removeItem("categoryRules");
+        flowStorage.removeItem("recurringItems");
+        flowStorage.removeItem("flowPlanning");
+        flowStorage.removeItem("bankAccounts");
+        flowStorage.removeItem("flow_user_id");
+        flowStorage.removeItem("flow_revision");
+        flowStorage.removeItem("flowLastEstimate");
+        flowStorage.removeItem("flow_pending_client");
     }
 
     window.location.reload();
@@ -263,8 +266,8 @@ document.querySelector("#delete-account").addEventListener("click", async functi
     }
     for (const key of ["transactions", "budgets", "budgetsByMonth",
         "categoryRules", "recurringItems", "flowPlanning", "bankAccounts",
-        "flow_user_id", "flow_revision", "flow_pending"]) {
-        localStorage.removeItem(key);
+        "flow_user_id", "flow_revision", "flow_pending", "flowLastEstimate", "flow_pending_client"]) {
+        flowStorage.removeItem(key);
     }
     window.location.href = "index.html";
 });

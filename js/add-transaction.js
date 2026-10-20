@@ -1,8 +1,10 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 const transactionForm = document.querySelector("#transaction-form");
 
 const typeInput = document.querySelector("#transaction-type");
 const nameInput = document.querySelector("#transaction-name");
 const categoryInput = document.querySelector("#transaction-category");
+if (typeof flowCategories === 'function') for (const name of flowCategories()) if (![...categoryInput.options].some(o=>o.value===name)) categoryInput.add(new Option(name,name));
 const amountInput = document.querySelector("#transaction-amount");
 const dateInput = document.querySelector("#transaction-date");
 const notesInput = document.querySelector("#transaction-notes");
@@ -265,6 +267,9 @@ transactionForm.addEventListener("submit", function(event) {
         }
 
         const oldTransaction = transactions[transactionIndex];
+        if (oldTransaction.cardPayment && type !== oldTransaction.type) { showError('Undo the card payment link in Activity before changing its type.'); return; }
+        if (oldTransaction.allocations?.length && (type !== oldTransaction.type || category !== oldTransaction.category || oldTransaction.source !== 'bank' && finalAmount !== oldTransaction.amount)) { showError('Use the payment details in Activity to edit or remove its split first.'); return; }
+        if (oldTransaction.relatedExpense && (type !== oldTransaction.type || oldTransaction.source !== 'bank' && finalAmount !== oldTransaction.amount)) { showError('Edit or remove the reimbursement link in Activity first.'); return; }
         if (oldTransaction.transferPair && type !== oldTransaction.type) {
             showError("Open this entry in Activity and undo its transfer match before changing the type.");
             return;
@@ -319,19 +324,19 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
-    const oldTransactions = localStorage.getItem("transactions");
-    const oldRules = localStorage.getItem("categoryRules");
+    const oldTransactions = flowStorage.getItem("transactions");
+    const oldRules = flowStorage.getItem("categoryRules");
 
     try {
-        localStorage.setItem("transactions", JSON.stringify(transactions));
+        flowStorage.setItem("transactions", JSON.stringify(transactions));
         if (rememberCategory.checked) {
-            localStorage.setItem("categoryRules", JSON.stringify(rules));
+            flowStorage.setItem("categoryRules", JSON.stringify(rules));
         }
     } catch (error) {
-        if (oldTransactions === null) localStorage.removeItem("transactions");
-        else localStorage.setItem("transactions", oldTransactions);
-        if (oldRules === null) localStorage.removeItem("categoryRules");
-        else localStorage.setItem("categoryRules", oldRules);
+        if (oldTransactions === null) flowStorage.removeItem("transactions");
+        else flowStorage.setItem("transactions", oldTransactions);
+        if (oldRules === null) flowStorage.removeItem("categoryRules");
+        else flowStorage.setItem("categoryRules", oldRules);
         showError("Flow could not save. Check browser storage and try again.");
         return;
     }

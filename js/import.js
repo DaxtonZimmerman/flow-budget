@@ -1,3 +1,4 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 if (typeof lucide !== "undefined") lucide.createIcons();
 
 const fileInput = document.querySelector("#import-file");
@@ -267,7 +268,7 @@ saveButton.addEventListener("click", function() {
     }
 
     try {
-        localStorage.setItem("transactions", JSON.stringify(transactions));
+        flowStorage.setItem("transactions", JSON.stringify(transactions));
     } catch (error) {
         showMessage("Flow could not save these transactions. Check browser storage and try again.");
         return;

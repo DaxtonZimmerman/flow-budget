@@ -1,6 +1,12 @@
 # Flow real-bank readiness
 
-Flow is currently a public **Sandbox-only** test. This document is a launch gate, not permission to connect real bank accounts. Keep `PLAID_SANDBOX_SECRET` and the Sandbox API host in the deployed function until every real-bank gate below is complete.
+## Status note — 19 October 2026
+
+The original checklist below records the earlier Sandbox and private-pilot preparation. A restricted owner-approved real-bank pilot now exists; the old Sandbox-only language, historical counts, and earlier checks are not a current live audit. Keep the existing Sandbox/Production separation and private-user limits. Wider bank access and a paid public launch remain pending.
+
+The steps 1–8 product release was approved on 19 October 2026. The compatibility guard was applied successfully before frontend publication; feature testing used synthetic data and did not alter real financial records. See [release review and deployment order](PRODUCT_TOOLS_RELEASE.md). Independent security review, operational recovery/monitoring, public support, provider capacity/costs, and observed customer outcomes remain gates for expansion.
+
+## Historical pilot checklist
 
 ## Verified so far
 

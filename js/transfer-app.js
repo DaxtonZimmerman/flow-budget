@@ -1,10 +1,11 @@
+var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* The same transfer sheet is available from Activity, Home, and Review. */
 (function () {
     const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(value));
     const day = value => new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const el = (tag, text, cls) => { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; };
     const button = (text, action, cls = 'back-button') => { const node = el('button', text, cls); node.type = 'button'; node.addEventListener('click', action); return node; };
-    const stamp = () => JSON.stringify(['transactions', 'bankAccounts'].map(key => localStorage.getItem(key)));
+    const stamp = () => JSON.stringify(['transactions', 'bankAccounts'].map(key => flowStorage.getItem(key)));
     const read = () => ({ items: loadTransactions(), accounts: loadBankAccounts() });
     let active = null, running = false;
     const dialog = el('dialog', '', 'transfer-dialog'); dialog.id = 'transfer-match-dialog';
@@ -15,8 +16,8 @@
     dialog.addEventListener('close', () => { active = null; if (typeof flushFlowDataViews === 'function') flushFlowDataViews(); });
     const body = dialog.querySelector('#transfer-match-body'), message = dialog.querySelector('#transfer-match-message'), actions = dialog.querySelector('#transfer-match-actions');
     function commit(next, expected, owner) {
-        if (owner !== localStorage.getItem('flow_user_id') || expected !== stamp()) throw new Error('New activity or saved changes arrived. Close and reopen this transfer before choosing.');
-        localStorage.setItem('transactions', JSON.stringify(next));
+        if (owner !== flowStorage.getItem('flow_user_id') || expected !== stamp()) throw new Error('New activity or saved changes arrived. Close and reopen this transfer before choosing.');
+        flowStorage.setItem('transactions', JSON.stringify(next));
         if (typeof flowDataChanged === 'function') flowDataChanged();
         if (typeof refreshFlowDataViews === 'function') refreshFlowDataViews();
     }
@@ -33,7 +34,7 @@
     function open(id) {
         const { items, accounts } = read(), item = items.find(t => String(t.id) === String(id));
         if (!item || item.source !== 'bank') return false;
-        active = { owner: localStorage.getItem('flow_user_id'), stamp: stamp(), key: transferRecordKey(item) };
+        active = { owner: flowStorage.getItem('flow_user_id'), stamp: stamp(), key: transferRecordKey(item) };
         const opened = active;
         body.replaceChildren(); actions.replaceChildren(); message.textContent = '';
         const peer = linkedTransferPeer(item, items, accounts);
@@ -143,10 +144,10 @@
         }
     }
     function reconcile() {
-        if (running || !localStorage.getItem('flow_user_id') || localStorage.getItem('flow_pending') === '1') return;
+        if (running || !flowStorage.getItem('flow_user_id') || flowStorage.getItem('flow_pending') === '1') return;
         running = true;
         try {
-            const owner = localStorage.getItem('flow_user_id'), expected = stamp(), { items, accounts } = read();
+            const owner = flowStorage.getItem('flow_user_id'), expected = stamp(), { items, accounts } = read();
             // If an account is temporarily unavailable, retain dated match data until it is available again.
             if (items.some(t => t.transferPair && !transferAccount(t, accounts))) return;
             const next = reconcileTransferRecords(items, accounts);

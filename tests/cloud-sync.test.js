@@ -170,6 +170,14 @@ test('incoming data keeps an open editor intact and refreshes once it is safe',a
  await app.run('flowSync()');assert.ok(app.events.includes('flow-transaction-data-updated'));assert.equal(app.events.includes('flow-transaction-view-refresh'),false);assert.equal(app.getReloads(),0);
  app.run('document.querySelector = () => null; flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);app.run('flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);
 });
+
+test('pending changes from an older client cannot overwrite an expanded workspace without review',async()=>{
+ const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','2');app.saved.set('flow_pending','1');
+ app.saved.set('transactions',JSON.stringify([{id:'local-without-split'}]));
+ app.setCloud({revision:2,data:{clientSchemaVersion:2,transactions:[{id:'cloud-with-split',allocations:[{id:'part',cents:100,category:'Food'}]}]}});
+ await app.run('flowSync()');assert.match(app.status.textContent,/older Flow version/);assert.equal(app.getCloud().revision,2);assert.equal(app.saved.get('flow_pending'),'1');
+ app.saved.set('flow_pending_client','2');await app.run('flowSync()');assert.equal(app.getCloud().revision,3);assert.equal(app.getCloud().data.clientSchemaVersion,2);
+});
 test('late cloud fetches and saves cannot repopulate another signed-in account',async()=>{
  const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','0');app.setCloud({revision:1,data:{transactions:[{id:'private-old-owner'}]}});
  const work=app.run('flowSync()');app.saved.set('flow_user_id','person-2');await work;assert.equal(app.saved.has('transactions'),false);assert.equal(app.saved.get('flow_revision'),'0');

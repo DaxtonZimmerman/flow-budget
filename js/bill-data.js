@@ -21,7 +21,10 @@ function billBankTransactions(transactions, today) {
     return [...map.values()];
 }
 function billAmountAt(bill, date) {
-    return [...(bill.amountChanges || [])].filter(c => c.fromDate <= date).sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0]?.amountCents ?? bill.amountCents;
+    const override = typeof flowBillOverride === 'function' && flowBillOverride(bill,date);
+    if (override) return override.amountCents;
+    const amount = [...(bill.amountChanges || [])].filter(c => c.fromDate <= date).sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0]?.amountCents ?? bill.amountCents;
+    return bill.variable ? Math.max(amount,bill.ceilingCents || amount) : amount;
 }
 function billDateWindow(frequency) { return frequency === 'weekly' ? 2 : frequency === 'biweekly' ? 3 : frequency === 'yearly' ? 10 : 5; }
 function suggestRecurringBills(planning, accounts, transactions, today = flowToday()) {
@@ -70,6 +73,7 @@ function suggestRecurringBills(planning, accounts, transactions, today = flowTod
     return suggestions.sort((a, b) => a.nextDate.localeCompare(b.nextDate) || a.name.localeCompare(b.name));
 }
 function billPaymentInBalance(t, planning, accounts, today, now) {
+    if (typeof flowFundedCardPurchase === 'function' && flowFundedCardPurchase(t,planning,accounts)) return true;
     const account = billCashAccount(t, accounts);
     if (!account) return false;
     if (planning.manualBalance && planning.manualBalance.date === today && planning.selectedAccountIds.includes(account.id)) return t.date < today;
@@ -95,7 +99,7 @@ function getBillTrackingState(planning, accounts, transactions, today = flowToda
         }
         let dueDate = bill.nextDate;
         for (let i = 0; dueDate && i < 180; i++) {
-            rows.push({ ...bill, key: `${bill.id}|${dueDate}`, billId: bill.id, dueDate,
+            if (typeof flowBillIncluded !== 'function' || flowBillIncluded(bill,dueDate)) rows.push({ ...bill, key: `${bill.id}|${dueDate}`, billId: bill.id, dueDate,
                 amountCents: billAmountAt(bill, dueDate), paid: false, status: 'upcoming', candidates: [], pending: [], payment: null });
             if (dueDate > through) break;
             dueDate = nextPlanDate(dueDate, bill.frequency, bill.anchorDay || Number(bill.nextDate.slice(-2)));
