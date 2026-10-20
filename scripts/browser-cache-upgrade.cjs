@@ -19,7 +19,8 @@ const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),
  const base='http://127.0.0.1:'+server.address().port+'/';
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.FLOW_CHROME_PATH||undefined});
-  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
+  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[],missing=[];
+  page.on('response',r=>{if(r.status()>=400&&r.url().startsWith(base)&&new URL(r.url()).pathname!=='/favicon.ico')missing.push(r.url());});
   page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(10000);
   // Do not route requests: browser routing disables the HTTP cache being tested.
   await page.goto(base+'prime.html');
@@ -37,6 +38,6 @@ const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),
   const legacy=await page.evaluate(()=>fetch('../js/planning-data.js').then(r=>r.text()));assert.ok(legacy.includes('localStorage.getItem'));assert.equal(legacy.includes('flowStorage.getItem'),false);
   await context.setOffline(true);await page.reload();await page.locator('#flow-decision-tools').waitFor();assert.match(await page.locator('.payday-hero h3').innerText(),/265.00/);
   assert.equal(await page.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage)))),before);
-  assert.deepEqual(errors,[]);console.log('PASS: warm legacy HTTP cache cannot mix with demo assets; native workspace remains untouched; service worker stores versioned assets and preserves sample isolation offline.');
+  assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log('PASS: warm legacy HTTP cache cannot mix with demo assets; native workspace remains untouched; all public assets load; service worker stores versioned assets and preserves sample isolation offline.');
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
