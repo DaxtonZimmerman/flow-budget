@@ -2,6 +2,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
 /* keep one browser copy and one cloud copy */
 
 let flowClient;
+let flowAuthStorage;
 let flowSyncing = false;
 let flowSyncAgain = false;
 let flowViewRefreshPending = false;
@@ -30,7 +31,10 @@ function getFlowClient() {
     }
 
     if (!flowClient) {
-        flowClient = supabase.createClient(flowCloudUrl, flowCloudKey);
+        flowAuthStorage = typeof createFlowAuthStorage === 'function' ? createFlowAuthStorage() : localStorage;
+        flowClient = supabase.createClient(flowCloudUrl, flowCloudKey, {
+            auth: { persistSession:true, autoRefreshToken:true, storage:flowAuthStorage }
+        });
     }
 
     return flowClient;

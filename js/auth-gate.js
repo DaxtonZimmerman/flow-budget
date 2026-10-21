@@ -5,7 +5,7 @@
     const accountPage = location.pathname === new URL('account.html', root).pathname;
     const callback = /(?:access_token=|[?&]code=)/.test(location.hash + location.search);
     const pageReady = document.readyState === 'complete' ? Promise.resolve() : new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once:true }));
-    let resolveReady, running = false;
+    let resolveReady, running = false, retryTimer, redirecting = false;
     const state = { authorized: false, user: null, checking: true, root: root.href };
     state.ready = new Promise(resolve => { resolveReady = resolve; });
     window.FlowAuth = state;
@@ -55,14 +55,35 @@
     function signIn(reason = '') {
         state.checking = false; state.authorized = false; resolveReady(null);
         if (loginPage) { reveal(); return; }
+        if (redirecting) return;
+        redirecting = true;
         const next = destination(location.href);
         const url = new URL('login.html', root);
         url.searchParams.set('next', next.pathname.slice(root.pathname.length) + next.search + next.hash);
         if (reason) url.searchParams.set('reason', reason);
         location.replace(url.href);
     }
+    function retryable(error) {
+        return error && (error.name === 'AuthRetryableFetchError' || error.name === 'TypeError' || error.name === 'AbortError' ||
+            error.status === 0 || error.status === 429 || error.status >= 500 || error.code === 'conflict');
+    }
+    function retryLater() {
+        lock('Restoring your saved sign-in. Reconnect if needed; Flow will try again automatically.');
+        resolveReady(null);
+        clearTimeout(retryTimer);
+        if (navigator.onLine && !document.hidden) retryTimer = setTimeout(check, 10000);
+    }
+    state.signInStatus = function () {
+        const storage = typeof flowAuthStorage !== 'undefined' && typeof flowAuthStorage?.status === 'function' ? flowAuthStorage.status() : {};
+        const app = matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'installed' : 'browser';
+        return 'Flow ' + (document.documentElement.dataset.flowRelease || 'preview') + ' | ' + app +
+            ' | local: ' + (storage.local || 'unknown') + ' | durable: ' + (storage.durable || 'unknown') +
+            ' | recovered: ' + (storage.recovered ? 'yes' : 'no') + ' | reason: ' +
+            (['missing', 'expired', 'offline'].includes(new URLSearchParams(location.search).get('reason')) ? new URLSearchParams(location.search).get('reason') : 'none');
+    };
     async function check() {
         if (running) return;
+        clearTimeout(retryTimer);
         running = true; state.checking = true;
         try {
             const client = getFlowClient();
@@ -73,20 +94,19 @@
             }
             const result = await client.auth.getSession();
             const session = result.data?.session;
-            if (result.error || !session?.user?.id) { signIn(); return; }
+            if (result.error) { if (retryable(result.error)) retryLater(); else signIn('expired'); return; }
+            if (!session?.user?.id) { signIn('missing'); return; }
             let user;
             if (!navigator.onLine) {
                 if (session.expires_at * 1000 <= Date.now() || !Number.isFinite(session.expires_at) ||
                     localStorage.getItem('flow_verified_user') !== session.user.id || localStorage.getItem('flow_user_id') !== session.user.id) {
-                    signIn('offline'); return;
+                    retryLater(); return;
                 }
                 user = session.user;
             } else {
                 const verified = await client.auth.getUser();
                 if (verified.error) {
-                    if (verified.error.name === 'AuthRetryableFetchError' || verified.error.status === 0) {
-                        lock('Your sign-in could not be checked. Reconnect and try again.'); resolveReady(null); return;
-                    }
+                    if (retryable(verified.error)) { retryLater(); return; }
                     signIn('expired'); return;
                 }
                 user = verified.data?.user;
@@ -111,7 +131,7 @@
             document.dispatchEvent(new Event('flow-auth-ready'));
         } catch (_) {
             if (loginPage) { reveal(); resolveReady(null); }
-            else { lock('Your sign-in could not be checked. Your saved copy is still on this device.'); resolveReady(null); }
+            else { retryLater(); }
         } finally { running = false; state.checking = false; }
     }
     state.recheck = check;

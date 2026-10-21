@@ -21,3 +21,6 @@ html[data-flow-workspace=unlinked] .account-columns,html[data-flow-workspace=unl
 .login-card summary { font-size:13px; cursor:pointer; min-height:40px; }
 .login-card #login-message { min-height:22px; margin-bottom:0; }
 @media(max-width:420px) { .login-card { padding:28px 22px; } }
+
+#login-status-details { overflow-wrap:anywhere; font-size:12px; }
+.login-card .secondary-button { width:100%; min-height:46px; padding:10px 14px; background:#fff; color:#183d31; border:1px solid #dce4d7; border-radius:11px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
