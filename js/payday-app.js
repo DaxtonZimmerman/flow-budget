@@ -100,7 +100,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (!paydayCheckInDue(p)) return '';
         return `<section class="card payday-checkin-card">${header('A fresh plan', p.payday.nextDate === flowToday() ? 'It’s your planning day.' : 'Ready for your next plan?', icon('sunrise'))}<p>Your previous plan ended ${date(p.payday.nextDate)}. Confirm your next payday, today’s available money, and your set-asides. Your bills come with you.</p>${button('Start payday check-in', 'payday-checkin')}<small>No pay is assumed to have arrived. Nothing changes until you finish.</small></section>`;
     }
-    let homeSlideKey = typeof matchMedia === 'function' && matchMedia('(max-width:768px)').matches ? 'bills' : 'spending', homeSlides = [], homeChanges = [], homeBaseline;
+    let homeSlideKey = typeof matchMedia === 'function' && matchMedia('(max-width:768px)').matches ? 'bills' : 'spending', homeSlides = [], homeChanges = [], homeBaseline, homeCarousel;
     function homeSource() { return flowHomeSourceStatus(p, accounts, flowToday()); }
     function homeTask(task, cls = 'home-next-main') {
         const content = '<span class="home-next-icon">' + icon(task.icon) + '</span><span><strong>' + esc(task.title) + '</strong><small>' + esc(task.text) + '</small></span>' + icon('chevron-right');
@@ -136,10 +136,57 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (!slides.length) return '';
         if (!slides.some(slide => slide.key === homeSlideKey)) homeSlideKey = slides[0].key;
         const selected = slides.find(slide => slide.key === homeSlideKey), index = slides.indexOf(selected);
-        return '<section class="home-panel home-highlights" aria-roledescription="carousel" aria-label="Your highlights"><div class="home-panel-heading"><h2>Your highlights</h2>' + (slides.length > 1 ? '<div class="home-carousel-arrows">' + button(icon('chevron-left'), 'home-slide', 'icon-button', 'data-step="-1" aria-label="Previous highlight"') + button(icon('chevron-right'), 'home-slide', 'icon-button', 'data-step="1" aria-label="Next highlight"') + '</div>' : '') + '</div><div class="home-highlight-content" aria-live="polite" aria-atomic="true"><span class="home-muted">' + esc(selected.label) + '</span>' + selected.body + '</div>' + (slides.length > 1 ? '<div class="home-carousel-dots" aria-label="Choose a highlight">' + slides.map((slide, i) => button('<span></span>', 'home-slide', 'home-slide-dot', 'data-key="' + slide.key + '" aria-label="' + (i + 1) + ' of ' + slides.length + ': ' + esc(slide.label) + '" aria-pressed="' + (i === index) + '"')).join('') + '</div>' : '') + '</section>';
+        return '<section class="home-panel home-highlights" aria-roledescription="carousel" aria-label="Your highlights"><div class="home-panel-heading"><h2>Your highlights</h2>' + (slides.length > 1 ? '<div class="home-carousel-arrows">' + button(icon('chevron-left'), 'home-slide', 'icon-button', 'data-step="-1" aria-label="Previous highlight" aria-controls="home-highlights-track"') + button(icon('chevron-right'), 'home-slide', 'icon-button', 'data-step="1" aria-label="Next highlight" aria-controls="home-highlights-track"') + '</div>' : '') + '</div><div class="home-highlights-track" id="home-highlights-track" role="group" tabindex="0" aria-label="Swipe or use arrow keys for highlights">' + slides.map((slide, i) => '<div class="home-highlight-content" data-highlight-key="' + slide.key + '" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + slides.length + ': ' + esc(slide.label) + '"' + (i === index ? '' : ' inert aria-hidden="true"') + '><span class="home-muted">' + esc(slide.label) + '</span>' + slide.body + '</div>').join('') + '</div>' + (slides.length > 1 ? '<div class="home-carousel-dots" aria-label="Choose a highlight">' + slides.map((slide, i) => button('<span></span>', 'home-slide', 'home-slide-dot', 'data-key="' + slide.key + '" aria-controls="home-highlights-track" aria-label="' + (i + 1) + ' of ' + slides.length + ': ' + esc(slide.label) + '" aria-pressed="' + (i === index) + '"')).join('') + '</div>' : '') + '<p class="sr-only home-highlight-status" role="status" aria-live="polite" aria-atomic="true"></p></section>';
     }
+    function mountHomeCarousel() {
+        const panel = home.querySelector('.home-highlights'), track = panel?.querySelector('.home-highlights-track');
+        if (!track) return;
+        const slides = [...track.children], reduced = matchMedia('(prefers-reduced-motion:reduce)');
+        let settleTimer, requested = null;
+        const position = i => slides[i].offsetLeft - slides[0].offsetLeft;
+        function select(i, announce = false) {
+            homeSlideKey = slides[i].dataset.highlightKey;
+            slides.forEach((slide, n) => { slide.inert = n !== i; slide.setAttribute('aria-hidden', String(n !== i)); });
+            panel.querySelectorAll('.home-slide-dot').forEach(dot => dot.setAttribute('aria-pressed', String(dot.dataset.key === homeSlideKey)));
+            const previous = panel.querySelector('[data-step="-1"]'), next = panel.querySelector('[data-step="1"]');
+            if (previous) previous.disabled = i === 0;
+            if (next) next.disabled = i === slides.length - 1;
+            if (announce) panel.querySelector('.home-highlight-status').textContent = slides[i].getAttribute('aria-label');
+        }
+        function go(i, smooth = true) {
+            i = Math.max(0, Math.min(slides.length - 1, i));
+            requested = i;
+            select(i, smooth);
+            track.scrollTo({ left: position(i), behavior: smooth && !reduced.matches ? 'smooth' : 'auto' });
+        }
+        function settled() {
+            clearTimeout(settleTimer);
+            if (!track.isConnected || !track.clientWidth) return;
+            if (requested !== null && Math.abs(track.scrollLeft - position(requested)) > 2) return;
+            requested = null;
+            let nearest = 0;
+            slides.forEach((_, i) => { if (Math.abs(track.scrollLeft - position(i)) < Math.abs(track.scrollLeft - position(nearest))) nearest = i; });
+            select(nearest, true);
+        }
+        track.addEventListener('scroll', () => { clearTimeout(settleTimer); settleTimer = setTimeout(settled, 120); }, { passive: true });
+        track.addEventListener('scrollend', settled);
+        // A finger or trackpad can take over an in-progress button animation.
+        for (const name of ['pointerdown', 'wheel']) track.addEventListener(name, () => { requested = null; }, { passive: true });
+        track.addEventListener('keydown', event => {
+            if (event.target !== track || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const current = slides.findIndex(slide => slide.dataset.highlightKey === homeSlideKey);
+            go(event.key === 'Home' ? 0 : event.key === 'End' ? slides.length - 1 : current + (event.key === 'ArrowRight' ? 1 : -1));
+        });
+        const observer = new ResizeObserver(() => go(slides.findIndex(slide => slide.dataset.highlightKey === homeSlideKey), false));
+        observer.observe(track);
+        go(slides.findIndex(slide => slide.dataset.highlightKey === homeSlideKey), false);
+        homeCarousel = { go, cleanup() { observer.disconnect(); clearTimeout(settleTimer); } };
+    }
+
     function renderHome() {
         if (!home) return;
+        homeCarousel?.cleanup(); homeCarousel = null;
         home.dataset.design = 'payday-path';
         const e = estimate(), source = homeSource(), tasks = homeTasks(e), today = flowToday();
         const recent = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 3);
@@ -147,7 +194,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         let notice = '';
         if (p.setup.completed && !e.ready) notice = '<div class="home-notice" role="status">' + icon('circle-help') + '<div><strong>Your plan needs a check</strong><p>' + esc(e.missing[0]) + '.</p></div>' + button('See checks' + (e.missing.length > 1 ? ' (' + e.missing.length + ')' : ''), 'breakdown', 'home-text-link') + '</div>';
         else if (e.ready && e.leftCents < 0) notice = '<div class="home-notice">' + icon('triangle-alert') + '<div><strong>Your plan needs adjusting</strong><p>Bills and set-asides exceed your available money.</p></div></div>';
-        else if (e.ready && source.caution) notice = '<div class="home-notice">' + icon('clock-3') + '<div><strong>' + esc(source.label) + '</strong><p>A recent update check does not establish the bank’s balance date.</p></div>' + button('Details', 'home-source', 'home-text-link') + '</div>';
+        else if (e.ready && source.caution) notice = '<div class="home-notice">' + icon('clock-3') + '<div><strong>' + esc(source.label) + '</strong><p>Flow checks automatically. Open details if your balance needs attention.</p></div>' + button('Details', 'home-source', 'home-text-link') + '</div>';
         const heroAction = !e.ready ? recoveryAction(e, 'home-primary') : e.leftCents < 0 ? '<a class="home-primary" href="budgets.html">Adjust my plan ' + icon('arrow-right') + '</a>' : '<button type="button" class="home-primary" data-tool="purchase">Can I spend this? ' + icon('arrow-right') + '</button>';
         const hero = '<section class="payday-hero home-hero" id="flow-decision-tools" aria-labelledby="home-money-title"><div class="home-hero-period">' + icon('sun') + ' ' + (validPlanDate(p.payday.nextDate) ? 'Until ' + date(p.payday.nextDate) + ' payday' : 'Your payday plan') + '</div><h3 class="home-amount">' + (e.ready ? money(Math.abs(e.leftCents)) : p.setup.completed ? 'Let’s check' : 'Let’s make a plan') + '</h3><h2 id="home-money-title">' + (e.ready ? e.leftCents < 0 ? 'Estimated shortfall' : 'Estimated left until payday' : p.setup.completed ? 'Confirm your plan' : 'Start with your next payday') + '</h2><div class="home-hero-meta">' + button(esc(source.label), 'home-source', 'home-source-button') + button('How it works ' + icon('chevron-right'), 'breakdown', 'home-text-link') + '</div>' + heroAction + '</section>';
         const path = '<section class="home-panel home-payday-path"><div class="home-panel-heading"><h2>Your payday path</h2><a class="home-text-link" href="bills.html">All bills</a></div><div class="home-path"><div class="home-path-stop"><span class="home-path-dot">' + icon('circle-dot') + '</span><strong>Today</strong><small>' + date(today) + '</small></div>' + upcoming.map(b => button('<span class="home-path-dot">' + icon('receipt') + '</span><strong>' + esc(b.name) + '</strong><small>' + date(b.dueDate) + '</small>', 'bill', 'home-path-stop', 'data-id="' + esc(b.id) + '" aria-label="View ' + esc(b.name) + ', due ' + date(b.dueDate) + '"')).join('') + button('<span class="home-path-dot">' + icon('flag') + '</span><strong>Payday</strong><small>' + date(p.payday.nextDate) + '</small>', 'payday', 'home-path-stop') + '</div>' + (!p.billsConfirmed ? '<p class="home-footnote">Confirm your bills in setup to add them to the path.</p>' : '') + '</section>';
@@ -155,6 +202,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         const highlights = '<details class="mobile-home-overview" open><summary>This month’s activity ' + icon('chevron-down') + '</summary>' + homeOverview() + '</details>' + homeHighlights(e);
         const phoneHero = window.FlowMobileViews ? FlowMobileViews.decorateHero(hero, e, validPlanDate(p.payday.nextDate) ? planDays(today, p.payday.nextDate) : 0) : hero;
         home.innerHTML = '<h1 class="sr-only">Home</h1>' + notice + '<div class="home-layout"><div class="home-main-column">' + phoneHero + path + next + '</div><div class="home-side-column">' + highlights + '<section class="home-panel home-recent"><div class="home-panel-heading"><h2>Recent activity</h2><a class="home-text-link" href="transactions.html">See all</a></div><div class="transaction-list">' + (recent.map(recentRow).join('') || '<div class="home-empty"><p>Your payments will appear here.</p><a href="account.html#bank-connections" class="home-text-link">Connect a bank ' + icon('chevron-right') + '</a><a href="add-transaction.html" class="home-text-link">Add a payment ' + icon('chevron-right') + '</a></div>') + '</div></section></div></div>';
+        mountHomeCarousel();
     }
     function renderBills() {
         if (!billsPage) return;
@@ -370,7 +418,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (step === 0) body = `<p class="detail-help">Your previous plan ended ${date(p.payday.nextDate)}. This date is suggested from your schedule; confirm when you actually expect your next pay. It does not add expected pay to your balance.</p><div class="stack">${field('Next payday or planning end date', 'nextDate', checkIn.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', checkIn.frequency)}</div><p class="detail-help">No regular payday? Choose a date to plan through. Twice-monthly suggestions use the 15th and month end.</p>`;
         if (step === 1) {
             const chosen = loadBankAccounts().filter(a => p.selectedAccountIds.includes(a.id));
-            const cached = chosen.length ? `<div class="checkin-account-list">${chosen.map(a => `<div><strong>${esc(a.name)}</strong><span>${supported(a) ? money(a.availableCents) : 'Available balance needed'}</span><small>Retrieved ${esc(new Date(a.retrievedAt).toLocaleString())}${a.bankUpdatedAt ? ' · Bank data ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : ' · Bank date unavailable'}</small></div>`).join('')}</div>` : '<p class="detail-help">No selected cash account is available. Enter the available money you can use today.</p>';
+            const cached = chosen.length ? `<div class="checkin-account-list">${chosen.map(a => `<div><strong>${esc(a.name)}</strong><span>${supported(a) ? money(a.availableCents) : 'Available balance needed'}</span><small>Flow received this balance ${esc(new Date(a.retrievedAt).toLocaleString())}${a.bankUpdatedAt ? ' · Bank data ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : ' · Bank date unavailable'}</small></div>`).join('')}</div>` : '<p class="detail-help">No selected cash account is available. Enter the available money you can use today.</p>';
             body = `<p class="detail-help">Check your available money today. Your paycheck might arrive later than its scheduled date.</p>${cached}${button('Check connected accounts', 'checkin-refresh', 'inline-link')}<div class="stack" style="margin-top:20px"><label class="field">Use for this plan<select name="balanceMode"><option value="bank" ${checkIn.balanceMode === 'bank' ? 'selected' : ''} ${!p.selectedAccountIds.length ? 'disabled' : ''}>Selected cached bank balances</option><option value="manual" ${checkIn.balanceMode === 'manual' ? 'selected' : ''}>Available amount I confirm today</option></select></label><div id="checkin-manual" ${checkIn.balanceMode === 'manual' ? '' : 'hidden'}>${field('Available spending money today', 'checkinBalance', checkIn.balance, 'number', `step="0.01" ${checkIn.balanceMode === 'manual' ? 'required' : 'disabled'}`)}</div><label class="toggle-label"><input type="checkbox" name="moneyChecked" required>I checked this matches the available money I can use today.</label></div><p class="detail-help">Bank amounts are cached. Enter an available amount if they are out of date. Entered balances need a new confirmation on another day.</p>`;
         }
         if (step === 2) body = `<p class="detail-help">Start fresh set-asides from today until ${date(checkIn.nextDate)}. These are your usual amounts; adjust them for this period.</p><div class="stack">${p.essentials.map((e, i) => field(esc(e.name), 'checkinEssential-' + i, checkIn.amounts[i], 'number', 'step="0.01" min="0" required')).join('')}${field('Cushion to leave untouched', 'checkinCushion', checkIn.cushion, 'number', 'step="0.01" min="0" required')}</div><div id="checkin-preview" class="checkin-preview"></div><label class="toggle-label"><input type="checkbox" name="planChecked" required>I checked my bills and set-asides for this plan.</label><p class="detail-help">Bill schedules and payment matches carry forward. Unpaid bills stay reserved, including any date that has passed.</p>${button('Review bills in Plan first', 'checkin-bills', 'inline-link')}`;
@@ -451,19 +499,17 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         try {
             if (action === 'close') return dialog.close();
             if (action === 'home-slide') {
-                const focused = { key: target.dataset.key, step: target.dataset.step };
                 const current = homeSlides.findIndex(slide => slide.key === homeSlideKey);
-                homeSlideKey = target.dataset.key || homeSlides[(current + Number(target.dataset.step) + homeSlides.length) % homeSlides.length]?.key;
-                renderHome(); icons();
-                [...home.querySelectorAll('[data-plan-action="home-slide"]')].find(control => focused.key ? control.dataset.key === focused.key : control.dataset.step === focused.step)?.focus({ preventScroll: true });
+                const next = target.dataset.key ? homeSlides.findIndex(slide => slide.key === target.dataset.key) : current + Number(target.dataset.step);
+                homeCarousel?.go(next);
                 return;
             }
             if (action === 'home-tasks') return showModal('Your next steps', '<div class="home-task-list">' + homeTasks(estimate()).map(task => homeTask(task)).join('') + '</div>');
             if (action === 'home-changes') return showModal('What changed in your plan', '<div class="breakdown">' + homeChanges.map(c => '<div><span>' + esc(c.label) + '</span><strong>' + (c.deltaCents >= 0 ? '+' : '') + money(c.deltaCents) + '</strong></div>').join('') + '</div><p class="detail-help">Changes to saved plan inputs, not a claim that every bank payment has arrived or been reconciled.</p>');
             if (action === 'home-source') {
                 const selected = accounts.filter(a => p.selectedAccountIds.includes(a.id));
-                const details = p.manualBalance ? '<p class="detail-help">Available money confirmed by you on ' + date(p.manualBalance.date) + '. Manual amounts need confirmation on a new day.</p>' : selected.map(a => '<div class="home-source-row"><strong>' + esc(a.name) + '</strong><p>' + (a.bankUpdatedAt && Number.isFinite(Date.parse(a.bankUpdatedAt)) ? 'Bank balance dated ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : 'Bank balance date unavailable') + '.</p><small>Retrieved ' + (Number.isFinite(Date.parse(a.retrievedAt)) ? esc(new Date(a.retrievedAt).toLocaleString()) : 'at an unknown time') + '.</small></div>').join('') || '<p class="detail-help">Choose spending accounts or confirm your available money in setup.</p>';
-                return showModal('Your spending money', details + '<p class="detail-help">A check for bank updates does not force a new transaction or balance from your bank. Available balances can already include pending holds.</p><div class="heading-actions"><button type="button" class="back-button" data-tool="reconcile">Check my plan</button><a class="back-button" href="account.html#bank-connections">Account & banks</a></div>');
+                const details = p.manualBalance ? '<p class="detail-help">Available money confirmed by you on ' + date(p.manualBalance.date) + '. Manual amounts need confirmation on a new day.</p>' : selected.map(a => '<div class="home-source-row"><strong>' + esc(a.name) + '</strong><p>' + (a.bankUpdatedAt && Number.isFinite(Date.parse(a.bankUpdatedAt)) ? 'Bank balance dated ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : 'A balance date isn’t supplied for this account') + '.</p><small>Flow received this balance ' + (Number.isFinite(Date.parse(a.retrievedAt)) ? esc(new Date(a.retrievedAt).toLocaleString()) : 'at an unknown time') + '.</small></div>').join('') || '<p class="detail-help">Choose spending accounts or confirm your available money in setup.</p>';
+                return showModal('Your spending money', details + '<p class="detail-help">Flow checks your connected bank automatically when you open or return to the app, and periodically while it is open. If a check fails, Flow retries. Recent spending or transfers may take time to appear in the balances your bank reports. A check time is not the bank’s balance date. Available balances can already include pending holds.</p><div class="heading-actions"><button type="button" class="back-button" data-tool="reconcile">Check my plan</button><a class="back-button" href="account.html#bank-connections">Account & banks</a></div>');
             }
 
             if (action === 'transaction') return window.FlowTransactionDetails.open(target.dataset.id);

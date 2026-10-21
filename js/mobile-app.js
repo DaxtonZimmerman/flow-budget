@@ -157,17 +157,6 @@
         if (tab) { billsTab = tab.dataset.mobileBillTab; updateBills(); }
     });
     window.addEventListener('hashchange', () => { if (location.hash === '#bill-discovery') { billsTab = 'suggestions'; updateBills(); } });
-    let swipe;
-    document.addEventListener('pointerdown', event => {
-        if (!phone.matches || event.target.closest('button,a,input,select')) return;
-        if (event.target.closest('.home-highlight-content')) swipe = { x:event.clientX, y:event.clientY };
-    });
-    document.addEventListener('pointerup', event => {
-        if (!swipe) return;
-        const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y; swipe = null;
-        if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) document.querySelector(`[data-plan-action="home-slide"][data-step="${dx < 0 ? 1 : -1}"]`)?.click();
-    });
-    document.addEventListener('pointercancel', () => { swipe = null; });
     for (const name of ['flow-payday-rendered','flow-activity-rendered','flow-transaction-view-refresh','flow-accounts-updated','flow-review-updated','flow-planning-updated']) document.addEventListener(name,schedule);
     phone.addEventListener('change', () => { moveFilters(); schedule(); });
     window.visualViewport?.addEventListener('resize',sheetViewport);

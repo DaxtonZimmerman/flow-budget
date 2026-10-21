@@ -6,9 +6,22 @@ function flowHomeSourceStatus(planning, accounts, today, now = Date.now()) {
     }
     const ids = planning.selectedAccountIds || [], selected = accounts.filter(a => ids.includes(a.id));
     if (!selected.length || selected.length !== ids.length) return { kind: 'check', label: 'Choose your spending money', caution: true };
+    // Retrieval time describes Flow's check, never the bank's balance date.
+    const retrieved = selected.map(a => Date.parse(a.retrievedAt || ''));
+    if (retrieved.some(t => !Number.isFinite(t) || now - t > 36 * 3600000 || t > now + 300000)) {
+        return { kind: 'check', label: 'Waiting for a bank update', caution: true };
+    }
     const timestamps = selected.map(a => Date.parse(a.bankUpdatedAt || ''));
-    if (timestamps.some(t => !Number.isFinite(t))) return { kind: 'unknown', label: 'Bank balance date unavailable', caution: true };
-    if (timestamps.some(t => now - t > 36 * 3600000 || t > now + 300000)) return { kind: 'check', label: 'Check the bank balance date', caution: true };
+    if (selected.some((a, i) => a.bankUpdatedAt && (!Number.isFinite(timestamps[i]) || now - timestamps[i] > 36 * 3600000 || timestamps[i] > now + 300000))) {
+        return { kind: 'check', label: 'Check the bank balance date', caution: true };
+    }
+    // Plaid normally omits the bank timestamp. An otherwise valid snapshot needs no manual fix.
+    if (timestamps.some(t => !Number.isFinite(t))) {
+        const checked = new Date(Math.min(...retrieved));
+        const checkedDate = checked.getFullYear() + '-' + String(checked.getMonth() + 1).padStart(2, '0') + '-' + String(checked.getDate()).padStart(2, '0');
+        const when = checked.toLocaleString('en-US', checkedDate === today ? { hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric' });
+        return { kind: 'unknown', label: 'Bank estimate · checked ' + when, caution: false };
+    }
     const oldest = new Date(Math.min(...timestamps)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return { kind: 'bank', label: 'Bank balance dated ' + oldest, caution: false };
 }
