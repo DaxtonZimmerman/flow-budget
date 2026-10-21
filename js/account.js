@@ -20,6 +20,12 @@ async function showAccount() {
             await window.FlowAuth.ready;
             if (!window.FlowAuth.authorized) return;
         }
+        if (typeof flowDemoMode !== 'undefined' && flowDemoMode) {
+            setupPanel.hidden = true; connectedPanel.hidden = false;
+            document.querySelector('#account-address').textContent = 'Your demo account';
+            document.querySelector('#sync-now').hidden = true; document.querySelector('#sign-out').hidden = true;
+            return;
+        }
         if (!client) {
             setupPanel.hidden = false;
             showFlowStatus("Your work is saved here. Reconnect to sync.");
@@ -107,46 +113,9 @@ function downloadFlowCopy(data, name) {
 document.querySelector("#sync-now").addEventListener("click", flowSync);
 
 
-document.querySelector("#sign-out").addEventListener("click", async function() {
-    if (flowStorage.getItem("flow_pending") === "1") {
-        accountMessage.textContent =
-            "This device has unsynced changes. Sync or download a backup first.";
-        return;
-    }
-
-    let result;
-
-    try {
-        if (window.FlowAuth) window.FlowAuth.handlingSignOut = true;
-        result = await client.auth.signOut();
-    } catch (error) {
-        if (window.FlowAuth) window.FlowAuth.handlingSignOut = false;
-        accountMessage.textContent = "Could not sign out. Try again online.";
-        return;
-    }
-
-    if (result.error) {
-        if (window.FlowAuth) window.FlowAuth.handlingSignOut = false;
-        accountMessage.textContent = result.error.message;
-        return;
-    }
-
-    if (flowStorage.getItem("flow_user_id") === accountUser.id) {
-        flowStorage.removeItem("transactions");
-        flowStorage.removeItem("budgets");
-        flowStorage.removeItem("budgetsByMonth");
-        flowStorage.removeItem("categoryRules");
-        flowStorage.removeItem("recurringItems");
-        flowStorage.removeItem("flowPlanning");
-        flowStorage.removeItem("bankAccounts");
-        flowStorage.removeItem("flow_user_id");
-        flowStorage.removeItem("flow_revision");
-        flowStorage.removeItem("flowLastEstimate");
-        flowStorage.removeItem("flow_pending_client");
-        flowStorage.removeItem("flow_verified_user");
-    }
-
-    window.location.replace("login.html");
+document.querySelector('#sign-out').addEventListener('click', async () => {
+    try { await window.FlowApp.signOut(); }
+    catch (error) { accountMessage.textContent = error.message; }
 });
 
 

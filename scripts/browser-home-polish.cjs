@@ -26,6 +26,8 @@ const base = process.env.FLOW_TEST_URL || 'http://127.0.0.1:4341/';
   assert.match(await details.innerText(),/check time is not the bank’s balance date/);
   await details.getByRole('button',{name:'Close',exact:true}).click();await details.waitFor({state:'hidden'});await page.waitForTimeout(100);
   const track=page.locator('.home-highlights-track'),panel=page.locator('.home-highlights');
+  await panel.locator('.home-slide-dot[data-key=bills]').click();
+  await page.waitForFunction(()=>document.querySelector('.home-highlights-track').scrollLeft<2);
   await track.scrollIntoViewIfNeeded();
   await page.evaluate(()=>{window.originalHome=document.querySelector('.home-hero');window.originalTrack=document.querySelector('.home-highlights-track');});
   const slideCount=await track.locator('.home-highlight-content').count();assert.ok(slideCount>=4);

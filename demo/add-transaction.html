@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="2d568c7b2ab27e93" lang="en" data-flow-auth="checking">
+<html data-flow-release="3a1ce3ad449461ae" lang="en" data-flow-auth="checking">
 
 <head>
     <meta charset="UTF-8">
@@ -17,9 +17,9 @@
     <link rel="stylesheet" href="../css/app.css?v=e1fd8e3d6cb14f8b">
     <link rel="stylesheet" href="../css/payday.css?v=66114351f438f117">
     <script src="../js/storage.js?v=2f7e2302da412706" defer></script>
-    <script src="../js/mobile-views.js?v=3e1f0400b0f2a6b0" defer></script>
-    <script src="../js/app-shell.js?v=67b6e5097e19e886" defer></script>
-    <script src="../js/app-offline.js?v=6f36433ac1f7ec28" defer></script>
+    <script src="../js/mobile-views.js?v=ebd1b88e68d90d40" defer></script>
+    <script src="../js/app-shell.js?v=42c9dfd62892041b" defer></script>
+    <script src="../js/app-offline.js?v=314d8d989dd5f718" defer></script>
     <script src="../vendor/lucide.min.js?v=f01557cbefed1c14" integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU" crossorigin="anonymous" defer></script>
     <script src="../vendor/supabase.min.js?v=bee24fc29228ed5a" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
     <script src="../js/cloud-config.js?v=88e7e9526b908c52" defer></script>
@@ -28,7 +28,7 @@
     <script src="../js/bill-data.js?v=082c6c29c0c6c3cc" defer></script>
     <script src="../js/auth-storage.js?v=af54d07b8b0f115a" defer></script>
     <script src="../js/cloud-sync.js?v=bc499d89d93c7f20" defer></script>
-    <script src="../js/auth-gate.js?v=f51ec7880e11ffe8" defer></script>
+    <script src="../js/auth-gate.js?v=c63f01e100da7b0e" defer></script>
     <script src="../js/transfer-data.js?v=bc42d3121be9a431" defer></script>
     <script src="../js/bank-data.js?v=cd6d15801fbf8272" defer></script>
     <script src="../js/bank-auto-sync.js?v=c48bcb950ce9a052" defer></script>
@@ -38,12 +38,14 @@
     <script src="../js/add-transaction.js?v=91f35220aed9447c" defer></script>
     <script src="../js/transfer-app.js?v=85312566e1227586" defer></script>
     <link rel="stylesheet" href="../css/product.css?v=69e4237b7169e882">
-    <script src="../js/product-app.js?v=56bf3901e645172d" defer></script>
+    <script src="../js/product-app.js?v=6f106a37dd667a62" defer></script>
     <link rel="stylesheet" href="../css/redesign.css?v=3d34d081d50965e3">
     <link rel="stylesheet" href="../css/auth.css?v=73756a2ac1c382dd">
     <link rel="stylesheet" href="../css/brand.css?v=02ec8d815aea327c">
     <link rel="stylesheet" href="../css/mobile.css?v=4b922839bff4e305">
     <script src="../js/mobile-app.js?v=a689dae709361ac8" defer></script>
+    <link rel="stylesheet" href="../css/experience.css?v=da7f40b7ca3dde1d">
+    <script src="../js/experience.js?v=c90311a4d423dcac" defer></script>
 </head>
 
 <body class="app-redesign" data-page="entry">
@@ -65,7 +67,7 @@
         <main class="main">
             <div class="app-toolbar">
                 <a class="toolbar-brand" href="index.html" aria-label="Flow home"><span class="flow-wordmark"><img src="../assets/flow-logo.png?v=59e60a4060dd5454" alt="Flow." width="280" height="124"></span></a><span class="toolbar-title">Add transaction</span>
-                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a><button type="button" class="profile-launch" data-open-account aria-label="Open account and banks" aria-haspopup="dialog"><i data-lucide="user-round" aria-hidden="true"></i></button></div>
+                <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a><button type="button" class="profile-launch" data-open-account aria-label="Open account" aria-haspopup="dialog"><i data-lucide="user-round" aria-hidden="true"></i></button></div>
             </div>
 
             <header class="form-header">
@@ -219,14 +221,17 @@
     </dialog>
     <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title"><div class="dialog-heading"><span class="install-symbol"><i data-lucide="panel-top" aria-hidden="true"></i></span><button type="button" class="icon-button" data-close-dialog aria-label="Close install instructions"><i data-lucide="x" aria-hidden="true"></i></button></div><h2 id="install-title">Give Flow a place of its own.</h2><p>Open Flow from your home screen or dock, in its own app window.</p><ol id="install-steps"></ol><button class="save-button" type="button" data-close-dialog>Got it</button></dialog>
     <dialog id="app-account-dialog" class="account-menu" aria-labelledby="app-account-title">
-        <div class="dialog-heading"><h2 id="app-account-title">Account &amp; banks</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close account menu"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <div class="dialog-heading"><h2 id="app-account-title">Account</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close account menu"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <div class="profile-identity"><span class="profile-avatar" aria-hidden="true"><i data-lucide="user-round"></i></span><div><strong data-profile-name>Your Flow account</strong><span data-profile-email></span></div></div>
         <nav class="account-menu-links" aria-label="Account">
-            <a href="account.html#bank-connections"><i data-lucide="landmark" aria-hidden="true"></i><span>Account &amp; bank connections</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
-            <a href="account.html#payday-settings"><i data-lucide="settings-2" aria-hidden="true"></i><span>Preferences &amp; setup</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
-            <a href="setup.html"><i data-lucide="sprout" aria-hidden="true"></i><span>Setup guide</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
-            <a href="account.html#flow-product-settings"><i data-lucide="circle-help" aria-hidden="true"></i><span>Help &amp; weekly check-in</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
-            <a href="account.html#account-backups"><i data-lucide="download" aria-hidden="true"></i><span>Backups &amp; privacy</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#payday-settings"><i data-lucide="settings-2" aria-hidden="true"></i><span>Settings</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#bank-connections"><i data-lucide="landmark" aria-hidden="true"></i><span>Bank connections</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="setup.html"><i data-lucide="list-checks" aria-hidden="true"></i><span>Setup guide</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#flow-product-settings"><i data-lucide="circle-help" aria-hidden="true"></i><span>Help &amp; tools</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            <a href="account.html#account-backups"><i data-lucide="archive" aria-hidden="true"></i><span>Your data</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
         </nav>
+        <button type="button" class="profile-sign-out" data-profile-sign-out><i data-lucide="log-out" aria-hidden="true"></i>Sign out</button>
+        <p class="profile-message" role="alert"></p>
     </dialog>
 </body>
 

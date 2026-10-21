@@ -35,18 +35,20 @@
             location.replace(next);
         }
     };
-    function lock(text) {
+    function lock(text, recovery = false) {
         state.authorized = false;
         document.documentElement.dataset.flowAuth = 'checking';
         let panel = document.querySelector('.flow-auth-loading');
         if (!panel) {
             panel = document.createElement('section'); panel.className = 'flow-auth-loading';
-            panel.innerHTML = '<span class="flow-wordmark"><img alt="Flow." width="280" height="124"></span><p role="status"></p><button type="button" class="save-button">Try again</button><a href="' + new URL('login.html', root).href + '">Go to sign-in</a>';
+            panel.innerHTML = '<div class="flow-loader-mark"><span class="flow-wordmark"><img alt="Flow." width="280" height="124"></span><span class="flow-loader-orbit" aria-hidden="true"><span></span></span></div><p role="status"></p><div class="flow-loader-actions" hidden><button type="button" class="save-button">Try again</button><a href="' + new URL('login.html', root).href + '">Sign-in help</a></div>';
             panel.querySelector('img').src = new URL('assets/flow-logo.png', root).href;
             panel.querySelector('button').addEventListener('click', () => check());
             document.body.appendChild(panel);
         }
-        panel.querySelector('p').textContent = text;
+        panel.querySelector('p').textContent = recovery ? text : /Opening|Checking/.test(text) ? 'Opening Flow…' : text;
+        panel.querySelector('.flow-loader-actions').hidden = !recovery;
+        panel.dataset.phase = recovery ? 'recovery' : 'opening';
     }
     function reveal() {
         pageReady.then(() => {
@@ -70,7 +72,7 @@
             error.status === 0 || error.status === 429 || error.status >= 500 || error.code === 'conflict');
     }
     function retryLater() {
-        lock('Restoring your saved sign-in. Reconnect if needed; Flow will try again automatically.');
+        lock(navigator.onLine ? 'Restoring your sign-in. Flow will retry automatically.' : 'Waiting for a connection. Flow will retry automatically.', true);
         resolveReady(null);
         clearTimeout(retryTimer);
         if (navigator.onLine && !document.hidden) retryTimer = setTimeout(check, 10000);
@@ -91,7 +93,7 @@
             const client = getFlowClient();
             if (!client) {
                 if (loginPage) { reveal(); state.checking = false; resolveReady(null); return; }
-                lock('Connect to the internet to load your sign-in. Your saved copy is kept on this device.');
+                lock('Reconnect to open your saved account.', true);
                 resolveReady(null); return;
             }
             const result = await client.auth.getSession();

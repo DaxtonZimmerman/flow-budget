@@ -13,7 +13,28 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             (match || document.querySelector('[data-open-account]'))?.focus({preventScroll:true});
         });
     }
-    window.FlowApp = {describeControl,restoreControl};
+    async function signOut() {
+        if (window.FlowAuth) await FlowAuth.ready;
+        const owner = flowStorage.getItem('flow_user_id'), client = getFlowClient();
+        if (!owner || !client || !window.FlowAuth?.authorized || FlowAuth.user?.id !== owner) throw new Error('Open your signed-in account before signing out.');
+        if (flowStorage.getItem('flow_pending') === '1') throw new Error('Your changes are still saving. Reconnect and let them finish before signing out.');
+        FlowAuth.handlingSignOut = true;
+        try {
+            const result = await client.auth.signOut({scope:'local'});
+            if (result.error) throw result.error;
+        } catch (_) { FlowAuth.handlingSignOut = false; throw new Error('Could not sign out. Please try again.'); }
+        if (flowStorage.getItem('flow_user_id') === owner) {
+            for (const key of ['transactions','budgets','budgetsByMonth','categoryRules','recurringItems','flowPlanning','bankAccounts','flow_user_id','flow_revision','flow_pending','flowLastEstimate','flow_pending_client','flow_verified_user']) flowStorage.removeItem(key);
+        }
+        location.replace('login.html');
+    }
+    window.FlowApp = {describeControl,restoreControl,signOut};
+    const profileSignOut = accountDialog?.querySelector('[data-profile-sign-out]');
+    profileSignOut?.addEventListener('click', async () => {
+        if (profileSignOut.disabled) return;
+        profileSignOut.disabled = true;
+        try { await signOut(); } catch (error) { accountDialog.querySelector('.profile-message').textContent = error.message; profileSignOut.disabled = false; }
+    });
     for (const button of document.querySelectorAll('[data-open-account]')) button.addEventListener('click', () => accountDialog?.showModal());
     accountDialog?.addEventListener('click', event => { if (event.target.closest('a[href]')) accountDialog.close(); });
     accountDialog?.addEventListener('close', () => restoreControl({'data-open-account':''}));
@@ -113,7 +134,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const status = document.querySelector('#flow-sync-status');
     if (status) {
         new MutationObserver(() => {
-            status.classList.toggle('sync-quiet', /^All changes saved\.$/.test(status.textContent.trim()));
+            status.classList.toggle('sync-quiet', /^(All changes saved\.|Saving changes…|Checking for changes…)$/.test(status.textContent.trim()));
             status.classList.toggle('sync-warning', /could not|changes on two|choose which|data changed|different account/i.test(status.textContent));
         }).observe(status, { childList: true, characterData: true, subtree: true });
     }

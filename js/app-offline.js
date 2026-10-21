@@ -10,7 +10,7 @@
         let node = document.querySelector('#flow-connectivity');
         if (!node) { node = document.createElement('div'); node.id = 'flow-connectivity'; node.className = 'offline-banner'; node.setAttribute('role', 'status'); mount()?.prepend(node); }
         node.hidden = navigator.onLine;
-        node.textContent = 'Offline · edits stay on this device. Bank updates and cloud sync resume when you reconnect.';
+        node.textContent = 'You’re offline. Your changes will sync when you reconnect.';
     }
     function busy() {
         for (const form of dirtyForms) if (!form.isConnected || form.closest('dialog:not([open])')) dirtyForms.delete(form);

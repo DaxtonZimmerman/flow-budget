@@ -1,0 +1,251 @@
+/* Flow's app language: one main decision, tactile controls, details on demand. */
+body.app-redesign { --text:#193f34; --text-light:#68786e; --background:#f5f7f1; --border:#e4e9df; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+.app-redesign .main { max-width:1400px; }
+.app-redesign .sidebar { border-right:1px solid #e7ebe3; }
+.app-redesign .nav-link { transition:background-color .18s ease,transform .18s ease; }
+.app-redesign .nav-link.active { box-shadow:inset 0 0 0 1px #dfe7d5; }
+.app-redesign button,.app-redesign a { -webkit-tap-highlight-color:transparent; }
+.app-redesign button:active:not(:disabled),.app-redesign .nav-link:active,.map-part:active { transform:scale(.98); }
+.app-redesign button:focus-visible,.app-redesign a:focus-visible,summary:focus-visible { outline:2px solid #48744b; outline-offset:4px; }
+.app-redesign .card,.home-panel,.mobile-card { box-shadow:0 3px 20px #1c3d2f03; }
+.app-redesign .page-header h2,.app-redesign #payday-bills .page-header h1 { font-weight:650; letter-spacing:-1.1px; }
+.home-greeting { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 22px; }
+.home-greeting p { margin:0 0 6px; font-size:12px; color:var(--text-light); }
+.home-greeting h1 { margin:0; font-size:30px; letter-spacing:-1px; font-weight:650; }
+.home-quick-add { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--text); background:#e8efdf; text-decoration:none; flex-shrink:0; }
+.home-hero { position:relative; overflow:hidden; }
+.home-hero.payday-hero { background:#184f3d; border-radius:29px; padding:30px; box-shadow:none; }
+.home-hero-period { padding-right:90px; }
+.home-hero .home-amount { margin-top:28px; font-size:clamp(40px,4.4vw,66px); letter-spacing:-2.6px; font-weight:600; }
+.home-hero h2 { font-weight:450; font-size:15px; }
+.payday-runway { --runway-progress:0; width:66px; height:66px; position:absolute; right:24px; top:24px; border-radius:50%; padding:3px; background:conic-gradient(#c6e59c calc(var(--runway-progress)*1turn),#ffffff24 0); }
+.payday-runway>span { display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; height:100%; background:#184f3d; border-radius:50%; }
+.payday-runway strong { color:#f8faef; font-size:24px; line-height:1.1; font-weight:600; }
+.payday-runway small { color:#d9e8d4; font-size:8px; margin-top:3px; }
+.money-map { margin:24px 0 10px; }
+.money-map-track { display:flex; gap:4px; height:11px; overflow:hidden; border-radius:10px; background:#ffffff18; }
+.money-map-track>span { flex-basis:0; min-width:3px; background:var(--part-color); border-radius:3px; }
+.money-map-legend { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.map-part { display:flex; text-align:left; align-items:flex-start; gap:6px; padding:7px 0; border:0; background:none; color:inherit; font:inherit; font-size:10px; line-height:1.4; cursor:pointer; min-width:0; }
+.map-part>span:last-child { min-width:0; }
+.map-part strong { display:block; font-size:12px; margin-top:4px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.map-dot { flex-shrink:0; width:6px; height:6px; border-radius:50%; background:var(--part-color); margin-top:4px; }
+.home-hero .map-part { color:#d6e5d6; }
+.home-hero .map-part strong { color:#f6f8ef; }
+.home-hero .home-source-button { color:#c3d9c5; font-size:10px; text-decoration:none; border-bottom:1px dashed #91b398; }
+.home-hero-meta { margin-top:5px; }
+.home-primary { background:#c6e59c; color:#163f31; border-radius:17px; box-shadow:0 1px 0 #ffffff33 inset; min-height:52px; }
+.home-primary:hover { background:#d2ecaF; }
+.mobile-daily-pace { display:flex!important; justify-content:center; align-items:center; gap:7px; font-size:11px; }
+.mobile-daily-pace strong { font-size:13px; color:#f2f7e8; }
+.mobile-daily-pace span { color:#c0d8c1; }
+.home-next { border:1px solid #dfe8d5; background:#eaf0e1; border-radius:20px; box-shadow:none; }
+.home-next-main { padding:16px; }
+.home-next-main small { font-size:11px; }
+.home-all-tasks { padding-top:0; font-size:11px; }
+.home-panel { border-radius:23px; border:1px solid #edf0e9; }
+.home-panel-heading h2 { font-weight:650; font-size:16px; }
+.home-highlights-track { border-radius:9px; }
+.home-highlight-content { min-height:160px; }
+.home-carousel-dots { margin-top:10px; }
+.home-slide-dot span { height:4px; width:4px; }
+.home-slide-dot[aria-pressed=true] span { width:22px; }
+.home-recent .merchant-icon { border-radius:14px; }
+.app-redesign .account-menu { width:min(440px,calc(100% - 28px)); padding:22px; border-radius:27px; }
+.profile-identity { display:flex; gap:13px; align-items:center; padding:10px 0 25px; }
+.profile-avatar { display:grid; place-items:center; background:#eaf0e2; color:#2a5b44; border-radius:50%; width:52px; height:52px; flex-shrink:0; }
+.profile-avatar svg { width:23px; height:23px; }
+.profile-identity>div { min-width:0; }
+.profile-identity strong { display:block; font-size:16px; font-weight:650; }
+.profile-identity [data-profile-email] { display:block; margin-top:5px; font-size:12px; color:#6a796f; overflow-wrap:anywhere; }
+.account-menu-links { padding:0 13px; background:#f5f7f1; border-radius:18px; }
+.app-redesign .account-menu-links a { min-height:57px; padding:13px 0; border-bottom:1px solid #e3e9dc; font-size:14px; font-weight:500; }
+.account-menu-links a:last-child { border:0; }
+.profile-sign-out { display:flex; align-items:center; gap:11px; background:none; border:0; min-height:52px; font:inherit; font-size:14px; font-weight:600; color:#a2493d; padding:15px 8px 5px; width:100%; cursor:pointer; }
+.profile-sign-out[hidden] { display:none; }
+.profile-sign-out svg { width:19px; height:19px; }
+.profile-message { font-size:12px; line-height:1.5; color:#944b3f; margin:0; }
+body[data-page=account] .account-columns { display:block; max-width:760px; margin:auto; }
+body[data-page=account] .account-columns>div { display:contents; }
+body[data-page=account] .page-header { max-width:760px; margin:0 auto 22px; }
+body[data-page=account] .page-header .small-label,body[data-page=account] .page-header p:not(.small-label) { display:none; }
+#account-connected { padding:22px; border-radius:22px; background:#eaf0e2; margin:0 0 24px; }
+#account-connected>.small-label,#account-connected>p { display:none; }
+#account-connected #account-address { font-size:18px; font-family:inherit; margin:12px 0 16px; overflow-wrap:anywhere; }
+.account-auto-status { display:flex; align-items:center; gap:6px; font-size:10px; color:#577356; }
+.account-auto-status svg { width:13px; height:13px; }
+#account-connected .account-actions { display:flex; gap:8px; }
+#account-connected #sync-now { background:#fff; color:#31543d; }
+#account-connected #sign-out { background:transparent; border:0; font-size:12px; }
+.settings-group,.settings-disclosure { background:#fff; border:1px solid #e8ede2; border-radius:18px; margin:12px 0; box-shadow:none; }
+.settings-group>summary,.settings-disclosure>summary { display:flex; gap:12px; align-items:center; padding:19px 18px; list-style:none; cursor:pointer; color:#234837; font-size:14px; font-weight:550; min-height:58px; }
+.settings-group>summary::-webkit-details-marker,.settings-disclosure>summary::-webkit-details-marker { display:none; }
+.settings-group>summary>span { flex:1; }
+.settings-group>summary>svg { width:19px; height:19px; color:#78917b; }
+.settings-group>summary>svg:last-child { width:15px; height:15px; }
+.settings-group[open]>summary>svg:last-child { transform:rotate(180deg); }
+.settings-group>.card,.settings-group>div>.card,.settings-disclosure>.card { margin:0; border:0; border-top:1px solid #edf1e7; border-radius:0 0 18px 18px; padding:20px; box-shadow:none; }
+.settings-group .detail-help { font-size:12px; }
+.settings-group .account-card>h3,.settings-group .account-card>.small-label { display:none; }
+.settings-group .app-install-card h3 { display:block; }
+.settings-group .toggle-label { font-size:13px; }
+.settings-group .plain-list p { font-size:12px; }
+.settings-group #bank-connections h3 { display:none; }
+.bank-connection-info summary { font-size:12px; padding:3px 0 15px; }
+.bank-connection-info #bank-intro { font-size:12px; line-height:1.65; }
+.plan-hero-total { display:grid; gap:5px; margin:26px 0 15px; }
+.plan-hero-total>strong { font-size:43px; letter-spacing:-1.5px; font-weight:600; font-variant-numeric:tabular-nums; }
+.plan-hero-total>span { font-size:12px; color:#64786a; }
+.plan-calculation { margin:16px 0 12px; border-top:1px solid #e4e9dd; }
+.plan-calculation>summary { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:550; cursor:pointer; padding:16px 0 8px; min-height:44px; list-style:none; }
+.plan-calculation>summary svg { width:15px; height:15px; }
+.mobile-plan-summary h2 { font-size:21px; letter-spacing:-.6px; }
+#flow-app-update { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.app-redesign dialog { box-shadow:0 24px 90px #132c252b; }
+.flow-auth-loading { gap:24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#f5f7f1; }
+.flow-loader-mark { position:relative; display:grid; place-items:center; width:224px; height:224px; border-radius:50%; background:#f5f7f1; }
+.flow-loader-mark .flow-wordmark { transform:scale(1.25); z-index:1; }
+.flow-loader-orbit { position:absolute; inset:0; border:1px solid #d7e3ca; border-radius:50%; animation:flow-orbit 3s linear infinite; }
+.flow-loader-orbit>span { position:absolute; width:12px; height:12px; top:calc(50% - 6px); left:-6px; border-radius:50%; background:#8caa70; box-shadow:0 0 0 6px #f5f7f1; }
+.flow-auth-loading p { color:#63806a; font-size:13px; font-weight:500; margin:0; max-width:300px; }
+.flow-loader-actions { display:grid; gap:16px; justify-items:center; }
+.flow-loader-actions[hidden] { display:none; }
+.flow-auth-loading[data-phase=recovery] .flow-loader-orbit { animation-play-state:paused; }
+.login-page { background:#f5f7f1; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+.login-card { box-shadow:0 20px 80px #25463108; padding:40px; border:1px solid #e7ecdf; }
+.login-card h1 { font-weight:650; }
+.login-card .save-button { background:#184f3d; border-radius:14px; }
+@keyframes flow-orbit { to { transform:rotate(360deg); } }
+@keyframes flow-screen-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+html[data-flow-auth=ready] .app-redesign .main { animation:flow-screen-in .2s ease-out; }
+@media(min-width:769px) {
+ .home-hero .mobile-daily-pace { display:flex!important; }
+ .home-layout { grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr); gap:24px; }
+ .home-hero .home-primary { margin-top:15px; }
+ .home-greeting { margin-bottom:28px; }
+ .home-side-column { gap:20px; }
+ .app-redesign .sidebar { background:#f0f4ea; }
+ .mobile-plan-summary { display:none; }
+}
+@media(max-width:768px) {
+ .app-redesign .main { padding:env(safe-area-inset-top) 18px calc(106px + env(safe-area-inset-bottom)); }
+ .app-redesign .app-toolbar { min-height:76px; margin-bottom:7px; }
+ .home-greeting { margin:7px 2px 20px; }
+ .home-greeting p { font-size:10px; margin-bottom:7px; }
+ .home-greeting h1 { font-size:25px; letter-spacing:-.9px; }
+ .home-quick-add { width:38px; height:38px; }
+ .home-hero.payday-hero { padding:26px 23px 18px; border-radius:27px; }
+ .home-hero .home-amount { font-size:clamp(39px,13.8vw,59px); margin:29px 0 7px; letter-spacing:-2px; }
+ .home-hero-period { font-size:11px; padding-right:75px; }
+ .payday-runway { width:56px; height:56px; top:21px; right:22px; }
+ .payday-runway strong { font-size:20px; }
+ .mobile-hero-info { top:auto; bottom:13px; right:9px; z-index:1; min-width:36px; min-height:36px; opacity:.75; }
+ .mobile-hero-info svg { width:17px; height:17px; }
+ .home-hero h2 { font-size:13px; }
+ .money-map { margin-top:23px; }
+ .money-map-track { height:7px; gap:3px; }
+ .money-map-legend { gap:6px; }
+ .map-part { font-size:9px; gap:4px; min-height:40px; }
+ .map-part strong { font-size:10px; }
+ .map-dot { width:4px; height:4px; margin-top:4px; }
+ .home-hero-meta { margin-top:2px; margin-bottom:12px; }
+ .home-primary { min-height:50px; font-size:14px; border-radius:15px; }
+ .mobile-daily-pace { margin:13px 22px 0 0; }
+ .home-layout { gap:15px; }
+ .home-highlights { border-radius:23px; padding:20px; }
+ .home-highlight-content { min-height:150px; }
+ .home-highlight-amount { font-size:32px; }
+ .home-carousel-dots { margin-top:6px; }
+ .app-redesign .nav { margin:0 10px 10px; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); border:1px solid #dfe6d6; border-radius:23px; box-shadow:0 8px 35px #17372c10; background:#fbfcf8f5; width:calc(100% - 20px); left:0; right:0; }
+ .app-redesign .nav-link { min-height:53px; border-radius:17px; font-size:10px; gap:4px; }
+ .app-redesign .nav-link.active { background:#e6eedb; }
+ .mobile-plan-summary { background:#edf2e6; border:1px solid #e1e8d7; border-radius:24px; }
+ .mobile-essentials { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; background:none; border:0; box-shadow:none; padding:0; }
+ .mobile-reserve-row { padding:18px 14px 14px; background:#fff; border:1px solid #e7ecdf; border-radius:20px; }
+ .mobile-reserve-top { position:relative; display:grid; grid-template-columns:1fr auto; gap:12px 5px; align-items:start; }
+ .mobile-reserve-top>.mobile-row-icon { width:33px; height:33px; border-radius:11px; grid-column:1; }
+ .mobile-reserve-top>.mobile-row-copy { grid-column:1 / -1; grid-row:2; }
+ .mobile-reserve-top>.mobile-row-copy strong { font-size:12px; }
+ .mobile-reserve-top>.mobile-row-copy small { font-size:10px; }
+ .mobile-reserve-top>.mobile-reserve-amount { grid-column:1 / -1; text-align:left; }
+ .mobile-reserve-amount>strong { font-size:25px; font-weight:600; letter-spacing:-.7px; }
+ .mobile-reserve-top>svg { position:absolute; top:8px; right:0; }
+ .mobile-reserve-progress { margin:14px 0 0; height:5px; }
+ .mobile-full-link { grid-column:1 / -1; border:1px dashed #d6dfcc; border-radius:14px; background:#edf2e6; padding:12px; }
+ .mobile-section-title { margin:25px 0 13px; font-weight:650; font-size:16px; }
+ .mobile-bill-total { border:0; background:#eaf0e1; border-radius:23px; position:relative; overflow:hidden; }
+ .mobile-bill-total::after { content:''; position:absolute; right:-23px; top:20px; width:115px; height:115px; border-radius:50%; border:18px solid #dce7cd; opacity:.6; pointer-events:none; }
+ .mobile-bill-total>strong { position:relative; z-index:1; font-size:43px; }
+ .mobile-bill-total>p { position:relative; z-index:1; }
+ .mobile-bill-total>p:last-child { font-size:11px; }
+ #payday-bills .mobile-bill-row { padding:20px 0; }
+ #payday-bills .mobile-bill-row>.mobile-row-icon { background:#eaf0e2; border-radius:14px; width:43px; height:43px; }
+ body[data-page=activity] .history-row { min-height:80px; }
+ body[data-page=activity] .mobile-date-heading { font-size:10px; text-transform:uppercase; letter-spacing:.7px; color:#7b887e; padding:15px 3px 9px; }
+ body[data-page=activity] .history-row .transaction-open-button strong { font-size:13px; line-height:1.35; }
+ body[data-page=activity] #transaction-history { border-radius:20px; }
+ body[data-page=activity] .history-row .merchant-icon { background:#eaf0e3; }
+ body[data-page=activity] .activity-tab { border:1px solid #e0e7d8; border-radius:17px; padding:8px 15px; font-size:11px; }
+ body[data-page=activity] .activity-tab.active { background:#184f3d; color:#fff; border-color:#184f3d; }
+ body[data-page=account] .main>.page-header h2 { font-size:29px; }
+ .app-redesign .account-menu { padding:23px 20px calc(24px + env(safe-area-inset-bottom)); border-radius:27px 27px 0 0; }
+ .profile-identity { padding-bottom:22px; }
+ .account-menu-links { padding:0 14px; }
+ .profile-sign-out { min-height:54px; }
+ .settings-group,.settings-disclosure { border-radius:17px; margin:11px 0; }
+ .setup-card { border-radius:24px; }
+ .setup-progress { gap:5px; }
+ .setup-progress span { height:4px; border-radius:5px; }
+ .login-card { border:0; background:transparent; padding:32px 14px; box-shadow:none; }
+ .login-card h1 { font-size:32px; max-width:280px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+}
+/* The purchase tool is a live, reversible what-if, with the same calculation engine. */
+.spend-simulator { padding-top:2px; }
+.simulator-intro { margin:0 0 25px; color:#738475; font-size:13px; }
+.spend-amount { display:block; font-size:11px; color:#657b69; }
+.spend-amount>span { display:flex; align-items:center; gap:3px; margin:7px 0 17px; color:#184f3d; font-size:52px; letter-spacing:-2px; }
+.spend-amount input { display:block; width:100%; min-width:0; padding:0!important; border:0!important; border-radius:0!important; background:transparent!important; font:inherit!important; font-size:52px!important; letter-spacing:-2px; color:#184f3d; box-shadow:none!important; outline-offset:8px; }
+.spend-amount input::placeholder { color:#b7c9ad; }
+.spend-presets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:0 0 22px; }
+.spend-presets button { min-height:43px; font:inherit; font-size:13px; color:#386144; background:#edf2e6; border:1px solid #e0e8d5; border-radius:14px; cursor:pointer; }
+.spend-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.spend-options .field { font-size:11px; }
+.spend-options .field>input,.spend-options .field>select { width:100%; min-width:0; }
+.spend-simulator .purchase-result { background:#eef3e7; border:0; border-radius:20px; padding:21px 17px; margin-top:20px; color:#416344; font-size:13px; }
+.spend-simulator .purchase-result[data-preview-state=shortfall] { background:#fbede3; color:#90483d; }
+.spend-comparison { display:grid; grid-template-columns:1fr 20px 1.35fr; gap:10px; align-items:center; }
+.spend-comparison>div { min-width:0; }
+.spend-comparison span { font-size:10px; display:block; color:#6a7f6c; }
+.spend-comparison strong { display:block; margin-top:7px; font-size:19px; font-weight:500; letter-spacing:-.5px; overflow-wrap:anywhere; }
+.spend-comparison .preview-amount { font-size:29px; font-weight:650; }
+.spend-simulator .purchase-result p { margin:17px 0 0; font-size:11px; line-height:1.5; }
+.simulator-note { color:#7c8c7c; font-size:10px; text-align:center; margin:12px 0 22px; }
+.simulator-details { border-top:1px solid #e2e9db; }
+.simulator-details summary { font-size:11px; min-height:42px; color:#6c816f; }
+.simulator-details p { font-size:12px; line-height:1.7; color:#657b69; }
+.plan-calculation-total { border-top:1px solid #e0e7d9; padding-top:15px; margin-top:17px; }
+@media(max-width:768px) { .mobile-plan-summary .money-map { margin:20px 0 0; } }
+.demo-settings-note { padding:0 20px 20px; margin:0; color:#6b7d6e; font-size:12px; line-height:1.6; }
+.account-actions [hidden] { display:none!important; }
+body[data-page=account] .page-header h2 { font-size:30px; font-weight:650; letter-spacing:-1px; }
+body[data-page=account] .main>#account-message:empty { display:none; }
+.setup-calculation { margin:20px 0; }
+.setup-calculation summary { font-size:13px; min-height:44px; }
+.home-amount,.plan-hero-total>strong { overflow-wrap:anywhere; }
+@media(min-width:769px) { body[data-page=home] .home-quick-add { display:none; } }
+/* Keep routine background work quiet; connection errors still have visible notices. */
+.bank-sync-banner[data-phase=ready],.bank-sync-banner[data-phase=idle],.bank-sync-banner[data-phase=checking],.bank-sync-banner[data-phase=waiting] { display:none; }
+#flow-connectivity:not([hidden]) ~ .bank-sync-banner[data-phase=offline] { display:none; }
+.money-map-compact .map-part[data-map-part=flexible] { display:none; }
+.money-map-compact .money-map-legend { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:768px) {
+ .map-part { font-size:10px; }
+ .map-part strong { font-size:12px; }
+ .money-map-compact .map-part { font-size:11px; }
+ .money-map-compact .map-part strong { font-size:13px; }
+ .payday-runway small { font-size:9px; }
+}
+.settings-group[data-account-group=install]:has([data-install-app][hidden]) { display:none; }
