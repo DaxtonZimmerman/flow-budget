@@ -1,0 +1,23 @@
+/* The gate is present in the initial HTML, before personal screens can be shown. */
+html[data-flow-auth=checking] body>:not(.flow-auth-loading):not(script) { visibility:hidden!important; pointer-events:none!important; }
+html[data-flow-updating=true] body { pointer-events:none; }
+.flow-auth-loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:#f5f7f1; color:#183d31; z-index:10000; padding:28px; text-align:center; font-family:Arial,sans-serif; }
+.flow-auth-loading p { max-width:360px; line-height:1.6; }
+.flow-auth-loading a { font-size:13px; color:inherit; }
+html[data-flow-workspace=unlinked] .account-columns,html[data-flow-workspace=unlinked] #payday-settings,html[data-flow-workspace=unlinked] #flow-product-settings,html[data-flow-workspace=unlinked] #account-delete { display:none!important; }
+.login-page { margin:0; background:#f5f7f1; color:#183d31; min-height:100dvh; display:grid; place-items:center; padding:28px 20px; }
+.login-page>.skip-link { position:fixed; top:12px; left:12px; z-index:10001; padding:10px 14px; background:#fff; color:#183d31; border-radius:9px; transform:translateY(-180%); }
+.login-page>.skip-link:focus { transform:none; }
+.login-card { width:min(100%,420px); padding:36px; background:#fff; border-radius:24px; }
+.login-card .logo { width:fit-content; margin-bottom:38px; }
+.login-card h1 { font-size:29px; line-height:1.2; letter-spacing:-1px; margin:0 0 12px; }
+.login-card p { color:#607266; font-size:14px; line-height:1.65; }
+.login-card form { display:grid; gap:14px; margin-top:24px; }
+.login-card label { display:grid; gap:8px; font-size:13px; font-weight:600; }
+.login-card input { box-sizing:border-box; width:100%; min-width:0; min-height:50px; border:1px solid #dce4d7; border-radius:11px; padding:12px; font:inherit; font-size:16px; }
+.login-card .save-button { width:100%; min-height:50px; }
+.login-card .login-demo { display:block; text-align:center; padding:16px 0 0; color:inherit; font-size:13px; }
+.login-card details { border-top:1px solid #e0e7dc; margin-top:24px; padding-top:18px; }
+.login-card summary { font-size:13px; cursor:pointer; min-height:40px; }
+.login-card #login-message { min-height:22px; margin-bottom:0; }
+@media(max-width:420px) { .login-card { padding:28px 22px; } }

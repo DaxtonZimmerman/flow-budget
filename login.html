@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html data-flow-release="f40c1b83acda2335" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#163f35">
+    <title>Sign in | Flow</title>
+    <link rel="manifest" href="manifest.webmanifest?v=882cbb09a1dc67c1">
+    <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg?v=ccdbb5ef83a23c13">
+    <link rel="apple-touch-icon" href="assets/flow-icon-192.png?v=8a7551b81ec50ee3">
+    <link rel="stylesheet" href="css/styles.css?v=a854bef0a3b6ed9b">
+    <link rel="stylesheet" href="css/app.css?v=c91e86205087de8d">
+    <link rel="stylesheet" href="css/auth.css?v=a3a765bef0a98fc9">
+    <script src="js/storage.js?v=2f7e2302da412706" defer></script>
+    <script src="js/app-offline.js?v=6f36433ac1f7ec28" defer></script>
+    <script src="vendor/supabase.min.js?v=bee24fc29228ed5a" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
+    <script src="js/cloud-config.js?v=88e7e9526b908c52" defer></script>
+    <script src="js/cloud-sync.js?v=420fddbde5ae8464" defer></script>
+    <script src="js/auth-gate.js?v=7ece2aed9683b337" defer></script>
+    <script src="js/login.js?v=d42241b8d638f54d" defer></script>
+</head>
+<body class="login-page">
+    <main class="login-card">
+        <a href="login.html" class="logo" aria-label="Flow sign-in">Flow<span class="brand-dot">.</span></a>
+        <h1>Your money.<br>Your own space.</h1>
+        <p>Sign in to open your budget, bank connections, and payday plan.</p>
+        <form id="login-form">
+            <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+            <button class="save-button" type="submit">Email me a sign-in link</button>
+        </form>
+        <p id="login-message" role="status" aria-live="polite"></p>
+        <section id="login-sent" hidden>
+            <p>Open the email link on this device. Flow remembers your sign-in.</p>
+            <details id="same-app-sign-in">
+                <summary>Signing in from the Home Screen app?</summary>
+                <p>To stay in this app, copy the sign-in button’s link from your new email, then paste it below.</p>
+                <form id="login-link-form">
+                    <label>Link from your Flow email<input name="link" type="url" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>
+                    <button class="save-button" type="submit">Finish signing in here</button>
+                </form>
+            </details>
+        </section>
+        <a class="login-demo" href="demo/index.html">Explore Flow with sample data</a>
+    </main>
+</body>
+</html>

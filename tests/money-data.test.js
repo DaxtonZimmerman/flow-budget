@@ -37,6 +37,7 @@ test("money totals use cents across months and skip repeated IDs", () => {
     assert.equal(run("getMoneyTotals(sample).net"), -1.25);
 });
 
+// IMPORTANT: Unit test. Known inputs verify that a $20 expense minus a $5 refund produces $15 spending, excluding transfers/pending charges.
 test("transfers and pending charges do not count; refunds lower spending", () => {
     context.sample = [
         { id: "a", type: "Expense", amount: -20, category: "Food", date: "2026-10-01" },

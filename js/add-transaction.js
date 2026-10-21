@@ -154,6 +154,7 @@ if (editId !== null) {
 
 /* save transaction */
 
+// IMPORTANT: Event handling. Intercept Save so JavaScript can validate and store the form.
 transactionForm.addEventListener("submit", function(event) {
 
     event.preventDefault();
@@ -205,6 +206,7 @@ transactionForm.addEventListener("submit", function(event) {
     }
 
 
+    // IMPORTANT: Validation. Accept only a positive number with at most two decimal places.
     if (!bankEdit && (!Number.isFinite(amount) || amount <= 0 ||
         !/^\d+(\.\d{1,2})?$/.test(amountInput.value))) {
         showError("Please enter an amount greater than $0 with up to two decimals.");
@@ -303,6 +305,7 @@ transactionForm.addEventListener("submit", function(event) {
 
     } else {
 
+        // IMPORTANT: Data model. One object represents a payment; push adds it to the transactions array.
         const newTransaction = {
             id: makeRecordId(transactions),
             type: type,
@@ -325,6 +328,7 @@ transactionForm.addEventListener("submit", function(event) {
     const oldTransactions = flowStorage.getItem("transactions");
     const oldRules = flowStorage.getItem("categoryRules");
 
+    // IMPORTANT: Persistence. JSON.stringify converts the array to text for browser storage; catch handles a failed save.
     try {
         flowStorage.setItem("transactions", JSON.stringify(transactions));
         if (rememberCategory.checked) {

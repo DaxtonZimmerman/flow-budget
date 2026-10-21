@@ -15,6 +15,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
   browser=await chromium.launch({headless:true,executablePath:process.env.FLOW_CHROME_PATH || undefined});
   const context=await browser.newContext({viewport:{width:390,height:844}}),errors=[];
   await context.route('**/*',route=>route.request().url().startsWith(base)?route.continue():route.abort());
+  await require('./browser-auth-fixture.cjs').installTestAuth(context, {owner:'synthetic-offline-owner'});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(8000);
   await page.goto(base+'index.html');await page.locator('#flow-decision-tools').waitFor();
   await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));

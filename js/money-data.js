@@ -1,6 +1,7 @@
 var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* shared money data */
 
+// IMPORTANT: Money accuracy. Convert dollars to whole cents before adding amounts to limit decimal rounding errors.
 function moneyToCents(amount) {
     return Math.round(Number(amount) * 100);
 }
@@ -47,6 +48,7 @@ function addMissingIds(records) {
 }
 
 
+// IMPORTANT: Reading storage. JSON.parse turns saved text back into an array; [] handles an empty workspace.
 function loadTransactions() {
     const transactions = JSON.parse(flowStorage.getItem("transactions")) || [];
 
@@ -62,6 +64,7 @@ function loadTransactions() {
 }
 
 
+// IMPORTANT: Reusable calculation. Loop through the selected transactions, skip transfers/pending entries, and return income, spending, and net.
 function getMoneyTotals(transactions, month) {
     let incomeCents = 0;
     let spendingCents = 0;

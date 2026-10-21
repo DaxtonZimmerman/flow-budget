@@ -1,6 +1,6 @@
 /* Generated public app-shell cache. No bank/auth requests or private responses. */
-const VERSION='3a4d29ffc10bbd92';
-const FILES=["account.html","add-transaction.html","assets/flow-icon-192.png?v=8a7551b81ec50ee3","assets/flow-icon-512.png?v=e7d0a8c28e3c4387","assets/flow-icon.svg?v=ccdbb5ef83a23c13","bills.html","budgets.html","css/app.css?v=c91e86205087de8d","css/payday.css?v=66114351f438f117","css/product.css?v=69e4237b7169e882","css/redesign.css?v=c769f7fb387cb9c6","css/styles.css?v=a854bef0a3b6ed9b","demo/account.html","demo/add-transaction.html","demo/bills.html","demo/budgets.html","demo/import.html","demo/index.html","demo/review.html","demo/setup.html","demo/transactions.html","import.html","index.html","js/account.js?v=bc2d6c2ecfc1805f","js/add-transaction.js?v=1554eb797258a190","js/app-offline.js?v=550eab51741ec331","js/app-shell.js?v=67b6e5097e19e886","js/backup.js?v=0c2f1493d698ba0c","js/bank-accounts.js?v=c651bf2d26c13e26","js/bank-auto-sync.js?v=c48bcb950ce9a052","js/bank-connections.js?v=ab82c1492c367c33","js/bank-data.js?v=cd6d15801fbf8272","js/bill-data.js?v=082c6c29c0c6c3cc","js/budget-data.js?v=979e7bedf38e0496","js/budgets.js?v=e6fdae24a2b8a76a","js/cloud-config.js?v=88e7e9526b908c52","js/cloud-sync.js?v=f42dd4744dc97498","js/home-view.js?v=965f7c76dd99310a","js/import-data.js?v=2abb60f385fdd8cd","js/import.js?v=bb9853f99ad50459","js/money-data.js?v=33c255a943730776","js/payday-app.js?v=637394d8465f65f0","js/planning-data.js?v=059c82c4bab66211","js/product-app.js?v=56bf3901e645172d","js/product-data.js?v=fdd4ba4504b92074","js/review-data.js?v=5fd89fdd5a557e23","js/review.js?v=cc5f24b2014f9428","js/script.js?v=b896f565a9ebb46b","js/storage.js?v=2f7e2302da412706","js/transaction-details-data.js?v=2705ef3f7ad5b54f","js/transaction-details.js?v=d0e6ba7ac4fea988","js/transactions.js?v=234c6f58a2e4de5f","js/transfer-app.js?v=85312566e1227586","js/transfer-data.js?v=bc42d3121be9a431","manifest.webmanifest?v=882cbb09a1dc67c1","offline.html","review.html","setup.html","transactions.html","vendor/lucide.min.js?v=f01557cbefed1c14"];
+const VERSION='f40c1b83acda2335';
+const FILES=["account.html","add-transaction.html","assets/flow-icon-192.png?v=8a7551b81ec50ee3","assets/flow-icon-512.png?v=e7d0a8c28e3c4387","assets/flow-icon.svg?v=ccdbb5ef83a23c13","bills.html","budgets.html","css/app.css?v=c91e86205087de8d","css/auth.css?v=a3a765bef0a98fc9","css/payday.css?v=66114351f438f117","css/product.css?v=69e4237b7169e882","css/redesign.css?v=c769f7fb387cb9c6","css/styles.css?v=a854bef0a3b6ed9b","demo/account.html","demo/add-transaction.html","demo/bills.html","demo/budgets.html","demo/import.html","demo/index.html","demo/review.html","demo/setup.html","demo/transactions.html","import.html","index.html","js/account.js?v=93d4406c6084a7be","js/add-transaction.js?v=91f35220aed9447c","js/app-offline.js?v=6f36433ac1f7ec28","js/app-shell.js?v=67b6e5097e19e886","js/auth-gate.js?v=7ece2aed9683b337","js/backup.js?v=0c2f1493d698ba0c","js/bank-accounts.js?v=c651bf2d26c13e26","js/bank-auto-sync.js?v=c48bcb950ce9a052","js/bank-connections.js?v=ab82c1492c367c33","js/bank-data.js?v=cd6d15801fbf8272","js/bill-data.js?v=082c6c29c0c6c3cc","js/budget-data.js?v=979e7bedf38e0496","js/budgets.js?v=e6fdae24a2b8a76a","js/cloud-config.js?v=88e7e9526b908c52","js/cloud-sync.js?v=420fddbde5ae8464","js/home-view.js?v=965f7c76dd99310a","js/import-data.js?v=2abb60f385fdd8cd","js/import.js?v=bb9853f99ad50459","js/login.js?v=d42241b8d638f54d","js/money-data.js?v=441d63da0fcf89f6","js/payday-app.js?v=89f11c9f302bc729","js/planning-data.js?v=41d5331e8fef48b0","js/product-app.js?v=56bf3901e645172d","js/product-data.js?v=fdd4ba4504b92074","js/review-data.js?v=5fd89fdd5a557e23","js/review.js?v=cc5f24b2014f9428","js/script.js?v=b896f565a9ebb46b","js/storage.js?v=2f7e2302da412706","js/transaction-details-data.js?v=2705ef3f7ad5b54f","js/transaction-details.js?v=d0e6ba7ac4fea988","js/transactions.js?v=53d6c22485cdd18e","js/transfer-app.js?v=85312566e1227586","js/transfer-data.js?v=bc42d3121be9a431","login.html","manifest.webmanifest?v=882cbb09a1dc67c1","offline.html","review.html","setup.html","transactions.html","vendor/lucide.min.js?v=f01557cbefed1c14","vendor/supabase.min.js?v=bee24fc29228ed5a"];
 const PREFIX='flow-public-shell:'+self.registration.scope;
 const CACHE=PREFIX+VERSION;
 const root=new URL('./',self.registration.scope);
@@ -10,7 +10,52 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
     for(const key of await caches.keys())if(key.startsWith(PREFIX)&&key!==CACHE)await caches.delete(key);
     await self.clients.claim();
 })()));
-self.addEventListener('message',event=>{if(event.data?.type==='APPLY_FLOW_UPDATE')self.skipWaiting();});
+// Collect readiness from every tab, then briefly lock idle clients before activation.
+const updateStates = new Map();
+let updateRound = null, updateSerial = 0;
+const flowWindows = async () => (await self.clients.matchAll({ type:'window', includeUncontrolled:true })).filter(client => client.url.startsWith(root.href));
+async function abortUpdate() {
+    if (!updateRound) return;
+    const round = updateRound;
+    updateRound = null;
+    for (const client of await flowWindows()) client.postMessage({ type:'FLOW_UPDATE_ABORT', round:round.id });
+}
+async function considerUpdate() {
+    const windows = await flowWindows();
+    if (updateRound) {
+        if (Date.now() - updateRound.started > 5000 || windows.length !== updateRound.clients.length || windows.some(client => !updateRound.clients.includes(client.id))) await abortUpdate();
+        return;
+    }
+    const ready = windows.every(client => updateStates.get(client.id)?.ready && Date.now() - updateStates.get(client.id).at < 6000);
+    if (!ready) {
+        for (const client of windows) if (!updateStates.has(client.id) || Date.now()-updateStates.get(client.id).at >= 6000) client.postMessage({ type:'FLOW_UPDATE_CHECK' });
+        return;
+    }
+    updateRound = { id:VERSION+':'+(++updateSerial), started:Date.now(), clients:windows.map(client=>client.id), acknowledgments:new Set() };
+    for (const client of windows) client.postMessage({ type:'FLOW_UPDATE_COMMIT', round:updateRound.id });
+    if (!windows.length) await self.skipWaiting();
+}
+self.addEventListener('message', event => {
+    if (!event.source?.id || !event.source.url?.startsWith(root.href)) return;
+    const data = event.data || {};
+    if (data.type === 'FLOW_CLIENT_VERSION' && data.release !== VERSION) event.source.postMessage({type:'FLOW_RELOAD_REQUIRED'});
+    if (data.type === 'FLOW_UPDATE_READY') event.waitUntil((async () => {
+        updateStates.set(event.source.id, { ready:data.ready === true, at:Date.now() });
+        if (!data.ready && updateRound) await abortUpdate();
+        await considerUpdate();
+    })());
+    if (data.type === 'FLOW_UPDATE_ACK') event.waitUntil((async () => {
+        if (!updateRound || data.round !== updateRound.id || !updateRound.clients.includes(event.source.id)) return;
+        if (!data.ready) { updateStates.set(event.source.id, { ready:false, at:Date.now() }); await abortUpdate(); return; }
+        updateRound.acknowledgments.add(event.source.id);
+        if (updateRound.acknowledgments.size !== updateRound.clients.length) return;
+        const round = updateRound;
+        const windows = await flowWindows();
+        if (updateRound !== round) return;
+        if (windows.length !== round.clients.length || windows.some(client=>!round.clients.includes(client.id))) { await abortUpdate(); return; }
+        await self.skipWaiting();
+    })());
+});
 self.addEventListener('fetch',event=>{
     const request=event.request,url=new URL(request.url);
     if(request.method!=='GET'||url.origin!==root.origin||request.headers.has('authorization'))return;

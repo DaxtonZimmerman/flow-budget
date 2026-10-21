@@ -133,6 +133,7 @@ const balance = totals.net;
 
 
 const historyMoney = value => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+// IMPORTANT: DOM update. textContent displays the calculated totals in the existing page elements.
 historyIncome.textContent = historyMoney(totalIncome);
 
 historyExpenses.textContent = historyMoney(totalExpenses);
@@ -351,6 +352,7 @@ if (transactions.length === 0) {
                 return;
             }
 
+            // IMPORTANT: Deletion. filter creates an array containing every transaction except the one with this ID.
             transactions = transactions.filter(function(item) {
                 return item.id !== transaction.id;
             });
@@ -508,6 +510,7 @@ function filterTransactions() {
 }
 
 
+// IMPORTANT: Live search. The input event runs the filter function as the user types.
 historySearch.addEventListener("input", filterTransactions);
 historyTypeFilter.addEventListener("change", filterTransactions);
 historyCategoryFilter.addEventListener("change", filterTransactions);

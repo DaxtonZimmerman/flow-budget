@@ -72,6 +72,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         const nameIcon = t.type === 'Transfer' ? 'arrow-left-right' : t.amount > 0 ? 'banknote' : ({ Food: 'utensils', Transport: 'fuel', Shopping: 'shopping-bag', Entertainment: 'music', Bills: 'file-text' })[t.category] || 'receipt';
         return `<button type="button" class="transaction-row payday-transaction" data-plan-action="transaction" data-id="${esc(t.id)}"><span class="transaction-left"><span class="merchant-icon blue-icon">${icon(nameIcon)}</span><span><strong>${esc(displayName)}</strong><span>${esc(category)}${t.status === 'pending' ? ' · Pending' : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</span></span></span><span class="transaction-right"><strong class="${t.amount > 0 && t.type !== 'Transfer' ? 'income-text' : ''}">${t.amount < 0 ? '−' : '+'}${money(Math.abs(Math.round(t.amount * 100)))}</strong><span>${validPlanDate(t.date) ? date(t.date) : 'Date needed'}</span></span></button>`;
     }
+    // IMPORTANT: Array methods and rendering. filter removes zero categories, sort orders amounts, and map creates the chart markup.
     function categoryBars(month) {
         const days = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
         const categories = Object.entries(getSpendingBreakdown(transactions, month, days).categorySpending).filter(([, n]) => n !== 0).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));

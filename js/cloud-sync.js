@@ -119,6 +119,7 @@ function flowDataChanged() {
 }
 
 
+// IMPORTANT: Async/API request. await waits for Supabase data; a failed request throws an error for the caller to handle.
 async function getCloudData(client, userId) {
     const result = await client.from("flow_data")
         .select("revision,data")
@@ -148,6 +149,10 @@ async function saveCloudData(client, revision, data) {
 
 
 async function flowSync() {
+    if (window.FlowAuth) {
+        await window.FlowAuth.ready;
+        if (!window.FlowAuth.authorized) return;
+    }
     const client = getFlowClient();
     const linkedUserId = flowStorage.getItem("flow_user_id");
 

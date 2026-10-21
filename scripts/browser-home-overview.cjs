@@ -11,6 +11,7 @@ const base = process.env.FLOW_TEST_URL || 'http://127.0.0.1:4329/';
             if (new URL(url).pathname.endsWith('/js/cloud-config.js')) return route.fulfill({ contentType: 'text/javascript', body: 'const flowCloudUrl="";const flowCloudKey="";' });
             return url.startsWith(base) ? route.continue() : route.abort();
         });
+        await require('./browser-auth-fixture.cjs').installTestAuth(context, {expiresAt:Date.parse('2026-10-21T05:30:00Z')/1000+3600});
         const page = await context.newPage(), errors = [];
         page.on('pageerror', error => errors.push(error.stack));
         page.setDefaultTimeout(6000);

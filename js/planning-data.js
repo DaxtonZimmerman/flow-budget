@@ -212,6 +212,8 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
     if (transactions.some(t => t.source !== 'bank' && t.date >= planning.periodStartedOn && t.date <= today)) {
         notes.push('Manual and CSV activity may not be reflected in your available balance. Confirm it with your bank when you add purchases.');
     }
+    // IMPORTANT: Payday math. reduce totals the reserves; subtract bills, remaining essentials, and cushion from available money.
+    // Goal, card, and balance adjustments are applied by flowEnhanceEstimate below.
     const billsCents = bills.reduce((n, b) => n + b.amountCents, 0);
     const essentialsCents = reserves.reduce((n, e) => n + e.remainingCents, 0);
     const leftCents = balanceCents - billsCents - essentialsCents - planning.cushionCents;

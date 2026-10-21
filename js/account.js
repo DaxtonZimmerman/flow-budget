@@ -210,13 +210,16 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
     let result;
 
     try {
+        if (window.FlowAuth) window.FlowAuth.handlingSignOut = true;
         result = await client.auth.signOut();
     } catch (error) {
+        if (window.FlowAuth) window.FlowAuth.handlingSignOut = false;
         accountMessage.textContent = "Could not sign out. Try again online.";
         return;
     }
 
     if (result.error) {
+        if (window.FlowAuth) window.FlowAuth.handlingSignOut = false;
         accountMessage.textContent = result.error.message;
         return;
     }
@@ -233,9 +236,10 @@ document.querySelector("#sign-out").addEventListener("click", async function() {
         flowStorage.removeItem("flow_revision");
         flowStorage.removeItem("flowLastEstimate");
         flowStorage.removeItem("flow_pending_client");
+        flowStorage.removeItem("flow_verified_user");
     }
 
-    window.location.reload();
+    window.location.replace("login.html");
 });
 
 
@@ -260,16 +264,17 @@ document.querySelector("#delete-account").addEventListener("click", async functi
     }
 
     try {
+        if (window.FlowAuth) window.FlowAuth.handlingSignOut = true;
         await client.auth.signOut();
     } catch (_error) {
         // The deleted account can no longer access cloud data.
     }
     for (const key of ["transactions", "budgets", "budgetsByMonth",
         "categoryRules", "recurringItems", "flowPlanning", "bankAccounts",
-        "flow_user_id", "flow_revision", "flow_pending", "flowLastEstimate", "flow_pending_client"]) {
+        "flow_user_id", "flow_revision", "flow_pending", "flowLastEstimate", "flow_pending_client", "flow_verified_user"]) {
         flowStorage.removeItem(key);
     }
-    window.location.href = "index.html";
+    window.location.replace("login.html");
 });
 
 

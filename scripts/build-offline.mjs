@@ -10,8 +10,17 @@ function collect(path='.') {
 }
 collect();files.sort();
 const template=readFileSync('scripts/sw-template.js','utf8');
-const hash=createHash('sha256').update(template);for(const file of files){hash.update(file);hash.update(readFileSync(file));}
+const hash=createHash('sha256').update(template);
+for(const file of files){
+    hash.update(file);
+    const contents=readFileSync(file);
+    hash.update(file.endsWith('.html')?contents.toString().replace(/\sdata-flow-release="[^"]*"/g,''):contents);
+}
 const version=hash.digest('hex').slice(0,16);
+for(const file of files.filter(file=>file.endsWith('.html'))){
+    const html=readFileSync(file,'utf8').replace(/\sdata-flow-release="[^"]*"/g,'').replace('<html','<html data-flow-release="'+version+'"');
+    writeFileSync(file,html);
+}
 const urls=files.map(file=>/^(js|css|assets|vendor)\//.test(file)||file==='manifest.webmanifest'
     ?file+'?v='+createHash('sha256').update(readFileSync(file)).digest('hex').slice(0,16):file);
 writeFileSync('sw.js',template.replace('__FLOW_VERSION__',version).replace('__FLOW_FILES__',JSON.stringify(urls)));
