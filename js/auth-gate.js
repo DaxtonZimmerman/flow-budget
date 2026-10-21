@@ -28,6 +28,7 @@
     state.continue = function () {
         const next = rememberedNext();
         if (localStorage.getItem('flow_user_id') !== state.user?.id) {
+            try { sessionStorage.setItem('flow_sign_in_continue', '1'); } catch (_) {}
             location.replace(new URL('account.html', root).href);
         } else {
             try { sessionStorage.removeItem('flow_sign_in_next'); sessionStorage.removeItem('flow_sign_in_continue'); } catch (_) {}

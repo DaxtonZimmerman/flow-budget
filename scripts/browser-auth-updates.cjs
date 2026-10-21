@@ -76,11 +76,10 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), path = re
         await loginPage.locator('[name=code]').fill('000000');
         await loginPage.locator('#login-code-form button').click();await loginPage.getByText(/incorrect or expired/).waitFor();
         await loginPage.locator('[name=code]').fill('123456');
-        await loginPage.locator('#login-code-form button').click();await loginPage.waitForURL(base+'account.html');
-        await loginPage.locator('#account-choose').waitFor();loginPage.once('dialog',dialog=>dialog.accept());
-        await loginPage.locator('#use-cloud').click();await loginPage.waitForURL(base+'transactions.html');
+        await loginPage.locator('#login-code-form button').click();await loginPage.waitForURL(base+'transactions.html');
+        assert.equal(await loginPage.locator('#account-choose,#use-cloud,#use-device').count(),0);
         await login.close();
-        console.log('PASS: all personal routes require sign-in; cached owner markers cannot bypass it; verified sessions reopen; initial content stays hidden; return URLs are constrained; sign-out locks other tabs; email-code sign-in and workspace selection work without sign-in links.');
+        console.log('PASS: all personal routes require sign-in; cached owner markers cannot bypass it; verified sessions reopen; initial content stays hidden; return URLs are constrained; sign-out locks other tabs; email-code sign-in opens the account automatically without copy selection or sign-in links.');
 
         // Exercise a real service-worker update with two open tabs and an unsaved form.
         const update=await browser.newContext({viewport:{width:390,height:844}});

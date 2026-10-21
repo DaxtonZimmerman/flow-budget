@@ -9,6 +9,7 @@ function setupCloud(editing = false) {
     const status = { textContent: "" };
     let cloud = null;
     let reloads = 0;
+    let failedKey = null;
     const events = [];
     const network = { onLine: true };
     const client = {
@@ -33,7 +34,7 @@ function setupCloud(editing = false) {
     const context = vm.createContext({
         localStorage: {
             getItem: key => saved.has(key) ? saved.get(key) : null,
-            setItem: (key, value) => saved.set(key, value),
+            setItem: (key, value) => { if (key === failedKey) throw new Error("Synthetic storage full"); saved.set(key, value); },
             removeItem: key => saved.delete(key)
         },
         flowCloudUrl: "https://example.supabase.co",
@@ -63,7 +64,8 @@ function setupCloud(editing = false) {
         setCloud: value => { cloud = value; },
         setOnline: value => { network.onLine = value; },
         getCloud: () => cloud,
-        getReloads: () => reloads
+        getReloads: () => reloads,
+        failStorageAt: key => { failedKey = key; }
     };
 }
 
@@ -121,7 +123,7 @@ test("offline edits stay on this device until syncing is possible", async () => 
     assert.equal(app.saved.has("flow_pending"), false);
 });
 
-test("conflicting device changes keep the local copy and show a warning", async () => {
+test("overlapping device edits open the saved account automatically and protect earlier work", async () => {
     const app = setupCloud();
     app.saved.set("flow_user_id", "person-1");
     app.saved.set("flow_revision", "1");
@@ -133,10 +135,12 @@ test("conflicting device changes keep the local copy and show a warning", async 
     });
 
     await app.run("flowSync()");
-    assert.equal(JSON.parse(app.saved.get("transactions"))[0].id, "local");
+    assert.equal(JSON.parse(app.saved.get("transactions"))[0].id, "remote");
     assert.equal(app.getCloud().data.transactions[0].id, "remote");
-    assert.equal(app.saved.get("flow_pending"), "1");
-    assert.match(app.status.textContent, /two devices/i);
+    assert.equal(app.saved.has("flow_pending"), false);
+    assert.equal(app.saved.get("flow_revision"), "2");
+    assert.equal(app.run("getFlowRecoveryCopies(\"person-1\")[0].data.transactions[0].id"), "local");
+    assert.match(app.status.textContent, /earlier edits/i);
 });
 
 test("category rules and monthly choices travel with the cloud copy", async () => {
@@ -171,12 +175,13 @@ test('incoming data keeps an open editor intact and refreshes once it is safe',a
  app.run('document.querySelector = () => null; flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);app.run('flushFlowDataViews()');assert.equal(app.events.filter(e=>e==='flow-transaction-view-refresh').length,1);
 });
 
-test('pending changes from an older client cannot overwrite an expanded workspace without review',async()=>{
+test('older pending edits are protected while the current account opens without a data choice',async()=>{
  const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','2');app.saved.set('flow_pending','1');
  app.saved.set('transactions',JSON.stringify([{id:'local-without-split'}]));
  app.setCloud({revision:2,data:{clientSchemaVersion:2,transactions:[{id:'cloud-with-split',allocations:[{id:'part',cents:100,category:'Food'}]}]}});
- await app.run('flowSync()');assert.match(app.status.textContent,/older Flow version/);assert.equal(app.getCloud().revision,2);assert.equal(app.saved.get('flow_pending'),'1');
- app.saved.set('flow_pending_client','2');await app.run('flowSync()');assert.equal(app.getCloud().revision,3);assert.equal(app.getCloud().data.clientSchemaVersion,2);
+ await app.run('flowSync()');assert.equal(app.getCloud().revision,2);assert.equal(app.saved.has('flow_pending'),false);
+ assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'cloud-with-split');assert.equal(app.run('getFlowRecoveryCopies(\"person-1\")[0].data.transactions[0].id'),'local-without-split');
+ app.saved.set('flow_pending','1');app.saved.set('flow_pending_client','2');await app.run('flowSync()');assert.equal(app.getCloud().revision,3);assert.equal(app.getCloud().data.clientSchemaVersion,2);
 });
 test('late cloud fetches and saves cannot repopulate another signed-in account',async()=>{
  const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','0');app.setCloud({revision:1,data:{transactions:[{id:'private-old-owner'}]}});
@@ -186,4 +191,127 @@ test('late cloud fetches and saves cannot repopulate another signed-in account',
  saved.client.rpc=async(...args)=>{started();await gate;return rpc(...args);};
  const saving=saved.run('flowSync()');await called;saved.saved.set('flow_user_id','person-2');saved.saved.set('flow_revision','50');saved.saved.set('transactions','[{"id":"new-owner"}]');release();await saving;
  assert.equal(saved.saved.get('flow_revision'),'50');assert.equal(JSON.parse(saved.saved.get('transactions'))[0].id,'new-owner');
+});
+
+test('a new sign-in opens the saved account and never uploads the previous owner’s data', async () => {
+    const app = setupCloud();
+    app.saved.set('flow_user_id', 'previous-owner');
+    app.saved.set('transactions', '[{"id":"previous-private"}]');
+    app.saved.set('flow_pending', '1');
+    app.setCloud({ revision:7, data:{ transactions:[{id:'signed-in-account'}] } });
+    await app.run('connectFlowAccount({id:"person-1"})');
+    assert.equal(app.saved.get('flow_user_id'), 'person-1');
+    assert.equal(app.saved.get('flow_revision'), '7');
+    assert.equal(JSON.parse(app.saved.get('transactions'))[0].id, 'signed-in-account');
+    assert.equal(app.getCloud().revision, 7);
+    assert.equal(app.run('getFlowRecoveryCopies("person-1").length'), 0);
+    assert.equal(app.run('getFlowRecoveryCopies("previous-owner").length'), 0);
+    app.saved.set('flow_user_id', 'previous-owner');
+    assert.equal(app.run('getFlowRecoveryCopies("previous-owner")[0].data.transactions[0].id'), 'previous-private');
+});
+
+test('a new empty account starts empty while unlinked earlier work remains protected', async () => {
+    const app = setupCloud();
+    app.saved.set('transactions', '[{"id":"unlinked-work"}]');
+    await app.run('connectFlowAccount({id:"person-1"})');
+    assert.equal(app.getCloud(), null);
+    assert.equal(app.saved.get('flow_user_id'), 'person-1');
+    assert.equal(app.saved.get('transactions'), '[]');
+    assert.equal(JSON.parse(app.saved.get('flow_recovery_v1:unlinked'))[0].data.transactions[0].id, 'unlinked-work');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1").length'), 0);
+});
+
+test('a storage failure cannot discard unsynced work to make the account look synced', async () => {
+    const app = setupCloud();
+    app.saved.set('flow_user_id', 'person-1'); app.saved.set('flow_revision', '1'); app.saved.set('flow_pending', '1');
+    app.saved.set('transactions', '[{"id":"offline-edit"}]');
+    app.setCloud({revision:2,data:{transactions:[{id:'account'}]}});
+    app.failStorageAt('flow_recovery_v1:person-1');
+    await app.run('flowSync()');
+    assert.equal(app.saved.get('transactions'), '[{"id":"offline-edit"}]');
+    assert.equal(app.saved.get('flow_revision'), '1'); assert.equal(app.saved.get('flow_pending'), '1');
+    assert.equal(app.getCloud().revision, 2); assert.match(app.status.textContent, /still saved here/);
+});
+
+test('workspace metadata failure rolls back data while its recovery copy stays available', async () => {
+    const app = setupCloud();
+    app.saved.set('flow_user_id', 'person-1'); app.saved.set('flow_revision', '1'); app.saved.set('flow_pending', '1');
+    app.saved.set('transactions', '[{"id":"keep-me"}]');
+    app.setCloud({revision:2,data:{transactions:[{id:'account'}]}});
+    app.failStorageAt('flow_revision'); await app.run('flowSync()');
+    assert.equal(app.saved.get('transactions'), '[{"id":"keep-me"}]'); assert.equal(app.saved.get('flow_revision'), '1');
+    assert.equal(app.saved.get('flow_pending'), '1');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'), 'keep-me');
+});
+
+test('a save race catches up automatically and keeps the rejected edit for recovery', async () => {
+    const app = setupCloud();
+    app.saved.set('flow_user_id', 'person-1'); app.saved.set('flow_revision', '1'); app.saved.set('flow_pending', '1');
+    app.saved.set('transactions', '[{"id":"in-flight-edit"}]');
+    app.setCloud({revision:1,data:{transactions:[]}});
+    let saves = 0;
+    app.client.rpc = async () => {
+        saves++; app.setCloud({revision:2,data:{transactions:[{id:'concurrent-update'}]}});
+        return {error:{message:'Flow data changed on another device'}};
+    };
+    await app.run('flowSync()');
+    assert.equal(saves,1); assert.equal(app.saved.get('flow_revision'),'2');
+    assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'concurrent-update');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'), 'in-flight-edit');
+});
+
+test('edits made during a cloud fetch are included in the protected recovery copy', async () => {
+    const app = setupCloud();
+    app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','1');app.saved.set('flow_pending','1');
+    app.saved.set('transactions','[{"id":"first-edit"}]');
+    let resolve,started;const waiting=new Promise(r=>resolve=r),called=new Promise(r=>started=r);
+    app.client.from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>{started();await waiting;return {data:{revision:2,data:{transactions:[{id:'account'}]}},error:null};}})})});
+    const syncing=app.run('flowSync()');await called;
+    app.saved.set('transactions','[{"id":"newest-offline-edit"}]');resolve();await syncing;
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'),'newest-offline-edit');
+});
+
+test('sign-in does not replace a workspace that changed while its account was loading', async () => {
+    const app=setupCloud();app.saved.set('flow_user_id','previous-owner');app.saved.set('transactions','[{"id":"original"}]');
+    let resolve,started;const waiting=new Promise(r=>resolve=r),called=new Promise(r=>started=r);
+    app.client.from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>{started();await waiting;return {data:{revision:2,data:{transactions:[{id:'account'}]}},error:null};}})})});
+    const opening=app.run('connectFlowAccount({id:"person-1"})');await called;
+    app.saved.set('transactions','[{"id":"changed-while-loading"}]');resolve();
+    await assert.rejects(opening,/changed while opening/i);
+    assert.equal(app.saved.get('flow_user_id'),'previous-owner');assert.equal(app.saved.get('transactions'),'[{"id":"changed-while-loading"}]');
+});
+
+test('a changed sign-in cannot activate an earlier user’s response', async () => {
+    const app=setupCloud();app.saved.set('transactions','[{"id":"local"}]');
+    app.setCloud({revision:2,data:{transactions:[{id:'private-account'}]}});
+    app.client.auth.getUser=async()=>({data:{user:{id:'someone-else'}},error:null});
+    await assert.rejects(app.run('connectFlowAccount({id:"person-1"})'),/sign in again/i);
+    assert.equal(app.saved.get('transactions'),'[{"id":"local"}]');assert.equal(app.saved.has('flow_user_id'),false);
+});
+
+test('an account reset does not resurrect deleted records from an older device', async () => {
+    const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','8');
+    app.saved.set('transactions','[{"id":"old-deleted-record"}]');
+    await app.run('flowSync()');
+    assert.equal(app.getCloud(),null);assert.equal(app.saved.get('transactions'),'[]');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'),'old-deleted-record');
+});
+
+test('unsupported newer accounts stay untouched and do not replace pending edits', async () => {
+    const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','1');app.saved.set('flow_pending','1');
+    app.saved.set('transactions','[{"id":"local"}]');app.setCloud({revision:2,data:{clientSchemaVersion:99,transactions:[{id:'new-schema'}]}});
+    await app.run('flowSync()');assert.equal(app.saved.get('transactions'),'[{"id":"local"}]');
+    assert.equal(app.saved.get('flow_pending'),'1');assert.equal(app.getCloud().revision,2);
+});
+
+test('recovery deduplicates identical work and is hidden without the matching verified sign-in', async () => {
+    const app=setupCloud();app.saved.set('flow_user_id','person-1');app.saved.set('flow_revision','1');app.saved.set('flow_pending','1');
+    app.saved.set('transactions','[{"id":"offline"}]');app.setCloud({revision:2,data:{transactions:[{id:'account'}]}});
+    await app.run('flowSync()');
+    app.saved.set('flow_revision','1');app.saved.set('flow_pending','1');app.saved.set('transactions','[{"id":"offline"}]');
+    await app.run('flowSync()');assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),1);
+    app.run('window.FlowAuth={authorized:false,user:{id:"person-1"}}');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
+    app.run('window.FlowAuth={authorized:true,user:{id:"someone-else"}}');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
 });

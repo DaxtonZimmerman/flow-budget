@@ -2,138 +2,89 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
 const setupPanel = document.querySelector("#account-setup");
 const signInPanel = document.querySelector("#account-sign-in");
 const connectedPanel = document.querySelector("#account-connected");
-const choosePanel = document.querySelector("#account-choose");
+const retryPanel = document.querySelector("#account-retry-panel");
 const deletePanel = document.querySelector("#account-delete");
 const accountMessage = document.querySelector("#account-message");
 const client = getFlowClient();
 
 let accountUser;
-let previewRevision = 0;
-
-
-function countFlowData(data) {
-    const months = Object.keys(data.budgetsByMonth || {});
-    let budgetCount = (data.budgets || []).length;
-
-    for (const month of months) {
-        budgetCount += data.budgetsByMonth[month].length;
-    }
-
-    return `${data.transactions.length} transactions, ${budgetCount} budgets, ` +
-        `${(data.categoryRules || []).length} category rules, and ` +
-        `${(data.recurringItems || []).length} monthly decisions` + (data.flowPlanning ? ", plus a saved payday plan" : "");
-}
+let accountOpening = false;
 
 
 async function showAccount() {
-    if (!client) {
-        setupPanel.hidden = false;
-        if (flowCloudUrl && flowCloudKey) {
-            setupPanel.querySelector("p:last-child").textContent =
-                "Could not load the sign-in library. Check your connection and reload.";
-        }
-        showFlowStatus("Flow is saved on this device.");
-        return;
-    }
-
+    if (accountOpening) return;
+    accountOpening = true;
+    retryPanel.hidden = true;
     try {
-        const result = await client.auth.getUser();
-        accountUser = result.data.user;
-
-        if (result.error || !accountUser) {
-            signInPanel.hidden = false;
-            showFlowStatus("Sign in to connect devices.");
+        if (window.FlowAuth) {
+            await window.FlowAuth.ready;
+            if (!window.FlowAuth.authorized) return;
+        }
+        if (!client) {
+            setupPanel.hidden = false;
+            showFlowStatus("Your work is saved here. Reconnect to sync.");
             return;
         }
-
+        const result = await client.auth.getUser();
+        accountUser = result.data.user;
+        if (result.error || !accountUser) {
+            signInPanel.hidden = false;
+            showFlowStatus("Sign in to open Flow.");
+            return;
+        }
+        if (window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== accountUser.id)) return;
+        if (flowStorage.getItem('flow_user_id') !== accountUser.id) {
+            accountMessage.textContent = 'Opening your saved account…';
+            await connectFlowAccount(accountUser);
+            // Reload once so every form starts with this account's saved data.
+            // The sign-in return route continues automatically from here.
+            window.location.reload();
+            return;
+        }
         connectedPanel.hidden = false;
         deletePanel.hidden = false;
         document.querySelector("#account-address").textContent = accountUser.email;
-
-        const cloud = await getCloudData(client, accountUser.id);
-        previewRevision = cloud ? cloud.revision : 0;
-        const linkedUser = flowStorage.getItem("flow_user_id");
-        const localRevision = Number(flowStorage.getItem("flow_revision") || 0);
-        const hasConflict = linkedUser === accountUser.id &&
-            previewRevision !== localRevision &&
-            (flowStorage.getItem("flow_pending") === "1" ||
-                previewRevision < localRevision);
-
-        if (linkedUser !== accountUser.id || hasConflict) {
-            const localCount = countFlowData(getFlowSnapshot());
-            const cloudCount = cloud
-                ? countFlowData(cloud.data)
-                : "no saved data";
-
-            document.querySelector("#copy-preview").textContent =
-                `This device has ${localCount}. Your cloud account has ${cloudCount}.`;
-            choosePanel.hidden = false;
-            showFlowStatus(hasConflict
-                ? "Both devices have new changes. Choose which copy to keep."
-                : "Choose which data to use with this account.");
-        } else {
-            flowSync();
-        }
-    } catch (error) {
-        accountMessage.textContent =
-            "Could not reach your account. Check your connection and try again.";
-    }
+        await flowSync();
+        renderRecoveryCopies();
+    } catch (_) {
+        accountMessage.textContent = 'Could not open your saved account yet. Check your connection and try again.';
+        retryPanel.hidden = false;
+    } finally { accountOpening = false; }
 }
 
-
-document.querySelector("#use-device").addEventListener("click", async function() {
-    if (!accountUser) return;
-
-    if (previewRevision > 0 && !window.confirm(
-        "Replace your cloud data with this device's data? Download a backup first if you need both copies."
-    )) {
-        return;
-    }
-
-    accountMessage.textContent = "Saving this device’s data…";
-
+function renderRecoveryCopies() {
+    const holder = document.querySelector('#account-recovery');
+    if (!holder || !accountUser) return;
+    holder.replaceChildren();
     try {
-        const revision = await saveCloudData(client, previewRevision, getFlowSnapshot());
-        flowStorage.setItem("flow_user_id", accountUser.id);
-        flowStorage.setItem("flow_revision", String(revision));
-        flowStorage.removeItem("flow_pending");
-        window.location.reload();
-    } catch (error) {
-        accountMessage.textContent =
-            "Cloud data changed or could not be saved. Reload to review both copies again.";
-    }
-});
-
-
-document.querySelector("#use-cloud").addEventListener("click", async function() {
-    if (!accountUser) return;
-
-    if (!window.confirm(
-        "Replace this device's data with your cloud data? Download a device backup first if you need it."
-    )) {
-        return;
-    }
-
-    try {
-        const cloud = await getCloudData(client, accountUser.id);
-
-        if ((cloud ? cloud.revision : 0) !== previewRevision) {
-            accountMessage.textContent =
-                "Cloud data changed. Reload to review the latest copy first.";
-            return;
+        const copies = getFlowRecoveryCopies(accountUser.id);
+        holder.hidden = copies.length === 0;
+        if (!copies.length) return;
+        const heading = document.createElement('h3'); heading.textContent = 'Earlier changes';
+        const explanation = document.createElement('p');
+        explanation.textContent = 'Flow opens your saved account automatically. If changes overlap, it keeps earlier edits here so you can recover them.';
+        holder.append(heading, explanation);
+        for (const copy of [...copies].reverse()) {
+            const row = document.createElement('div'); row.className = 'row-between';
+            const when = document.createElement('span'); when.textContent = new Date(copy.savedAt).toLocaleString();
+            const download = document.createElement('button'); download.type = 'button'; download.className = 'back-button';
+            download.textContent = 'Download earlier changes';
+            download.addEventListener('click', () => {
+                if (copy.owner !== accountUser.id || flowStorage.getItem('flow_user_id') !== accountUser.id || window.FlowAuth &&
+                    (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== accountUser.id)) return;
+                downloadFlowCopy(copy.data, 'flow-recovery-' + copy.savedAt.slice(0, 10) + '.json');
+            });
+            row.append(when, download); holder.append(row);
         }
-
-        replaceFlowSnapshot(cloud ? cloud.data : {
-            transactions: [], budgets: [], budgetsByMonth: {}
-        });
-        flowStorage.setItem("flow_user_id", accountUser.id);
-        flowStorage.setItem("flow_revision", String(previewRevision));
-        flowStorage.removeItem("flow_pending");
-        window.location.reload();
-    } catch (error) {
-        accountMessage.textContent = "Could not load cloud data. Try again.";
+    } catch (_) {
+        holder.hidden = false;
+        holder.textContent = 'Earlier changes are still kept here, but could not be opened. Please try again.';
     }
-});
+}
+document.querySelector('#account-retry').addEventListener('click', showAccount);
+document.addEventListener('flow-recovery-updated', renderRecoveryCopies);
+document.addEventListener('flow-auth-ready', showAccount);
+window.addEventListener('online', showAccount);
 
 
 function downloadFlowCopy(data, name) {
@@ -151,29 +102,6 @@ function downloadFlowCopy(data, name) {
     link.remove();
     setTimeout(function() { URL.revokeObjectURL(fileUrl); }, 1000);
 }
-
-
-document.querySelector("#download-local").addEventListener("click", function() {
-    downloadFlowCopy(getFlowSnapshot(), "flow-device-backup.json");
-});
-
-
-document.querySelector("#download-cloud").addEventListener("click", async function() {
-    if (!accountUser) return;
-
-    try {
-        const cloud = await getCloudData(client, accountUser.id);
-
-        if (!cloud) {
-            accountMessage.textContent = "No cloud data to download yet.";
-            return;
-        }
-
-        downloadFlowCopy(cloud.data, "flow-cloud-backup.json");
-    } catch (error) {
-        accountMessage.textContent = "Could not download cloud data. Try again.";
-    }
-});
 
 
 document.querySelector("#sync-now").addEventListener("click", flowSync);
@@ -248,6 +176,7 @@ document.querySelector("#delete-account").addEventListener("click", async functi
     } catch (_error) {
         // The deleted account can no longer access cloud data.
     }
+    flowStorage.removeItem(flowRecoveryKey(accountUser.id));
     for (const key of ["transactions", "budgets", "budgetsByMonth",
         "categoryRules", "recurringItems", "flowPlanning", "bankAccounts",
         "flow_user_id", "flow_revision", "flow_pending", "flowLastEstimate", "flow_pending_client", "flow_verified_user"]) {

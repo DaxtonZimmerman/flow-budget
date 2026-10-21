@@ -1,5 +1,5 @@
 var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
-/* keep one browser copy and one cloud copy */
+/* One saved account, with an offline working copy and protected recovery copies. */
 
 let flowClient;
 let flowAuthStorage;
@@ -55,11 +55,16 @@ function getFlowSnapshot() {
 }
 
 
-function replaceFlowSnapshot(data) {
+function validateFlowSnapshot(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Could not open this saved account.');
     if (data.clientSchemaVersion !== undefined && ![1, 2].includes(data.clientSchemaVersion)) throw new Error('Update Flow before opening this newer workspace.');
     if (typeof validFlowTransactionExtras === 'function' && (!Array.isArray(data.transactions || []) || (data.transactions || []).some(t => !validFlowTransactionExtras(t)))) throw new Error('Unsupported transaction details. Download your saved copy before replacing data.');
     if (data.flowPlanning && typeof validFlowPlanning === "function" && !validFlowPlanning(data.flowPlanning)) throw new Error("Unsupported payday plan. Download your cloud copy before replacing data.");
     if (data.bankAccounts && typeof validBankAccounts === "function" && !validBankAccounts(data.bankAccounts)) throw new Error("Invalid account snapshot.");
+}
+
+function replaceFlowSnapshot(data) {
+    validateFlowSnapshot(data);
     const oldData = {
         transactions: flowStorage.getItem("transactions"),
         budgets: flowStorage.getItem("budgets"),
@@ -87,6 +92,84 @@ function replaceFlowSnapshot(data) {
 
         throw error;
     }
+}
+
+const flowWorkspaceKeys = ['transactions', 'budgets', 'budgetsByMonth', 'categoryRules', 'recurringItems', 'bankAccounts', 'flowPlanning',
+    'flow_user_id', 'flow_revision', 'flow_pending', 'flow_pending_client', 'flowLastEstimate'];
+const flowRecoveryKey = owner => 'flow_recovery_v1:' + (owner || 'unlinked');
+
+function readFlowRecoveryCopies(owner) {
+    const text = flowStorage.getItem(flowRecoveryKey(owner));
+    if (!text) return [];
+    const rows = JSON.parse(text);
+    if (!Array.isArray(rows) || rows.some(row => row.owner !== (owner || null) || !row.data || row.version !== 1)) throw new Error('Earlier changes could not be read. They have been left untouched.');
+    return rows;
+}
+
+function getFlowRecoveryCopies(owner) {
+    if (!owner || flowStorage.getItem('flow_user_id') !== owner ||
+        window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== owner)) return [];
+    return readFlowRecoveryCopies(owner);
+}
+
+function keepFlowRecoveryCopy(owner, snapshot, reason) {
+    const rows = readFlowRecoveryCopies(owner);
+    const signature = JSON.stringify(snapshot);
+    if (rows.some(row => JSON.stringify(row.data) === signature)) return;
+    // Do not prune unsynced work or proceed if storage cannot protect it.
+    rows.push({ version:1, owner:owner || null, id:Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
+        savedAt:new Date().toISOString(), reason, data:snapshot });
+    flowStorage.setItem(flowRecoveryKey(owner), JSON.stringify(rows));
+}
+
+function acceptFlowAccountCopy(owner, revision, data, options = {}) {
+    validateFlowSnapshot(data);
+    const previousOwner = flowStorage.getItem('flow_user_id');
+    if (previousOwner !== options.expectedOwner || window.FlowAuth &&
+        (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== owner)) return false;
+    const previous = Object.fromEntries(flowWorkspaceKeys.map(key => [key, flowStorage.getItem(key)]));
+    const snapshot = getFlowSnapshot();
+    if (options.expectedSnapshot !== undefined && JSON.stringify(snapshot) !== options.expectedSnapshot) return false;
+    const changed = JSON.stringify(snapshot) !== JSON.stringify(data);
+    if (options.recover && changed) keepFlowRecoveryCopy(previousOwner, snapshot, options.reason || 'account-update');
+    try {
+        // A changed account is never exposed under the previous owner's marker.
+        if (previousOwner !== owner) flowStorage.removeItem('flow_user_id');
+        replaceFlowSnapshot(data);
+        flowStorage.setItem('flow_revision', String(revision));
+        flowStorage.removeItem('flow_pending');
+        flowStorage.removeItem('flow_pending_client');
+        if (previousOwner !== owner) flowStorage.removeItem('flowLastEstimate');
+        flowStorage.setItem('flow_user_id', owner);
+    } catch (error) {
+        for (const key of flowWorkspaceKeys) {
+            try { previous[key] === null ? flowStorage.removeItem(key) : flowStorage.setItem(key, previous[key]); } catch (_) { /* The protected recovery copy remains available. */ }
+        }
+        throw error;
+    }
+    refreshFlowDataViews();
+    if (options.recover && changed) document.dispatchEvent(new Event('flow-recovery-updated'));
+    return true;
+}
+
+async function connectFlowAccount(user) {
+    const client = getFlowClient();
+    if (!client || !user?.id || !navigator.onLine) throw new Error('Reconnect to open your saved account.');
+    const previousOwner = flowStorage.getItem('flow_user_id');
+    if (previousOwner === user.id) return true;
+    const snapshot = JSON.stringify(getFlowSnapshot());
+    const hasEarlierWork = flowWorkspaceKeys.slice(0, 7).some(key => {
+        const value = flowStorage.getItem(key);
+        return value && !['[]', '{}', 'null'].includes(value);
+    });
+    const cloud = await getCloudData(client, user.id);
+    const verified = await client.auth.getUser();
+    if (verified.error || verified.data?.user?.id !== user.id) throw new Error('Sign in again to open Flow.');
+    const opened = acceptFlowAccountCopy(user.id, cloud?.revision || 0, cloud?.data || {
+        clientSchemaVersion:2, transactions:[], budgets:[], budgetsByMonth:{}, categoryRules:[], recurringItems:[], bankAccounts:[], flowPlanning:null
+    }, { expectedOwner:previousOwner, expectedSnapshot:snapshot, recover:hasEarlierWork, reason:'account-open' });
+    if (!opened) throw new Error('Flow changed while opening. Please try again.');
+    return true;
 }
 
 
@@ -152,7 +235,8 @@ async function saveCloudData(client, revision, data) {
 }
 
 
-async function flowSync() {
+async function flowSync(retry = 0) {
+    const attempt = Number.isInteger(retry) ? retry : 0;
     if (window.FlowAuth) {
         await window.FlowAuth.ready;
         if (!window.FlowAuth.authorized) return;
@@ -174,6 +258,7 @@ async function flowSync() {
 
     flowSyncing = true;
     let cloudReady = false;
+    let retryConflict = false;
 
     try {
         const userResult = await client.auth.getUser();
@@ -191,16 +276,17 @@ async function flowSync() {
         const localRevision = Number(flowStorage.getItem("flow_revision") || 0);
 
         if (flowStorage.getItem("flow_pending") === "1") {
-            if (cloud?.data?.clientSchemaVersion === 2 && flowStorage.getItem('flow_pending_client') !== '2') {
-                showFlowStatus('Changes from an older Flow version need review. Open Account to download both copies and choose which to keep.');
-                return;
-            }
-            if (cloudRevision !== localRevision) {
-                showFlowStatus("Changes on two devices. Open Account to choose which copy to keep.");
-                return;
+            const olderEdits = cloud?.data?.clientSchemaVersion === 2 && flowStorage.getItem('flow_pending_client') !== '2';
+            if (olderEdits || cloudRevision !== localRevision) {
+                cloudReady = acceptFlowAccountCopy(linkedUserId, cloudRevision, cloud?.data || {
+                    clientSchemaVersion:2, transactions:[], budgets:[], budgetsByMonth:{}
+                }, { expectedOwner:linkedUserId, recover:true, reason:olderEdits ? 'older-version' : 'simultaneous-changes' });
+                if (cloudReady) showFlowStatus('Account updated. Earlier edits are kept in Backup & restore.');
+                return cloudReady;
             }
 
             const snapshot = getFlowSnapshot();
+            if (window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== linkedUserId)) return;
             const revision = await saveCloudData(client, localRevision, snapshot);
             if (flowStorage.getItem('flow_user_id') !== linkedUserId) return;
             flowStorage.setItem("flow_revision", String(revision));
@@ -216,24 +302,25 @@ async function flowSync() {
             }
 
         } else if (cloudRevision > localRevision) {
-            replaceFlowSnapshot(cloud.data);
-            flowStorage.setItem("flow_revision", String(cloudRevision));
-            refreshFlowDataViews();
-            showFlowStatus('All changes saved.');
-            cloudReady = true;
+            cloudReady = acceptFlowAccountCopy(linkedUserId, cloudRevision, cloud.data, { expectedOwner:linkedUserId });
+            if (cloudReady) showFlowStatus('All changes saved.');
         } else if (cloudRevision < localRevision) {
-            showFlowStatus("Cloud data changed. Open Account to choose which copy to keep.");
+            cloudReady = acceptFlowAccountCopy(linkedUserId, cloudRevision, cloud?.data || {
+                clientSchemaVersion:2, transactions:[], budgets:[], budgetsByMonth:{}
+            }, { expectedOwner:linkedUserId, recover:true, reason:'account-reset' });
+            if (cloudReady) showFlowStatus('Account updated. Earlier edits are kept in Backup & restore.');
         } else {
             showFlowStatus("All changes saved.");
             cloudReady = true;
         }
 
     } catch (error) {
-        showFlowStatus("Could not sync. Your changes are still saved on this device.");
+        retryConflict = attempt < 1 && /conflict|data changed/i.test(error.message || '');
+        showFlowStatus(retryConflict ? 'Catching up with your account…' : 'Could not sync yet. Your changes are still saved here.');
     } finally {
         flowSyncing = false;
 
-        if (flowSyncAgain) {
+        if (flowSyncAgain && !retryConflict) {
             flowSyncAgain = false;
             setTimeout(flowSync, 0);
         }
@@ -242,6 +329,7 @@ async function flowSync() {
             document.dispatchEvent(new Event("flow-cloud-ready"));
         }
     }
+    if (retryConflict) { flowSyncAgain = false; return flowSync(attempt + 1); }
     return cloudReady;
 }
 
@@ -253,3 +341,4 @@ document.addEventListener("visibilitychange", function() {
     }
 });
 document.addEventListener("DOMContentLoaded", flowSync);
+document.addEventListener('flow-auth-ready', flowSync);

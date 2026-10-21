@@ -614,3 +614,9 @@ dialog[open] { animation: dialog-enter .18s ease-out; }
     .transaction-details-fields { grid-template-columns: 1fr 1fr; }
     .transaction-details-footer .save-button { min-height: 46px; }
 }
+
+.recovery-copies { margin-top:24px; border-top:1px solid var(--border,#e0e7dc); padding-top:20px; }
+.recovery-copies h3 { font-size:17px; }
+.recovery-copies p { font-size:13px; line-height:1.6; }
+.recovery-copies .row-between { padding:12px 0; gap:15px; flex-wrap:wrap; }
+.recovery-copies .row-between>span { font-size:12px; color:var(--text-light,#607266); }

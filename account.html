@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="d5893dc6882ad294" lang="en" data-flow-auth="checking">
+<html data-flow-release="73eeb02d34e762f8" lang="en" data-flow-auth="checking">
 
 <head>
     <meta charset="UTF-8">
@@ -12,7 +12,7 @@
     <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg?v=52d47154a08e23b9">
     <link rel="apple-touch-icon" href="assets/flow-icon-192.png?v=78f93f2dc35f7bbf">
     <link rel="stylesheet" href="css/styles.css?v=a854bef0a3b6ed9b">
-    <link rel="stylesheet" href="css/app.css?v=c91e86205087de8d">
+    <link rel="stylesheet" href="css/app.css?v=e1fd8e3d6cb14f8b">
     <link rel="stylesheet" href="css/payday.css?v=66114351f438f117">
     <script src="js/storage.js?v=2f7e2302da412706" defer></script>
     <script src="js/mobile-views.js?v=3e1f0400b0f2a6b0" defer></script>
@@ -27,8 +27,8 @@
     <script src="js/product-data.js?v=fdd4ba4504b92074" defer></script>
     <script src="js/bill-data.js?v=082c6c29c0c6c3cc" defer></script>
     <script src="js/auth-storage.js?v=af54d07b8b0f115a" defer></script>
-    <script src="js/cloud-sync.js?v=1c27b463eec48189" defer></script>
-    <script src="js/auth-gate.js?v=2248e548ea15f502" defer></script>
+    <script src="js/cloud-sync.js?v=bc499d89d93c7f20" defer></script>
+    <script src="js/auth-gate.js?v=f51ec7880e11ffe8" defer></script>
     <script src="js/transfer-data.js?v=bc42d3121be9a431" defer></script>
     <script src="js/bank-data.js?v=cd6d15801fbf8272" defer></script>
     <script src="js/bank-auto-sync.js?v=c48bcb950ce9a052" defer></script>
@@ -36,7 +36,7 @@
     <script src="js/money-data.js?v=441d63da0fcf89f6" defer></script>
     <script src="js/review-data.js?v=5fd89fdd5a557e23" defer></script>
     <script src="js/backup.js?v=0c2f1493d698ba0c" defer></script>
-    <script src="js/account.js?v=e32729ce353f5912" defer></script>
+    <script src="js/account.js?v=8aecc0b7b9942cc1" defer></script>
     <script src="js/home-view.js?v=965f7c76dd99310a" defer></script>
     <script src="js/payday-app.js?v=1efc73402a5bcc4f" defer></script>
     <script src="js/bank-connections.js?v=ab82c1492c367c33" defer></script>
@@ -95,8 +95,8 @@
 
             <section id="account-setup" class="card account-card" hidden>
                 <p class="small-label">Setup needed</p>
-                <h3>Cloud sync is unavailable here</h3>
-                <p>Your saved data still works on this device. Reconnect to the internet and reload to sign in or sync your cloud copy.</p>
+                <h3>Sync is unavailable here</h3>
+                <p>Your saved work is available offline. Reconnect to keep it up to date.</p>
             </section>
             <section id="account-sign-in" class="card account-card" hidden>
                 <p class="small-label">Sign in</p>
@@ -104,24 +104,17 @@
                 <p>Sign in with the code sent to your email.</p>
                 <a class="save-button" href="login.html?next=account.html">Continue to sign-in</a>
             </section>
-            <section id="account-choose" class="card account-card" hidden>
-                <p class="small-label">Connect this device</p>
-                <h3>Choose the copy to keep</h3>
-                <p id="copy-preview"></p>
-                <p>Download either copy before replacing it. Flow will never combine two copies without showing you what will happen.</p>
-                <div class="account-actions">
-                    <button id="download-local" class="back-button" type="button">Download device backup</button>
-                    <button id="download-cloud" class="back-button" type="button">Download cloud backup</button>
-                    <button id="use-device" class="save-button" type="button">Use this device’s data</button>
-                    <button id="use-cloud" class="back-button" type="button">Use cloud data</button>
-                </div>
+            <section id="account-retry-panel" class="card account-card" hidden>
+                <h3>Let's get you back in.</h3>
+                <p>Reconnect to the internet, then try again. Your earlier work stays saved.</p>
+                <button id="account-retry" class="save-button" type="button">Try again</button>
             </section>
 <p id="account-message" class="form-message" aria-live="polite"></p>
 <div class="account-columns"><div>
             <section id="account-connected" class="card account-card" hidden>
                 <p class="small-label">Signed in</p>
                 <h3 id="account-address"></h3>
-                <p>Flow keeps a copy on this device so you can still enter transactions while offline.</p>
+                <p>Your account stays in sync automatically. You can keep working offline, and Flow catches up when you reconnect.</p>
                 <div class="account-actions">
                     <button id="sync-now" class="save-button" type="button">Sync now</button>
                     <button id="sign-out" class="back-button" type="button">Sign out on this device</button>
@@ -160,6 +153,7 @@
                 </div>
 
                 <p id="backup-message" class="form-message" aria-live="polite"></p>
+                <section id="account-recovery" class="recovery-copies" hidden></section>
 
             </section>
 

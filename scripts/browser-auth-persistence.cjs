@@ -35,8 +35,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  async function completeSignIn(page){
   await page.locator('[name=code]').fill('123456');
   await page.locator('#login-code-form button').click();
-  await page.waitForFunction(()=>window.FlowAuth?.authorized && (location.pathname.endsWith('/index.html') || document.querySelector('#account-choose')?.hidden === false));
-  if(page.url().endsWith('/account.html')){page.once('dialog',d=>d.accept());await page.locator('#use-cloud').click();await page.waitForURL('**/index.html');}
+  await page.waitForFunction(()=>window.FlowAuth?.authorized && location.pathname.endsWith('/index.html'));
   await page.waitForFunction(()=>FlowAuth.authorized);
  }
  async function signIn(page){
