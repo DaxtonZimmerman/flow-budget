@@ -9,6 +9,10 @@ verify_jwt = false
 [functions.plaid-production-webhook]
 verify_jwt = false
 
+# Supabase Auth signs each request. The handler verifies it before sending email.
+[functions.flow-auth-email]
+verify_jwt = false
+
 # Local development templates. Hosted Supabase uses the matching dashboard templates.
 [auth.email.template.magic_link]
 subject = "Your Flow sign-in code"
