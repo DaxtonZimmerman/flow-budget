@@ -1,0 +1,245 @@
+/* The iPhone interface. Shared financial behavior and the desktop layout live in their existing modules. */
+.mobile-only { display:none; }
+.mobile-home-overview { display:block; }
+.mobile-home-overview>summary { display:none; }
+.mobile-activity-totals { display:block; }
+.mobile-activity-totals>summary,.mobile-date-heading,.mobile-transaction-more { display:none; }
+.mobile-disclosure { display:block; }
+.mobile-disclosure>summary { display:none; }
+.mobile-filter-dialog { color:var(--text); }
+.mobile-filter-fields { display:grid; gap:20px; }
+@media(max-width:768px) {
+    html { scroll-padding-top:100px; scroll-padding-bottom:calc(105px + env(safe-area-inset-bottom)); }
+    body.app-redesign { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-tap-highlight-color:transparent; }
+    .mobile-only { display:block; }
+    .app-redesign .main { padding:env(safe-area-inset-top) 20px calc(110px + env(safe-area-inset-bottom)); }
+    .app-redesign .app-toolbar { min-height:76px; margin:0 0 8px; }
+    .app-redesign .toolbar-actions { gap:8px; }
+    .app-redesign .toolbar-brand { display:flex; align-items:center; min-height:44px; }
+    .app-redesign .toolbar-add { display:none; }
+    .app-redesign .search-launch,.app-redesign .profile-launch { min-width:44px; min-height:44px; }
+    .app-redesign .profile-launch { width:44px; height:44px; background:#e7eedf; }
+    .app-redesign .nav { border-top:1px solid #e4e8df; background:#f9fbf6f5; backdrop-filter:blur(16px); box-shadow:0 -3px 20px #193d3006; padding:7px 14px calc(7px + env(safe-area-inset-bottom)); }
+    .app-redesign .nav-link { min-height:53px; border-radius:13px; color:#647568; font-size:11px; gap:5px; }
+    .app-redesign .nav-link.active { background:#e7efdf; color:#184e3c; font-weight:650; }
+    .app-redesign .nav-icon { width:22px; height:22px; }
+    .app-redesign .page-header { margin:0 0 23px; align-items:center; justify-content:space-between; flex-direction:row; text-align:left; gap:12px; }
+    .app-redesign .page-header>div { width:auto; min-width:0; }
+    .app-redesign .page-header .heading-actions,.app-redesign .page-header .budget-header-actions { flex-shrink:0; }
+    body[data-page=plan] .page-header .heading-actions { display:none; }
+    .app-redesign .demo-banner { padding:9px 16px; gap:9px; font-size:10px; line-height:1.5; }
+    .app-redesign .demo-banner button,.app-redesign .demo-banner a { font-size:10px; min-height:36px; padding:6px 8px; }
+    .app-redesign .page-header h2,.app-redesign #payday-bills .page-header h1 { font-size:29px; letter-spacing:-1px; font-weight:700; margin:0; }
+    .app-redesign .page-header .small-label,.app-redesign .page-header p:not(.small-label) { display:none; }
+    .app-redesign .page-header .save-button { min-height:44px; }
+    .app-redesign button,.app-redesign a { touch-action:manipulation; }
+    .app-redesign .icon-button { min-width:44px; min-height:44px; }
+    .app-redesign .inline-link { display:inline-flex; align-items:center; min-height:44px; }
+    .app-redesign button,.app-redesign a[href],.app-redesign summary { scroll-margin-block:90px; }
+    .app-redesign input,.app-redesign select,.app-redesign textarea { font-size:16px; min-height:48px; }
+    .app-redesign textarea { min-height:90px; }
+    .home-layout { display:flex; flex-direction:column; gap:16px; }
+    .home-main-column,.home-side-column { display:contents; }
+    .home-hero { order:0; position:relative; }
+    .home-hero.payday-hero { padding:25px 23px 20px; border-radius:25px; }
+    .home-hero-period { padding-right:35px; font-size:12px; }
+    .home-hero .home-amount { font-size:51px; letter-spacing:-2.3px; font-weight:580; margin:21px 0 8px; }
+    .home-hero h2 { font-size:14px; font-weight:500; }
+    .mobile-hero-info { position:absolute; right:13px; top:12px; display:grid; place-items:center; min-width:44px; min-height:44px; background:transparent; color:#e1eedb; border:0; border-radius:50%; cursor:pointer; }
+    .mobile-hero-info svg { width:20px; height:20px; }
+    .home-hero-meta { margin:10px 0 12px; }
+    .home-hero-meta>.home-text-link { display:none; }
+    .home-source-button { font-size:11px; min-height:34px; }
+    .home-primary { min-height:51px; font-size:14px; border-radius:13px; }
+    .mobile-daily-pace { font-size:11px; line-height:1.6; color:#d1e4d5; margin:13px 0 0; text-align:center; }
+    .mobile-daily-pace strong { color:#eff7e8; font-weight:600; }
+    .home-next { order:1; border-radius:17px; }
+    .home-next-main { padding:16px; min-height:77px; }
+    .home-next-main strong { font-size:14px; }
+    .home-all-tasks { min-height:40px; }
+    .home-highlights { order:2; padding:19px; border-radius:20px; }
+    .home-highlight-content { min-height:122px; touch-action:pan-y; }
+    .home-highlight-amount { font-size:31px; }
+    .home-panel-heading { margin-bottom:10px; }
+    .home-carousel-arrows .icon-button { min-width:44px; min-height:44px; }
+    .home-slide-dot { min-width:44px; min-height:35px; }
+    .home-recent { order:3; border-radius:20px; }
+    .home-recent .transaction-row:nth-child(n+3) { display:none; }
+    .home-recent .transaction-left { gap:10px; }
+    .home-recent .transaction-right { max-width:37%; }
+    .home-recent .transaction-left>span:last-child>span { display:block; white-space:nowrap; max-width:165px; overflow:hidden; text-overflow:ellipsis; }
+    .home-payday-path { order:5; }
+    .home-layout>.mobile-disclosure { margin:0; }
+    .mobile-home-overview,.mobile-activity-totals,.mobile-disclosure { display:block; background:#fff; border-radius:18px; }
+    .mobile-home-overview { order:4; }
+    .mobile-home-overview>summary,.mobile-activity-totals>summary,.mobile-disclosure>summary { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:58px; padding:17px 19px; cursor:pointer; font-size:14px; font-weight:600; list-style:none; }
+    .mobile-home-overview>summary::-webkit-details-marker,.mobile-activity-totals>summary::-webkit-details-marker,.mobile-disclosure>summary::-webkit-details-marker { display:none; }
+    .mobile-home-overview>summary svg,.mobile-disclosure>summary svg { width:17px; height:17px; }
+    .mobile-home-overview[open]>summary svg,.mobile-disclosure[open]>summary svg { transform:rotate(180deg); }
+    .mobile-home-overview .home-overview { padding-top:0; }
+    .home-overview .home-totals { gap:8px; }
+    .home-overview .home-totals dd { font-size:19px; }
+    .home-notice { font-size:12px; }
+    .mobile-card { display:block; background:#fff; padding:20px; border-radius:20px; border:0; }
+    .mobile-section-title { font-size:17px; font-weight:650; letter-spacing:-.3px; margin:25px 2px 12px; }
+    .mobile-eyebrow { font-size:12px; color:#66786b; margin:0 0 8px; }
+    .mobile-section-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .mobile-section-heading h2 { font-size:18px; letter-spacing:-.5px; margin:0; }
+    .desktop-plan { display:none; }
+    .mobile-plan-math { margin:24px 0 0; }
+    .mobile-plan-math>div { display:flex; justify-content:space-between; gap:14px; font-size:13px; margin:0 0 16px; }
+    .mobile-plan-math dt { color:#66786b; }
+    .mobile-plan-math dd { margin:0; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .mobile-plan-math .mobile-plan-total { border-top:1px solid var(--border); padding-top:18px; margin-top:20px; font-size:17px; }
+    .mobile-plan-total dt { color:#184e3c; font-weight:600; }
+    .mobile-source { color:var(--text-light); font-size:11px; margin:0; line-height:1.5; }
+    .mobile-source .inline-link { font-size:11px; min-height:34px; }
+    .mobile-essentials { padding:0 19px; }
+    .mobile-reserve-row { width:100%; text-align:left; font:inherit; background:none; border:0; padding:18px 0; border-bottom:1px solid var(--border); color:var(--text); cursor:pointer; }
+    .mobile-reserve-top,.mobile-list-row { display:flex; align-items:center; gap:12px; }
+    .mobile-row-icon { display:grid; place-items:center; width:38px; height:38px; flex-shrink:0; border-radius:13px; color:#285b43; background:#eff3e9; }
+    .mobile-row-icon svg { width:18px; height:18px; }
+    .mobile-row-copy { flex:1; min-width:0; }
+    .mobile-row-copy strong { display:block; font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+    .mobile-row-copy small { display:block; color:#68796d; font-size:11px; line-height:1.5; margin-top:5px; }
+    .mobile-list-row>strong,.mobile-reserve-amount>strong { font-size:14px; font-weight:650; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .mobile-reserve-amount { text-align:right; }
+    .mobile-reserve-amount small { display:block; color:#68796d; font-size:10px; margin-top:3px; }
+    .mobile-list-row>svg,.mobile-reserve-top>svg { width:15px; height:15px; color:#859783; flex-shrink:0; }
+    .mobile-reserve-progress { display:block; height:4px; background:#edf1e7; border-radius:4px; margin:13px 24px 0 50px; overflow:hidden; }
+    .mobile-reserve-progress>span { display:block; height:100%; background:#8ba976; border-radius:4px; }
+    .mobile-full-link { display:block; width:100%; padding:15px 0; min-height:48px; border:0; color:#315d46; background:none; font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+    .mobile-list-row { width:100%; font:inherit; text-align:left; color:var(--text); cursor:pointer; }
+    .mobile-cushion { margin:15px 0; }
+    .mobile-plan-shortcuts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .mobile-plan-shortcuts .back-button { display:flex; justify-content:center; align-items:center; gap:7px; min-height:48px; font-size:12px; padding:8px; }
+    .mobile-plan-shortcuts svg { width:17px; height:17px; }
+    .mobile-plan-checkin { background:#e7efdf; border-radius:18px; padding:20px; margin-bottom:16px; }
+    .mobile-plan-checkin p { font-size:13px; color:#526851; line-height:1.6; }
+    .mobile-disclosure { margin-top:18px; }
+    .mobile-disclosure>section { padding:0 18px 18px; }
+    .mobile-disclosure .card { padding:17px 0; background:none; border-radius:0; }
+    .plan-tabs { display:flex; gap:5px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+    .plan-tabs .activity-tab { white-space:normal; font-size:12px; min-height:42px; padding:7px 10px; }
+    .mobile-segments { display:flex; background:#e9eee2; border-radius:13px; padding:4px; gap:4px; margin-bottom:19px; }
+    .mobile-segments button { flex:1; min-height:42px; border:0; border-radius:10px; color:#607266; background:none; font:inherit; font-size:13px; cursor:pointer; }
+    .mobile-segments button[aria-pressed=true] { background:#fff; color:#193d30; box-shadow:0 2px 5px #193d300a; font-weight:600; }
+    .mobile-segments button span { display:inline-block; font-size:10px; padding:2px 5px; background:#e7efdf; border-radius:5px; margin-left:4px; }
+    .mobile-bill-total { margin-bottom:19px; }
+    .mobile-bill-total>strong { display:block; font-size:37px; letter-spacing:-1px; font-weight:600; }
+    .mobile-bill-total>p:last-child { margin:9px 0 0; color:#68796d; font-size:12px; line-height:1.6; }
+    #payday-bills>.card { display:none; }
+    #payday-bills[data-mobile-tab=upcoming]>#bill-tracking,#payday-bills[data-mobile-tab=suggestions]>#bill-discovery { display:block; background:#fff; padding:0 18px 17px; border-radius:20px; }
+    #payday-bills[data-mobile-tab=suggestions] .mobile-bill-total { display:none; }
+    #payday-bills #bill-tracking>.section-top { padding-top:19px; margin-bottom:2px; }
+    #payday-bills #bill-tracking .small-label { display:none; }
+    #payday-bills #bill-tracking .section-top h3 { font-size:16px; }
+    #payday-bills #bill-tracking .section-top .inline-link { display:none; }
+    #payday-bills .tracked-bill { display:block; padding:0; }
+    #payday-bills .tracked-bill-desktop,#payday-bills .tracked-bill>.bill-row-actions { display:none; }
+    #payday-bills .mobile-bill-row { display:flex; border:0; border-radius:0; background:none; padding:20px 0; }
+    #payday-bills .card>.detail-help:last-child { font-size:11px; line-height:1.6; margin-bottom:0; }
+    #payday-bills #bill-discovery { padding-top:20px; }
+    #bill-discovery .section-top h3 { font-size:18px; }
+    #bill-discovery .bill-suggestion { padding:18px 0; gap:12px; }
+    #bill-discovery .bill-suggestion strong { font-size:14px; }
+    #bill-discovery .bill-suggestion p,#bill-discovery .bill-suggestion small { font-size:12px; line-height:1.6; }
+    /* Activity uses the existing search, filter and transaction detail controls. */
+    body[data-page=activity] .page-header .budget-header-actions { gap:0; }
+    body[data-page=activity] .page-header a[href^="import"] { display:none; }
+    body[data-page=activity] .add-transaction-link { font-size:0; padding:0; min-width:44px; width:44px; height:44px; background:#184e3c; border-radius:50%; display:grid; place-items:center; }
+    body[data-page=activity] .add-transaction-link::after { content:'+'; font-size:29px; line-height:1; color:#fff; font-weight:300; }
+    .mobile-activity-totals { margin:0 0 17px; order:5; }
+    .mobile-activity-totals>summary { font-size:12px; min-height:48px; }
+    .mobile-activity-totals .transaction-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:0 16px 17px; margin:0; }
+    .mobile-activity-totals .summary-card { padding:0; background:none; box-shadow:none; border:0; }
+    .mobile-activity-totals .summary-card .card-icon { display:none; }
+    .mobile-activity-totals .summary-card p { font-size:10px; }
+    .mobile-activity-totals .summary-card h3 { font-size:17px; letter-spacing:-.5px; overflow-wrap:anywhere; margin-top:9px; }
+    body[data-page=activity] .transaction-history-card { background:transparent; border:0; padding:0; }
+    body[data-page=activity] .transaction-history-card>.section-top { margin:0 0 10px; }
+    body[data-page=activity] .transaction-history-card>.section-top .small-label { display:none; }
+    body[data-page=activity] #history-title { font-size:12px; font-weight:500; color:#68796d; }
+    body[data-page=activity] #transaction-count { font-size:11px; }
+    body[data-page=activity] .activity-tabs { display:flex; gap:6px; margin:13px 0; overflow-x:auto; }
+    body[data-page=activity] [data-activity-type=income],body[data-page=activity] [data-activity-type=refund] { display:none; }
+    body[data-page=activity] .activity-tab { font-size:12px; min-height:42px; border-radius:12px; padding:9px 14px; white-space:nowrap; }
+    .history-filters { display:flex!important; flex-direction:row!important; gap:9px; align-items:center; padding:0; margin-bottom:14px; }
+    .history-filters>.history-filter:has(#history-search) { flex:1; min-width:0; }
+    .history-filters label[for=history-search] { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
+    #history-search { border:0; background:#e9eee2; border-radius:13px; min-height:49px; padding:13px 15px; }
+    .activity-more-filters { flex:0 0 49px; width:49px; margin:0; }
+    .activity-more-filters>summary { width:49px; height:49px; border:0; background:#e9eee2; border-radius:13px; padding:12px; display:grid; place-items:center; list-style:none; }
+    .activity-more-filters>summary>span { font-size:0; }
+    .activity-more-filters>summary>span svg { width:21px; height:21px; }
+    .activity-more-filters>summary>svg { display:none; }
+    .activity-more-filters .more-filters-inner { display:none; }
+    .mobile-filter-fields .history-filter { width:100%; }
+    .mobile-filter-fields .history-filter.type-filter { display:block; }
+    .mobile-filter-fields .history-filter label { display:block; margin-bottom:8px; font-size:13px; }
+    .mobile-filter-fields .history-month-control { display:flex; gap:8px; }
+    .mobile-filter-fields .history-month-control input { min-width:0; flex:1; }
+    .mobile-filter-fields #all-months-button { min-height:48px; }
+    .mobile-filter-fields select { width:100%; }
+    .mobile-filter-fields #history-month { width:100%; }
+    .mobile-filter-dialog>.save-button { margin-top:25px; width:100%; }
+    .mobile-filter-state { font-size:11px; line-height:1.6; color:#607266; margin:0 0 15px; }
+    body[data-page=activity] .history-header { display:none; }
+    body[data-page=activity] #transaction-history { border-radius:17px; overflow:hidden; }
+    .mobile-date-heading { display:block; padding:19px 0 10px; margin:0; font-size:12px; font-weight:600; color:#66786b; background:var(--background); }
+    body[data-page=activity] .history-row { display:grid; position:relative; grid-template-columns:minmax(0,1fr) auto 44px; column-gap:6px; row-gap:0; padding:14px 9px 14px 12px; background:#fff; border-bottom:1px solid #edf1e7; min-height:89px; }
+    body[data-page=activity] .history-row[hidden] { display:none; }
+    body[data-page=activity] .history-name { grid-column:1; grid-row:1; gap:10px; min-width:0; align-items:center; }
+    body[data-page=activity] .history-name .merchant-icon { width:36px; height:36px; border-radius:12px; flex-shrink:0; background:#eff3e9; color:#315d46; }
+    body[data-page=activity] .transaction-open-button { min-width:0; min-height:44px; padding:0; width:100%; }
+    body[data-page=activity] .transaction-open-button strong { font-size:13px; display:block; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+    body[data-page=activity] .activity-account-name { display:none; }
+    body[data-page=activity] .history-row>span:nth-child(2) { grid-column:1; grid-row:2; padding:0 0 0 46px; font-size:11px; color:#6a7b6e; line-height:1.5; }
+    body[data-page=activity] .history-row>span:nth-child(3),body[data-page=activity] .history-row>span:nth-child(4) { display:none; }
+    body[data-page=activity] .history-amount { grid-column:2; grid-row:1; align-self:center; font-size:13px; text-align:right; white-space:nowrap; }
+    body[data-page=activity] .history-actions { display:none; }
+    .mobile-transaction-more { display:grid; place-items:center; grid-column:3; grid-row:1/3; width:44px; min-height:44px; align-self:stretch; background:none; border:0; color:#728770; padding:0; cursor:pointer; }
+    .mobile-transaction-more svg { width:18px; height:18px; }
+    .mobile-action-list { display:grid; gap:10px; }
+    .mobile-action-list button,.mobile-action-list a { display:flex; align-items:center; gap:12px; min-height:52px; width:100%; background:#f4f7ef; border:0; padding:14px; border-radius:12px; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+    .mobile-action-list svg { width:19px; height:19px; }
+    .mobile-action-list .mobile-delete { color:#a73c31; }
+    /* Native dialogs become accessible sheets, including the existing forms and quick review. */
+    .app-redesign dialog[open] { position:fixed; inset:auto 0 var(--flow-sheet-bottom,0px); margin:0; width:100%; max-width:100%; min-width:0; max-height:min(92dvh,var(--flow-sheet-height,92dvh)); padding:28px 22px calc(25px + env(safe-area-inset-bottom)); border:0; border-radius:28px 28px 0 0; background:#fff; color:var(--text); overflow-y:auto; overscroll-behavior-y:contain; box-sizing:border-box; animation:flow-sheet-in .2s ease-out; }
+    .app-redesign #payday-dialog[open] { width:100%; padding:28px 22px calc(25px + env(safe-area-inset-bottom)); }
+    .app-redesign #payday-dialog .field input,.app-redesign #payday-dialog .field select { font-size:16px; }
+    html.flow-sheet-open { overflow:hidden; }
+    .app-redesign dialog[open]::before { content:''; display:block; position:absolute; width:34px; height:4px; border-radius:5px; background:#dfe5da; left:calc(50% - 17px); top:10px; }
+    .app-redesign dialog::backdrop { background:#102a215c; backdrop-filter:blur(5px); }
+    .app-redesign dialog h2 { font-size:23px; letter-spacing:-.7px; line-height:1.3; }
+    .app-redesign dialog .dialog-head,.app-redesign dialog .dialog-heading { align-items:center; gap:12px; margin-bottom:22px; }
+    .app-redesign dialog .modal-actions { margin-top:23px; }
+    .app-redesign dialog .modal-actions .save-button { width:100%; min-height:50px; }
+    .app-redesign .account-menu-links a { font-size:14px; min-height:65px; }
+    .app-redesign .account-menu-links a>svg:last-child { width:16px; }
+    .setup-wrap { padding:0; }
+    .setup-card { border-radius:22px; padding:23px 20px; }
+    .setup-heading h2 { font-size:29px; letter-spacing:-1px; }
+    .setup-heading p { font-size:14px; line-height:1.65; }
+    .setup-footer { gap:12px; }
+    .setup-footer .save-button { min-height:50px; }
+    .app-redesign .card { overflow-wrap:anywhere; }
+    .app-redesign .account-page-card,.app-redesign .account-card { border-radius:20px; }
+    .app-redesign .transaction-details-dialog .detail-fields { grid-template-columns:1fr; }
+    @keyframes flow-sheet-in { from { transform:translateY(30px); opacity:.6; } to { transform:translateY(0); opacity:1; } }
+}
+@media(max-width:360px) {
+    .app-redesign .main { padding-left:15px; padding-right:15px; }
+    .home-hero .home-amount { font-size:46px; }
+    .mobile-reserve-top,.mobile-list-row { gap:9px; }
+    .mobile-row-copy strong { font-size:13px; }
+    .mobile-reserve-amount>strong,.mobile-list-row>strong { font-size:13px; }
+    .mobile-card { padding:18px; }
+    .mobile-section-heading h2 { font-size:17px; }
+    body[data-page=activity] .history-row { padding-left:9px; padding-right:7px; column-gap:5px; }
+    body[data-page=activity] .history-name { gap:8px; }
+    body[data-page=activity] .history-name .merchant-icon { width:31px; height:31px; }
+    body[data-page=activity] .history-row>span:nth-child(2) { padding-left:39px; }
+    body[data-page=activity] .history-amount { font-size:12px; }
+}
+@media(prefers-reduced-motion:reduce) { .app-redesign dialog[open] { animation:none; } }

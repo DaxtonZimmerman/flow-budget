@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="b61abeccb0693476" lang="en" data-flow-auth="checking">
+<html data-flow-release="d5893dc6882ad294" lang="en" data-flow-auth="checking">
 
 <head>
     <meta charset="UTF-8">
@@ -11,12 +11,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="manifest" href="manifest.webmanifest?v=882cbb09a1dc67c1">
-    <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg?v=ccdbb5ef83a23c13">
-    <link rel="apple-touch-icon" href="assets/flow-icon-192.png?v=8a7551b81ec50ee3">
+    <link rel="icon" type="image/svg+xml" href="assets/flow-icon.svg?v=52d47154a08e23b9">
+    <link rel="apple-touch-icon" href="assets/flow-icon-192.png?v=78f93f2dc35f7bbf">
     <link rel="stylesheet" href="css/styles.css?v=a854bef0a3b6ed9b">
     <link rel="stylesheet" href="css/app.css?v=c91e86205087de8d">
     <link rel="stylesheet" href="css/payday.css?v=66114351f438f117">
     <script src="js/storage.js?v=2f7e2302da412706" defer></script>
+    <script src="js/mobile-views.js?v=3e1f0400b0f2a6b0" defer></script>
     <script src="js/app-shell.js?v=67b6e5097e19e886" defer></script>
     <script src="js/app-offline.js?v=6f36433ac1f7ec28" defer></script>
 
@@ -28,7 +29,7 @@
     <script src="js/bill-data.js?v=082c6c29c0c6c3cc" defer></script>
     <script src="js/auth-storage.js?v=af54d07b8b0f115a" defer></script>
     <script src="js/cloud-sync.js?v=1c27b463eec48189" defer></script>
-    <script src="js/auth-gate.js?v=5828e9f403046109" defer></script>
+    <script src="js/auth-gate.js?v=2248e548ea15f502" defer></script>
     <script src="js/transfer-data.js?v=bc42d3121be9a431" defer></script>
     <script src="js/bank-data.js?v=cd6d15801fbf8272" defer></script>
     <script src="js/bank-auto-sync.js?v=c48bcb950ce9a052" defer></script>
@@ -39,12 +40,15 @@
     <script src="js/transaction-details-data.js?v=2705ef3f7ad5b54f" defer></script>
     <script src="js/transaction-details.js?v=d0e6ba7ac4fea988" defer></script>
     <script src="js/home-view.js?v=965f7c76dd99310a" defer></script>
-    <script src="js/payday-app.js?v=89f11c9f302bc729" defer></script>
+    <script src="js/payday-app.js?v=1efc73402a5bcc4f" defer></script>
     <script src="js/transfer-app.js?v=85312566e1227586" defer></script>
     <link rel="stylesheet" href="css/product.css?v=69e4237b7169e882">
     <script src="js/product-app.js?v=56bf3901e645172d" defer></script>
     <link rel="stylesheet" href="css/redesign.css?v=c769f7fb387cb9c6">
     <link rel="stylesheet" href="css/auth.css?v=73756a2ac1c382dd">
+    <link rel="stylesheet" href="css/brand.css?v=02ec8d815aea327c">
+    <link rel="stylesheet" href="css/mobile.css?v=1843a70f2a7b2f23">
+    <script src="js/mobile-app.js?v=3e8e71db19cc40de" defer></script>
 </head>
 
 <body class="app-redesign" data-page="bills">
@@ -53,7 +57,7 @@
 
         <aside class="sidebar">
             <div class="sidebar-top">
-                <a class="brand" href="index.html" aria-label="Flow home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M6 20c5 0 5-10 10-10s5 10 10 10M6 25c5 0 5-10 10-10s5 10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><span class="logo">Flow<span class="brand-dot">.</span></span></a>
+                <a class="brand" href="index.html" aria-label="Flow home"><span class="flow-wordmark"><img src="assets/flow-logo.png?v=59e60a4060dd5454" alt="Flow." width="280" height="124"></span></a>
                 <nav class="nav" aria-label="Main navigation"><a href="index.html" class="nav-link"><i data-lucide="house" class="nav-icon" aria-hidden="true"></i><span>Home</span></a><a href="transactions.html" class="nav-link"><i data-lucide="arrow-down-up" class="nav-icon" aria-hidden="true"></i><span>Activity</span></a><a href="budgets.html" class="nav-link"><i data-lucide="wallet" class="nav-icon" aria-hidden="true"></i><span>Plan</span></a><a href="bills.html" class="nav-link active" aria-current="page"><i data-lucide="calendar-days" class="nav-icon" aria-hidden="true"></i><span>Bills</span></a></nav>
             </div>
             <div class="sidebar-bottom">
@@ -65,7 +69,7 @@
 
         <main class="main">
             <div class="app-toolbar">
-                <a class="toolbar-brand" href="index.html" aria-label="Flow home"><span class="logo">Flow<span class="brand-dot">.</span></span></a><span class="toolbar-title">Bills</span>
+                <a class="toolbar-brand" href="index.html" aria-label="Flow home"><span class="flow-wordmark"><img src="assets/flow-logo.png?v=59e60a4060dd5454" alt="Flow." width="280" height="124"></span></a><span class="toolbar-title">Bills</span>
                 <div class="toolbar-actions"><p id="flow-sync-status" class="account-status" role="status" aria-live="polite"></p><button type="button" class="search-launch" data-open-search aria-label="Search transactions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span><kbd>⌘ K</kbd></button><a href="add-transaction.html" class="toolbar-add" aria-label="Add a transaction"><i data-lucide="plus" aria-hidden="true"></i></a><button type="button" class="profile-launch" data-open-account aria-label="Open account and banks" aria-haspopup="dialog"><i data-lucide="user-round" aria-hidden="true"></i></button></div>
             </div>
 

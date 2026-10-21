@@ -1,0 +1,6 @@
+/* The supplied official artwork is used verbatim; the viewport trims its padding. */
+.flow-wordmark { display:block; position:relative; width:108px; height:43px; overflow:hidden; flex-shrink:0; }
+.flow-wordmark img { display:block; position:absolute; max-width:none; width:168px; height:auto; left:-28px; top:-15px; }
+.login-card .flow-wordmark { margin-bottom:32px; }
+.brand .flow-wordmark { width:108px; }
+.flow-auth-loading .flow-wordmark { margin:0 auto; }

@@ -17,8 +17,10 @@ const base = process.env.FLOW_TEST_URL || 'http://127.0.0.1:4329/';
         page.setDefaultTimeout(6000);
         // This UTC date is already Oct 21, but the user's local date is still Oct 20.
         await page.clock.install({ time: new Date('2026-10-21T05:30:00Z') });
-        const go = file => page.goto(base + file, { waitUntil: 'domcontentloaded' });
+        const go = async file => { await page.goto(base + file, { waitUntil:'domcontentloaded' }); await page.waitForFunction(() => document.documentElement.dataset.flowAuth === 'ready'); };
         const totals = async (income, expenses, balance) => {
+            const overview = page.locator('.mobile-home-overview');
+            if (await overview.getAttribute('open') === null) await overview.locator('summary').click();
             assert.equal(await page.locator('#home-income').innerText(), income);
             assert.equal(await page.locator('#home-expenses').innerText(), expenses);
             assert.equal(await page.locator('#home-balance').innerText(), balance);
@@ -78,6 +80,7 @@ const base = process.env.FLOW_TEST_URL || 'http://127.0.0.1:4329/';
         await go('transactions.html?month=2026-10');
         page.once('dialog', dialog => dialog.accept());
         await Promise.all([page.waitForEvent('domcontentloaded'), page.getByRole('button', { name: 'Delete Sample fuel', exact: true }).click()]);
+        await page.waitForFunction(() => document.documentElement.dataset.flowAuth === 'ready');
         assert.equal(await page.locator('#history-expenses').innerText(), '$55.00');
         await go('index.html');
         await totals('$1,000.00', '$55.00', '$945.00');

@@ -160,6 +160,7 @@ if (transactions.length === 0) {
 
         transactionRow.classList.add("history-row", "openable-transaction");
         transactionRow.dataset.transactionId = String(transaction.id);
+        transactionRow.dataset.transactionDate = transaction.date || '';
         transactionRow.addEventListener("click", event => {
             if (!event.target.closest("a, button, input, select, textarea")) FlowTransactionDetails.open(transaction.id);
         });
@@ -443,6 +444,7 @@ function sortTransactions() {
     for (const item of transactionRows) {
         transactionHistory.appendChild(item.row);
     }
+    document.dispatchEvent(new Event('flow-activity-rendered'));
 
 }
 
@@ -506,6 +508,8 @@ function filterTransactions() {
 
     noMatchingTransactions.hidden =
         transactions.length === 0 || visibleCount > 0;
+
+    document.dispatchEvent(new Event('flow-activity-rendered'));
 
 }
 

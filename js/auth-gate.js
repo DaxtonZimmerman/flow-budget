@@ -40,7 +40,8 @@
         let panel = document.querySelector('.flow-auth-loading');
         if (!panel) {
             panel = document.createElement('section'); panel.className = 'flow-auth-loading';
-            panel.innerHTML = '<span class="logo">Flow<span class="brand-dot">.</span></span><p role="status"></p><button type="button" class="save-button">Try again</button><a href="' + new URL('login.html', root).href + '">Go to sign-in</a>';
+            panel.innerHTML = '<span class="flow-wordmark"><img alt="Flow." width="280" height="124"></span><p role="status"></p><button type="button" class="save-button">Try again</button><a href="' + new URL('login.html', root).href + '">Go to sign-in</a>';
+            panel.querySelector('img').src = new URL('assets/flow-logo.png', root).href;
             panel.querySelector('button').addEventListener('click', () => check());
             document.body.appendChild(panel);
         }
