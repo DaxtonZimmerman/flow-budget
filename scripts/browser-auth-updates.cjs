@@ -71,15 +71,16 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), path = re
         await loginPage.setViewportSize({width:390,height:844});
         await loginPage.screenshot({path:'/private/tmp/flow-sign-in-390.png',fullPage:true,animations:'disabled'});
         await loginPage.locator('[name=email]').fill('sample@example.invalid');await loginPage.locator('#login-form button').click();
-        await loginPage.locator('#login-sent').waitFor();await loginPage.locator('#same-app-sign-in summary').click();
-        await loginPage.locator('[name=link]').fill('https://example.invalid/auth/v1/verify?token=synthetic&type=magiclink');
-        await loginPage.locator('#login-link-form button').click();assert.match(await loginPage.locator('#login-message').innerText(),/could not be used/);
-        await loginPage.locator('[name=link]').fill('https://flow-test.supabase.co/auth/v1/verify?token=synthetic&type=magiclink');
-        await loginPage.locator('#login-link-form button').click();await loginPage.waitForURL(base+'account.html');
+        await loginPage.locator('#login-code-form').waitFor();
+        assert.equal(await loginPage.locator('[name=link]').count(),0);
+        await loginPage.locator('[name=code]').fill('000000');
+        await loginPage.locator('#login-code-form button').click();await loginPage.getByText(/incorrect or expired/).waitFor();
+        await loginPage.locator('[name=code]').fill('123456');
+        await loginPage.locator('#login-code-form button').click();await loginPage.waitForURL(base+'account.html');
         await loginPage.locator('#account-choose').waitFor();loginPage.once('dialog',dialog=>dialog.accept());
         await loginPage.locator('#use-cloud').click();await loginPage.waitForURL(base+'transactions.html');
         await login.close();
-        console.log('PASS: all personal routes require sign-in; cached owner markers cannot bypass it; verified sessions reopen; initial content stays hidden; return URLs are constrained; sign-out locks other tabs; same-app email sign-in and workspace selection work.');
+        console.log('PASS: all personal routes require sign-in; cached owner markers cannot bypass it; verified sessions reopen; initial content stays hidden; return URLs are constrained; sign-out locks other tabs; email-code sign-in and workspace selection work without sign-in links.');
 
         // Exercise a real service-worker update with two open tabs and an unsaved form.
         const update=await browser.newContext({viewport:{width:390,height:844}});

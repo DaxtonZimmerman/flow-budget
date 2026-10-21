@@ -8,3 +8,12 @@ verify_jwt = false
 # Production has a separate endpoint so its signature is checked with Production keys.
 [functions.plaid-production-webhook]
 verify_jwt = false
+
+# Local development templates. Hosted Supabase uses the matching dashboard templates.
+[auth.email.template.magic_link]
+subject = "Your Flow sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.email.template.confirmation]
+subject = "Your Flow sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"

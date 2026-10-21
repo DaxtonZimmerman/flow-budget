@@ -32,17 +32,26 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   const page=context.pages()[0];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(15000);return page;
  }
  async function restart(){await context.close();context=null;return open();}
- async function signIn(page){
-  await page.goto(base+'login.html');await page.locator('[name=email]').fill('sample@example.invalid');await page.locator('#login-form button').click();
-  await page.locator('[name=link]').fill('https://flow-test.supabase.co/auth/v1/verify?token=synthetic&type=magiclink');
-  await page.locator('#login-link-form button').click();
+ async function completeSignIn(page){
+  await page.locator('[name=code]').fill('123456');
+  await page.locator('#login-code-form button').click();
   await page.waitForFunction(()=>window.FlowAuth?.authorized && (location.pathname.endsWith('/index.html') || document.querySelector('#account-choose')?.hidden === false));
   if(page.url().endsWith('/account.html')){page.once('dialog',d=>d.accept());await page.locator('#use-cloud').click();await page.waitForURL('**/index.html');}
   await page.waitForFunction(()=>FlowAuth.authorized);
  }
+ async function signIn(page){
+  await page.goto(base+'login.html');await page.locator('[name=email]').fill('sample@example.invalid');await page.locator('#login-form button').click();
+  await completeSignIn(page);
+ }
  async function removeLocal(page){await page.evaluate(()=>localStorage.removeItem('sb-flow-test-auth-token'));}
  try{
-  let page=await open();await signIn(page);const sent=sends;
+  let page=await open();await page.goto(base+'login.html');
+  await page.locator('[name=email]').fill('sample@example.invalid');await page.locator('#login-form button').click();await page.locator('#login-code-form').waitFor();
+  assert.equal(await page.locator('#login-resend').isEnabled(),false);const sent=sends;
+  assert.equal(await page.locator('#login-diagnostics').isVisible(),false);
+  await page.screenshot({path:'/private/tmp/flow-email-code-phone.png',fullPage:true});
+  page=await restart();await page.goto(base+'login.html');await page.locator('#login-code-form').waitFor();assert.equal(sends,sent,'Reopening a pending code request must not send another email');
+  await completeSignIn(page);
   page=await restart();await page.goto(base+'index.html');await page.waitForFunction(()=>FlowAuth.authorized);assert.equal(sends,sent);
   await removeLocal(page);page=await restart();const before=refreshes;
   await page.goto(base+'index.html');await page.waitForFunction(()=>FlowAuth.authorized);assert.ok(refreshes>before,'Recovered session must renew with server');assert.equal(sends,sent,'Recovery must not send email');
@@ -55,12 +64,13 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   page=await restart();await page.goto(base+'index.html');await page.waitForFunction(()=>FlowAuth.authorized);assert.equal(sends,sent+2);
   await page.goto(base+'account.html');await page.locator('#sign-out').click();await page.waitForURL('**/login.html*');
   emailFailure='over_email_send_rate_limit';await page.locator('[name=email]').fill('sample@example.invalid');await page.locator('#login-form button').click();
-  try { await page.getByText(/Email sending is temporarily limited/).waitFor(); } catch(error) { console.error({sends,message:await page.locator('#login-message').innerText()});throw error; }assert.equal(await page.locator('[name=link]').isVisible(),true);
+  try { await page.getByText(/Email sending is temporarily limited/).waitFor(); } catch(error) { console.error({sends,message:await page.locator('#login-message').innerText()});throw error; }assert.equal(await page.locator('[name=link]').count(),0);
+  await page.goto(base+'login.html?diagnostics=1');await page.locator('[name=email]').fill('sample@example.invalid');await page.locator('#login-form button').click();await page.getByText(/Email sending is temporarily limited/).waitFor();
   await page.locator('.login-troubleshooting summary').click();await page.locator('#login-check-status').click();const status=await page.locator('#login-status-details').innerText();
   assert.match(status,/email: over_email_send_rate_limit/);assert.doesNotMatch(status,/sample@|synthetic-refresh|access_token|token_hash/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   await page.screenshot({path:'/private/tmp/flow-sign-in-rate-limit.png',fullPage:true});
   assert.deepEqual(errors,[]);
-  console.log('PASS: same-app sign-in survives process restarts; losing only the local token recovers through server renewal; sign-out and revoked sessions cannot be restored; IndexedDB works when auth localStorage is blocked; email-limit errors leave paste-link sign-in available; diagnostics contain no credentials.');
+  console.log('PASS: same-app sign-in survives process restarts; losing only the local token recovers through server renewal; sign-out and revoked sessions cannot be restored; IndexedDB works when auth localStorage is blocked; email-limit errors are clear and there is one email-code sign-in method; diagnostics contain no credentials.');
  }finally{if(context)await context.close();await new Promise(r=>server.close(r));fs.rmSync(profile,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

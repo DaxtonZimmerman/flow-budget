@@ -21,6 +21,9 @@ async function installTestAuth(context, options = {}) {
         if (url.pathname === '/auth/v1/user') return json(user);
         if (url.pathname === '/auth/v1/logout' || url.pathname === '/auth/v1/otp') return json({});
         if (url.pathname === '/auth/v1/verify') {
+            const input = request.postDataJSON();
+            if (input?.email !== user.email || input?.token !== '123456' || input?.type !== 'email') return route.fulfill({status:403,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'x-supabase-api-version','x-supabase-api-version':'2024-01-01'},body:JSON.stringify({code:'otp_expired',msg:'Synthetic invalid code'})});
+
             const expires = Math.floor(Date.now()/1000)+3600;
             const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
             return json({user,expires_at:expires,expires_in:3600,token_type:'bearer',refresh_token:'synthetic-refresh-only',access_token:encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:user.id,exp:expires,aud:'authenticated',role:'authenticated'})+'.synthetic'});

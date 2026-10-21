@@ -81,27 +81,6 @@ async function showAccount() {
 }
 
 
-document.querySelector("#sign-in-form").addEventListener("submit", async function(event) {
-    event.preventDefault();
-    accountMessage.textContent = "Sending your link…";
-
-    const email = document.querySelector("#account-email").value.trim();
-    const redirect = new URL("account.html", window.location.href).href;
-    try {
-        const result = await client.auth.signInWithOtp({
-            email: email,
-            options: { emailRedirectTo: redirect }
-        });
-
-        accountMessage.textContent = result.error
-            ? result.error.message
-            : "Check your email for a sign-in link.";
-    } catch (error) {
-        accountMessage.textContent = "Could not send the link. Try again online.";
-    }
-});
-
-
 document.querySelector("#use-device").addEventListener("click", async function() {
     if (!accountUser) return;
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="175595c924d1500d" lang="en">
+<html data-flow-release="b61abeccb0693476" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="assets/flow-icon-192.png?v=8a7551b81ec50ee3">
     <link rel="stylesheet" href="css/styles.css?v=a854bef0a3b6ed9b">
     <link rel="stylesheet" href="css/app.css?v=c91e86205087de8d">
-    <link rel="stylesheet" href="css/auth.css?v=175e7f4ca801df5b">
+    <link rel="stylesheet" href="css/auth.css?v=73756a2ac1c382dd">
     <script src="js/storage.js?v=2f7e2302da412706" defer></script>
     <script src="js/app-offline.js?v=6f36433ac1f7ec28" defer></script>
     <script src="vendor/supabase.min.js?v=bee24fc29228ed5a" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous" defer></script>
@@ -18,32 +18,34 @@
     <script src="js/auth-storage.js?v=af54d07b8b0f115a" defer></script>
     <script src="js/cloud-sync.js?v=1c27b463eec48189" defer></script>
     <script src="js/auth-gate.js?v=5828e9f403046109" defer></script>
-    <script src="js/login.js?v=13836b2bd365d43d" defer></script>
+    <script src="js/login.js?v=3cf03f2e8803f050" defer></script>
 </head>
 <body class="login-page">
     <main class="login-card">
         <a href="login.html" class="logo" aria-label="Flow sign-in">Flow<span class="brand-dot">.</span></a>
-        <h1>Your money.<br>Your own space.</h1>
-        <p>Sign in to open your budget, bank connections, and payday plan.</p>
+        <h1 id="login-title">Welcome to Flow.</h1>
+        <p id="login-description">Enter your email to get a sign-in code.</p>
         <form id="login-form">
-            <label>Email address<input name="email" type="email" autocomplete="email" required></label>
-            <button class="save-button" type="submit">Email me a sign-in link</button>
+            <label for="login-email">Email address</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required>
+            <button class="save-button" type="submit">Continue</button>
         </form>
-        <p id="login-message" role="status" aria-live="polite"></p>
         <section id="login-sent" hidden>
-            <p>Use your newest unused Flow sign-in email. In the installed app, paste the link below to stay in Flow.</p>
-            <details id="same-app-sign-in">
-                <summary>Signing in from the Home Screen app?</summary>
-                <p>To stay in this app, copy the sign-in button’s link from your new email, then paste it below.</p>
-                <form id="login-link-form">
-                    <label>Link from your Flow email<input name="link" type="url" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>
-                    <button class="save-button" type="submit">Finish signing in here</button>
-                </form>
-            </details>
+            <p id="login-email-summary"></p>
+            <form id="login-code-form">
+                <label for="login-code">Sign-in code</label>
+                <input id="login-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" autocapitalize="none" spellcheck="false" required aria-describedby="login-message">
+                <button class="save-button" type="submit">Sign in</button>
+            </form>
+            <div class="login-code-actions">
+                <button id="login-change-email" class="text-button" type="button">Change email</button>
+                <button id="login-resend" class="text-button" type="button">Send a new code</button>
+            </div>
         </section>
-        <details class="login-troubleshooting">
-            <summary>Trouble staying signed in?</summary>
-            <p>Check whether this app can save your sign-in. This status contains no email address, password, or sign-in link.</p>
+        <p id="login-message" role="status" aria-live="polite"></p>
+        <p class="login-remember">You’ll stay signed in on this device.</p>
+        <details id="login-diagnostics" class="login-troubleshooting" hidden>
+            <summary>Sign-in status</summary>
             <button id="login-check-status" class="secondary-button" type="button">Check sign-in status</button>
             <p id="login-status-details" role="status"></p>
         </details>

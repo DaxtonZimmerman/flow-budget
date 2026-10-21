@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="175595c924d1500d" lang="en" data-flow-auth="checking">
+<html data-flow-release="b61abeccb0693476" lang="en" data-flow-auth="checking">
 
 <head>
     <meta charset="UTF-8">
@@ -35,7 +35,7 @@
     <script src="js/money-data.js?v=441d63da0fcf89f6" defer></script>
     <script src="js/review-data.js?v=5fd89fdd5a557e23" defer></script>
     <script src="js/backup.js?v=0c2f1493d698ba0c" defer></script>
-    <script src="js/account.js?v=93d4406c6084a7be" defer></script>
+    <script src="js/account.js?v=e32729ce353f5912" defer></script>
     <script src="js/home-view.js?v=965f7c76dd99310a" defer></script>
     <script src="js/payday-app.js?v=89f11c9f302bc729" defer></script>
     <script src="js/bank-connections.js?v=ab82c1492c367c33" defer></script>
@@ -43,7 +43,7 @@
     <link rel="stylesheet" href="css/product.css?v=69e4237b7169e882">
     <script src="js/product-app.js?v=56bf3901e645172d" defer></script>
     <link rel="stylesheet" href="css/redesign.css?v=c769f7fb387cb9c6">
-    <link rel="stylesheet" href="css/auth.css?v=175e7f4ca801df5b">
+    <link rel="stylesheet" href="css/auth.css?v=73756a2ac1c382dd">
 </head>
 
 <body class="app-redesign" data-page="account">
@@ -96,13 +96,9 @@
             </section>
             <section id="account-sign-in" class="card account-card" hidden>
                 <p class="small-label">Sign in</p>
-                <h3>Use your email</h3>
-                <p>We’ll send you a sign-in link. Open it on this device to connect your data.</p>
-                <form id="sign-in-form" class="account-form">
-                    <label for="account-email">Email address</label>
-                    <input id="account-email" type="email" autocomplete="email" required>
-                    <button class="save-button" type="submit">Send sign-in link</button>
-                </form>
+                <h3>Open your Flow account</h3>
+                <p>Sign in with the code sent to your email.</p>
+                <a class="save-button" href="login.html?next=account.html">Continue to sign-in</a>
             </section>
             <section id="account-choose" class="card account-card" hidden>
                 <p class="small-label">Connect this device</p>

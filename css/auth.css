@@ -24,3 +24,10 @@ html[data-flow-workspace=unlinked] .account-columns,html[data-flow-workspace=unl
 
 #login-status-details { overflow-wrap:anywhere; font-size:12px; }
 .login-card .secondary-button { width:100%; min-height:46px; padding:10px 14px; background:#fff; color:#183d31; border:1px solid #dce4d7; border-radius:11px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+
+.login-card [hidden] { display:none!important; }
+.login-card #login-code { font-size:26px; letter-spacing:8px; text-align:center; font-variant-numeric:tabular-nums; }
+.login-code-actions { display:flex; justify-content:space-between; gap:12px; margin-top:14px; }
+.login-code-actions .text-button { min-height:44px; padding:8px 0; border:0; background:none; color:#183d31; font:inherit; font-size:13px; cursor:pointer; }
+.login-code-actions .text-button:disabled { color:#718077; cursor:default; }
+.login-card .login-remember { font-size:12px; text-align:center; margin:20px 0 0; }
