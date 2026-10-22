@@ -132,6 +132,10 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (homeChanges.length) slides.push({ key: 'changes', label: 'Since your last saved view', body: '<strong class="home-highlight-amount">' + homeChanges.length + ' plan ' + (homeChanges.length === 1 ? 'input' : 'inputs') + ' changed</strong><p>See which amounts changed in this payday plan.</p>' + button('See changes ' + icon('chevron-right'), 'home-changes', 'home-text-link') });
         if (e.ready && !document.hidden) try { flowStorage.setItem('flowLastEstimate', JSON.stringify(current)); } catch (_) { /* Optional view comparisons must not block Home. */ }
         if (p.preferences.weeklyReminders === true) slides.push({ key: 'weekly', label: 'Your weekly check-in', body: '<strong class="home-highlight-amount">' + (week.due ? 'A quick reset' : 'All checked') + '</strong><p>' + (week.due ? 'Money, bills, and what changed.' : 'Last checked ' + date(flowFeatures(p).checkIn.date) + '.') + '</p><button type="button" class="home-text-link" data-tool="weekly">' + (week.due ? 'Start check-in' : 'View check-in') + ' ' + icon('chevron-right') + '</button>' });
+        if (typeof flowNetWorth === 'function') {
+            const worth = flowNetWorth(p, accounts);
+            slides.push({ key:'networth', label:'Net worth', body: '<strong class="home-highlight-amount">' + (worth.rows.length ? money(worth.cents) : 'Your bigger picture') + '</strong><p>' + (worth.rows.length ? 'Estimate · tracked accounts' + (worth.missing.length ? ' · some balances need a check' : '') : 'What you own, minus what you owe.') + '</p><button type="button" class="home-text-link" data-growth="wealth">' + (worth.enabled ? 'View net worth' : 'Start tracking') + ' ' + icon('chevron-right') + '</button>' });
+        }
         homeSlides = slides;
         if (!slides.length) return '';
         if (!slides.some(slide => slide.key === homeSlideKey)) homeSlideKey = slides[0].key;

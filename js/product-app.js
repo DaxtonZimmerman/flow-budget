@@ -229,6 +229,7 @@
         if(settings){
             document.querySelector('#flow-product-settings')?.remove();const section=document.createElement('section');section.id='flow-product-settings';section.className='card account-card';section.innerHTML=`<p class="small-label">Make it yours</p><h3>Help & everyday tools</h3><div class="tool-actions">${button('Quick guide','help')}${button('Custom categories','categories')}${button('Remembered choices','rules')}${button('Weekly check-in','weekly')}</div><label class="toggle-label"><input type="checkbox" data-tools-preference="remindersEnabled" ${s.p.preferences.remindersEnabled?'checked':''}>Reminders in Flow</label><label class="toggle-label"><input type="checkbox" data-tools-preference="weeklyReminders" ${s.p.preferences.weeklyReminders?'checked':''}>Weekly check-in reminder</label><p class="detail-help">Reminders appear inside Flow. Snooze them from Home; no email or phone notifications are sent.</p><a href="${typeof flowDemoMode!=='undefined'&&flowDemoMode?'index.html':'demo/index.html'}" class="inline-link">Explore sample money</a>`;settings.append(section);
         }
+        window.FlowGrowth?.render();
     }
     document.addEventListener('click',event=>{
         const target=event.target.closest('[data-tool]');if(!target)return;const action=target.dataset.tool;

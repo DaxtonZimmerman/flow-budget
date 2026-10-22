@@ -23,7 +23,7 @@ function validFlowFeatures(f) {
     const cents = n => Number.isSafeInteger(n) && n >= 0;
     const rows = (a, check) => Array.isArray(a) && a.length <= 2000 && a.every(check);
     const unique = a => new Set(a.map(x => x.id)).size === a.length;
-    return Boolean(f && f.version === 1 &&
+    return Boolean(f && (f.version === 1 || f.version === 2 && typeof validFlowGrowthFeatures === 'function' && validFlowGrowthFeatures(f)) &&
         rows(f.categories, c => c && text(c.id) && text(c.name) && c.name.length <= 50 && typeof c.archived === 'boolean') && unique(f.categories) &&
         new Set(f.categories.map(c => c.name.toLowerCase())).size === f.categories.length &&
         rows(f.goals, g => g && text(g.id) && text(g.name) && cents(g.targetCents) && g.targetCents > 0 && cents(g.reservedCents) && cents(g.contributionCents) && ['inside', 'outside'].includes(g.location) && (!g.dueDate || validPlanDate(g.dueDate)) &&

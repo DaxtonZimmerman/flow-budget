@@ -132,7 +132,7 @@
         document.querySelectorAll('.mobile-home-overview').forEach(el => prepareDisclosure(el,'home-overview'));
         document.querySelectorAll('.mobile-activity-totals').forEach(el => prepareDisclosure(el,'activity-totals'));
         disclosure(document.querySelector('.home-payday-path'),'payday-path','Your payday path');
-        disclosure(document.querySelector('#flow-plan-tools'),'more-plan-tools','Goals, cards & more');
+        disclosure(document.querySelector('#flow-plan-tools'),'more-plan-tools','Cards & advanced tools');
         if (phone.matches) document.querySelector('.home-payday-path')?.closest('details')?.style.setProperty('order','5');
         updateBills(); updateActivity(); observeDialogs();
     }

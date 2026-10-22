@@ -1,0 +1,48 @@
+const {chromium}=require(process.env.FLOW_PLAYWRIGHT_PATH||'playwright'),assert=require('node:assert/strict');
+const base=process.env.FLOW_TEST_URL||'http://127.0.0.1:4343/';
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.FLOW_CHROME_PATH||undefined});
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,timezoneId:'America/Denver',serviceWorkers:'block'}),outside=[],errors=[];
+  await context.route('**/*',route=>route.request().url().startsWith(base)?route.continue():(outside.push(route.request().url()),route.abort()));
+  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.stack));page.setDefaultTimeout(7000);
+  const go=async path=>{await page.goto(base+'demo/'+path+'.html');await page.locator('.demo-banner').waitFor();};
+  const sheet=()=>page.locator('#flow-growth-dialog'),open=async action=>{await page.locator('[data-growth="'+action+'"]:visible').first().click();await sheet().waitFor({state:'visible'});};
+  const submit=async()=>sheet().locator('[type=submit]').click(),close=async()=>sheet().getByRole('button',{name:'Close',exact:true}).click();
+  async function shot(name){await page.evaluate(()=>{document.activeElement?.blur();scrollTo({top:0,behavior:'instant'});});await page.screenshot({path:'/private/tmp/flow-growth-'+name+'.png',animations:'disabled'});}
+  await go('budgets');await page.locator('#flow-growth-plan').waitFor();assert.equal(await page.locator('#flow-growth-plan').isVisible(),true);
+  await page.evaluate(()=>localStorage.setItem('private-sentinel','unchanged'));
+  await open('suggested');assert.ok(await sheet().locator('[data-budget-choice]').count()>0);
+  const beforeBudget=await page.evaluate(()=>JSON.stringify(loadFlowPlanning()));
+  const row=sheet().locator('[data-budget-choice]').first();await row.locator('[type=checkbox]').check();await row.locator('[type=number]').fill('150');await sheet().locator('[name=checked]').check();await shot('budget');await submit();await sheet().waitFor({state:'hidden'});
+  assert.equal(await page.evaluate(()=>JSON.stringify(loadFlowPlanning())),beforeBudget,'monthly suggestions do not alter payday reserves');
+  await open('goal-new');await sheet().locator('[name=name]').fill('My next adventure');await sheet().locator('[name=description]').fill('A weekend in the mountains.');await sheet().locator('[name=target]').fill('500');await sheet().locator('[name=reserved]').fill('50');await sheet().locator('.growth-explainer>summary').click();await sheet().locator('[name=contribution]').fill('10');
+  await sheet().locator('[name=dueDate]').fill(await page.evaluate(()=>addPlanDays(flowToday(),90)));await sheet().locator('[name=locationChecked]').check();
+  const photo=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=600;canvas.height=400;const c=canvas.getContext('2d'),gradient=c.createLinearGradient(0,0,0,400);gradient.addColorStop(0,'#a2ccd0');gradient.addColorStop(1,'#e5edcd');c.fillStyle=gradient;c.fillRect(0,0,600,400);c.fillStyle='#759e82';c.beginPath();c.moveTo(0,400);c.lineTo(230,50);c.lineTo(460,400);c.fill();c.fillStyle='#345b49';c.beginPath();c.moveTo(190,400);c.lineTo(420,100);c.lineTo(600,400);c.fill();return canvas.toDataURL('image/png').split(',')[1];});
+  await sheet().locator('[name=photo]').setInputFiles({name:'sample-mountains.png',mimeType:'image/png',buffer:Buffer.from(photo,'base64')});await sheet().locator('#goal-photo-status').filter({hasText:'Photo ready'}).waitFor();
+  await submit();await sheet().getByRole('heading',{name:'My next adventure',exact:true}).waitFor();assert.equal(await sheet().locator('.goal-photo').count(),1);assert.match(await sheet().locator('.goal-description').innerText(),/weekend/);await shot('goal');
+  const saved=await page.evaluate(()=>loadFlowPlanning());assert.equal(saved.features.version,2);assert.ok(saved.features.growth.goalDetails[0].photo.length<90000);assert.match(saved.features.growth.goalDetails[0].photo,/^data:image\/jpeg;base64,/);const goalId=saved.features.goals.at(-1).id;
+  await open('goal-add');await sheet().locator('[name=change]').fill('10');await sheet().locator('[name=confirmed]').check();await submit();await sheet().locator('.goal-detail-total').filter({hasText:'$60.00'}).waitFor();
+  await open('goal-withdraw');await sheet().locator('[name=change]').fill('100');await sheet().locator('[name=confirmed]').check();await submit();assert.match(await sheet().locator('.form-message').innerText(),/cannot withdraw/);await sheet().locator('[name=change]').fill('5');await submit();await sheet().locator('.goal-detail-total').filter({hasText:'$55.00'}).waitFor();await close();
+  assert.equal(await page.evaluate(id=>flowFeatures(loadFlowPlanning()).goals.find(g=>g.id===id).reservedCents,goalId),5500);
+  await page.reload();await page.locator('.visual-goal').first().waitFor();assert.equal(await page.locator('.visual-goal .goal-photo').count(),1);await page.locator('[data-growth=goal-view]').first().click();await open('goal-edit');await sheet().locator('[name=description]').fill('Mountains, here we come.');await sheet().locator('[name=locationChecked]').check();await submit();await sheet().locator('.goal-detail-total').waitFor();assert.equal(await page.evaluate(()=>flowFeatures(loadFlowPlanning()).goals.at(-1).remainingCents),undefined);assert.equal(await sheet().locator('.goal-photo').count(),1);await close();await shot('plan');
+  await open('wealth');assert.match(await sheet().locator('.wealth-hero').innerText(),/tracked accounts only/);await open('wealth-start');assert.equal(await page.evaluate(()=>flowGrowth(loadFlowPlanning()).wealth.enabled),true);assert.equal(await page.evaluate(()=>flowGrowth(loadFlowPlanning()).wealth.history.length),0,'an empty account cannot manufacture a history point');
+  await open('wealth-entry');await sheet().locator('[name=name]').fill('Savings elsewhere');await sheet().locator('[name=value]').fill('300');await sheet().locator('[name=unique]').check();await submit();await sheet().getByRole('heading',{name:'Your net worth',exact:true}).waitFor();assert.match(await sheet().innerText(),/Savings elsewhere/);assert.equal(await page.evaluate(()=>flowGrowth(loadFlowPlanning()).wealth.history.length),1);await shot('wealth');await close();
+  await go('bills');await open('subscriptions');await open('subscription-new');await sheet().locator('[name=name]').fill('Spotify');await sheet().locator('[name=amount]').fill('10');await sheet().locator('[name=provider]').selectOption('spotify');await submit();await sheet().getByRole('heading',{name:'Subscriptions',exact:true}).waitFor();await shot('subscriptions');
+  await open('subscription-view');await open('subscription-help');assert.equal(await sheet().locator('a.growth-provider-link').getAttribute('href'),'https://support.spotify.com/article/cancel-premium/');assert.match(await sheet().innerText(),/Opening the guide does not cancel/);await shot('cancel');
+  await sheet().locator('[name=confirmed]').check();await submit();await sheet().getByRole('heading',{name:'Subscriptions',exact:true}).waitFor();assert.equal(await page.evaluate(()=>flowGrowth(loadFlowPlanning()).subscriptions.at(-1).status),'cancelled');await close();
+  // New tools reject stale saves, including those containing a photo.
+  await go('budgets');await page.locator('[data-growth=goal-view]').first().click();await open('goal-edit');await sheet().locator('[name=description]').fill('Stale description');await sheet().locator('[name=locationChecked]').check();
+  await page.evaluate(()=>{const tx=loadTransactions();tx[0].notes='Newer tab edit';flowStorage.setItem('transactions',JSON.stringify(tx));});await submit();assert.match(await sheet().locator('.form-message').innerText(),/changed/);await close();assert.equal(await page.evaluate(()=>flowGrowth(loadFlowPlanning()).goalDetails[0].description),'Mountains, here we come.');
+  // Complete goals show a completion badge and preserve their original photo.
+  await page.locator('[data-growth=goal-view]').first().click();await open('goal-add');await sheet().locator('[name=change]').fill('445');await sheet().locator('[name=confirmed]').check();await submit();await sheet().locator('.goal-finished').waitFor();await close();
+  await context.setOffline(true);await page.locator('[data-growth=goal-view]').first().click();assert.match(await sheet().locator('.goal-detail-total').innerText(),/500.00/);await close();await context.setOffline(false);
+  for(const width of [320,390,768,1440]){
+   await page.setViewportSize({width,height:950});await go('budgets');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'Plan at '+width);
+   for(const action of ['goal-view','suggested','wealth']){await open(action);assert.equal(await sheet().evaluate(n=>n.scrollWidth>n.clientWidth+1),false,action+' panel at '+width);await close();}
+   await go('bills');await open('subscriptions');assert.equal(await sheet().evaluate(n=>n.scrollWidth>n.clientWidth+1),false,'Subscriptions at '+width);await close();
+  }
+  assert.equal(await page.evaluate(()=>localStorage.getItem('private-sentinel')),'unchanged');assert.equal(await page.evaluate(()=>localStorage.getItem('flowPlanning')),null);assert.deepEqual(outside,[]);assert.deepEqual(errors,[]);
+  console.log('PASS: editable suggested budgets, no double reserves, photo upload/restore, savings additions/withdrawals/completion, net worth/manual entries/history, cancellation guide/confirmation, stale-save guard, offline edits, sample isolation and 320–1440 layouts.');
+ }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

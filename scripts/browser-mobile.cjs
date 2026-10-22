@@ -56,15 +56,15 @@ const base=process.env.FLOW_TEST_URL || 'http://127.0.0.1:4338/';
   // A new cloud/device copy must still reject a stale edit from a sheet.
   await page.locator('.mobile-plan [data-plan-action=essential][data-id=food]').click();await payday().locator('[name=amount]').fill('70');
   await page.evaluate(()=>{const p=loadFlowPlanning();p.cushionCents=6100;flowStorage.setItem('flowPlanning',JSON.stringify(p));});await savePlan();assert.match(await payday().locator('.form-message').innerText(),/changed/);assert.equal(await page.evaluate(()=>loadFlowPlanning().essentials[0].amountCents),8000);await closePlan();
-  await go('budgets');await page.locator('[data-mobile-disclosure=more-plan-tools]>summary').click();assert.equal(await page.locator('#flow-plan-tools [data-tool=goal]').first().isVisible(),true);
-  await page.locator('#flow-plan-tools [data-tool=goal]').first().click();await tool().getByRole('button',{name:'Close',exact:true}).click();
+  await go('budgets');await page.locator('[data-mobile-disclosure=more-plan-tools]>summary').click();assert.equal(await page.locator('#flow-plan-tools [data-tool=card]').first().isVisible(),true);
+  await page.locator('#flow-plan-tools [data-tool=card]').first().click();await tool().getByRole('button',{name:'Close',exact:true}).click();
   assert.equal(await page.locator('[data-mobile-disclosure=more-plan-tools]').count(),1,'live tool renders reuse the disclosure');
   await page.getByRole('link',{name:'Bills',exact:true}).first().click();await page.waitForURL('**/demo/bills.html');
   await page.locator('[data-mobile-bill-tab=suggestions]').click();assert.equal(await page.locator('#bill-discovery').isVisible(),true);assert.equal(await page.locator('#bill-tracking').isVisible(),false);
   await page.locator('[data-mobile-bill-tab=upcoming]').click();await page.locator('.mobile-bill-row').click();await payday().waitFor({state:'visible'});assert.equal(await payday().locator('[name=name]').inputValue(),'Phone');await closePlan();
   // Resizing restores the same filter nodes and all desktop tools.
   await go('transactions');await page.setViewportSize({width:1440,height:1000});await page.locator('.history-filters #history-month').waitFor({state:'visible'});
-  await go('budgets');assert.equal(await page.locator('.desktop-plan').isVisible(),true);assert.equal(await page.locator('.mobile-plan').isVisible(),false);assert.equal(await page.locator('#flow-plan-tools [data-tool=goal]').first().isVisible(),true);
+  await go('budgets');assert.equal(await page.locator('.desktop-plan').isVisible(),true);assert.equal(await page.locator('.mobile-plan').isVisible(),false);assert.equal(await page.locator('#flow-plan-tools [data-tool=card]').first().isVisible(),true);
   // Missing and negative money never turn into an optimistic spending headline.
   await page.evaluate(()=>{const p=loadFlowPlanning();p.manualBalance.cents=1000;flowStorage.setItem('flowPlanning',JSON.stringify(p));});await go('index');assert.match(await page.locator('#home-money-title').innerText(),/shortfall/);assert.equal(await page.locator('.mobile-daily-pace').count(),0);
   await page.evaluate(()=>{const p=loadFlowPlanning();p.manualBalance=null;p.selectedAccountIds=[];flowStorage.setItem('flowPlanning',JSON.stringify(p));});await page.reload();assert.equal(await page.locator('.home-amount').innerText(),'Let’s check');
