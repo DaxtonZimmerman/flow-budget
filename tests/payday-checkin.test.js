@@ -4,9 +4,9 @@ const today='2026-10-23',now=Date.parse('2026-10-23T16:00:00Z');
 function plan(c,extra={}){return {...c.defaultFlowPlanning(),setup:{step:5,completed:true},periodStartedOn:'2026-10-09',selectedAccountIds:['conn:cash'],manualBalance:{cents:12446,date:'2026-10-22'},payday:{nextDate:today,frequency:'biweekly'},billsConfirmed:true,reservesConfirmed:true,essentials:[{id:'food',name:'Food',category:'Food',amountCents:4000},{id:'gas',name:'Transport',category:'Transport',amountCents:4000}],cushionCents:3000,...extra};}
 const choices=(extra={})=>({nextDate:'2026-11-06',frequency:'biweekly',balanceMode:'manual',balanceCents:100000,essentialAmounts:[15000,5000],cushionCents:10000,...extra});
 const account=(extra={})=>({id:'conn:cash',accountId:'cash',bankConnectionId:'conn',name:'Checking',type:'depository',subtype:'checking',currency:'USD',availableCents:100000,currentCents:100000,retrievedAt:'2026-10-23T15:00:00Z',bankUpdatedAt:'2026-10-23T12:00:00Z',...extra});
-test('check-in becomes due on the plan date without changing saved amounts or assuming pay arrived',()=>{
+test('check-in waits until the end of payday without changing saved money or assuming pay arrived',()=>{
  const c=model(),p=plan(c),before=JSON.stringify(p);
- assert.equal(c.paydayCheckInDue(p,'2026-10-22'),false);assert.equal(c.paydayCheckInDue(p,today),true);assert.equal(c.paydayCheckInDue(p,'2026-10-24'),true);
+ assert.equal(c.paydayCheckInDue(p,'2026-10-22'),false);assert.equal(c.paydayCheckInDue(p,today,now),false);assert.equal(c.paydayCheckInDue(p,'2026-10-24'),true);
  assert.equal(c.suggestNextPayday(p,today),'2026-11-06');assert.equal(JSON.stringify(p),before);
  assert.equal(c.paydayEstimate(p,[],[],today,now).ready,false);
  assert.equal(c.paydayCheckInDue({...p,setup:{step:1,completed:false}},today),false);

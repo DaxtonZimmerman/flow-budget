@@ -7,9 +7,14 @@ function validFlowGrowthFeatures(f) {
     const g=f.growth, text=(s,max=200)=>typeof s==='string'&&s.length<=max, cents=n=>Number.isSafeInteger(n)&&n>=0;
     const sourceKey=s=>{if(s==='')return true;try{const k=JSON.parse(s);return Array.isArray(k)&&k.length===4&&k.slice(0,3).every(x=>text(x,300))&&cents(k[3])&&k[3]>0;}catch(_){return false;}};
     const list=(rows,check,max=100)=>Array.isArray(rows)&&rows.length<=max&&rows.every(check)&&new Set(rows.map(r=>r.id)).size===rows.length;
-    if(!g||g.version!==1||!list(g.goalDetails,r=>r&&text(r.id)&&f.goals.some(x=>x.id===r.id)&&text(r.description,1000)&&['sparkles','car','plane','house','shield-check','graduation-cap','gift','heart'].includes(r.icon)&&
+    if(!g||![1,2].includes(g.version)||!list(g.goalDetails,r=>r&&text(r.id)&&f.goals.some(x=>x.id===r.id)&&text(r.description,1000)&&['sparkles','car','plane','house','shield-check','graduation-cap','gift','heart'].includes(r.icon)&&
         (r.photo===''||typeof r.photo==='string'&&r.photo.length<=90000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(r.photo))&&list(r.activity,a=>a&&text(a.id)&&validPlanDate(a.date)&&Number.isSafeInteger(a.cents)&&a.cents!==0,200)))return false;
     if(g.goalDetails.reduce((n,r)=>n+r.photo.length,0)>900000)return false;
+    if(g.version===2){
+        const b=g.budgetGuide,keys=a=>Array.isArray(a)&&a.length<=5000&&a.every(k=>text(k,1000))&&new Set(a).size===a.length;
+        if(!b||!keys(b.excludedKeys)||!keys(b.includedKeys)||b.excludedKeys.some(k=>b.includedKeys.includes(k))||!(b.incomeCents===null||cents(b.incomeCents))||!(b.savingsCents===null||cents(b.savingsCents))||!(b.savingsPercent===undefined||b.savingsPercent===null||typeof b.savingsPercent==='number'&&Number.isFinite(b.savingsPercent)&&b.savingsPercent>=0&&b.savingsPercent<=100))return false;
+    }else if(g.budgetGuide!==undefined)return false;
+
     const w=g.wealth;
     if(!w||typeof w.enabled!=='boolean'||!list(w.entries,r=>r&&text(r.id)&&text(r.name,70)&&r.name.trim()&&['asset','debt'].includes(r.kind)&&cents(r.cents)&&validPlanDate(r.date))||
         !Array.isArray(w.excluded)||w.excluded.length>500||w.excluded.some(x=>!text(x,300))||new Set(w.excluded).size!==w.excluded.length||
@@ -36,36 +41,103 @@ function flowUniqueHistory(transactions,today=flowToday()) {
     return [...map.values()].map(x=>x.t);
 }
 function flowMonthBefore(month,offset=1) { const [y,m]=month.split('-').map(Number);return new Date(Date.UTC(y,m-1-offset,1)).toISOString().slice(0,7); }
-function flowSuggestedBudgets(transactions,targetMonth,today=flowToday()) {
+function flowMedian(values) {
+    if(!values.length)return 0;
+    const a=[...values].sort((x,y)=>x-y),mid=Math.floor(a.length/2);
+    return a.length%2?a[mid]:Math.round((a[mid-1]+a[mid])/2);
+}
+function flowBudgetGuide(planning) {
+    return flowGrowth(planning).budgetGuide || {excludedKeys:[],includedKeys:[],incomeCents:null,savingsCents:null,savingsPercent:25};
+}
+function flowSuggestedBudgets(transactions,targetMonth,today=flowToday(),options={}) {
     if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(targetMonth)||!validPlanDate(today))throw new Error('Choose a valid budget month.');
     const rows=flowUniqueHistory(transactions,today),anchor=targetMonth<today.slice(0,7)?targetMonth:today.slice(0,7);
     const eligible=rows.filter(t=>t.date.slice(0,7)<anchor),first=eligible.map(t=>t.date).sort()[0];
-    let months=Array.from({length:3},(_,i)=>flowMonthBefore(anchor,3-i)).filter(m=>first&&(m+'-01')>=first);
-    let preliminary=false;
-    if(!months.length&&first){months=[eligible.map(t=>t.date.slice(0,7)).sort().at(-1)];preliminary=true;}
-    if(!months.length&&rows.some(t=>t.date.slice(0,7)===anchor)&&targetMonth>=anchor){months=[anchor];preliminary=true;}
-    const selected=rows.filter(t=>months.includes(t.date.slice(0,7))),cats=new Map();let income=0;
-    for(const t of selected){
-        income+=flowReportingAmounts(t).incomeCents;
-        if(t.type!=='Refund'&&t.amount>=0)continue;
-        for(const part of flowTransactionParts(t)){
-            if(part.income)continue;
-            cats.set(part.category,(cats.get(part.category)||0)+(t.type==='Refund'?-1:1)*part.cents);
+    let months=Array.from({length:3},(_,i)=>flowMonthBefore(anchor,3-i)).filter(m=>first&&(m+'-01')>=first),partial=false;
+    if(!months.length&&first){months=[eligible.map(t=>t.date.slice(0,7)).sort().at(-1)];partial=true;}
+    if(!months.length&&rows.some(t=>t.date.slice(0,7)===anchor)&&targetMonth>=anchor){months=[anchor];partial=true;}
+    const selected=rows.filter(t=>months.includes(t.date.slice(0,7))),expenses=selected.filter(t=>t.amount<0&&t.type!=='Refund');
+    const excluded=new Set(options.excludedKeys||[]),included=new Set(options.includedKeys||[]),automatic=new Set(),samples=new Map();
+    const merchant=t=>JSON.stringify([t.bankConnectionId||t.source||'manual',t.accountId||'',billName(t.name)]);
+    const groups=new Map();for(const t of expenses){const key=merchant(t);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t);}
+    for(const t of expenses){if(excluded.has(flowTransactionKey(t)))continue;for(const part of flowTransactionParts(t)){
+        if(part.income)continue;if(!samples.has(part.category))samples.set(part.category,[]);samples.get(part.category).push({t,cents:part.cents});
+    }}
+    // The modified z-score uses median/MAD rather than a mean distorted by the big purchase itself.
+    // A conservative $100 gap and a repeated-merchant check protect ordinary groceries and regular bills.
+    for(const entries of samples.values()){
+        if(entries.length<4)continue;
+        const median=flowMedian(entries.map(r=>r.cents)),mad=flowMedian(entries.map(r=>Math.abs(r.cents-median)));
+        const threshold=Math.max(median*3,median+Math.ceil(3.5*mad/.6745),median+10000);
+        for(const {t,cents} of entries){
+            const key=flowTransactionKey(t),peers=groups.get(merchant(t))||[];
+            const repeated=new Set(peers.filter(p=>Math.abs(Math.abs(p.amount)-Math.abs(t.amount))<=Math.abs(t.amount)*.25).map(p=>p.date.slice(0,7))).size>=2;
+            const knownBill=options.planning?.bills.some(b=>b.tracking?billTrackingKey(b.tracking)===billSourceKey(t):billName(b.name)===billName(t.name));
+            if(cents>threshold&&!repeated&&!knownBill)automatic.add(key);
         }
     }
-    const count=months.length;
-    const suggestions=[...cats].filter(([,c])=>c>0).map(([category,c])=>({category,usualCents:Math.round(c/count),suggestedCents:Math.ceil(c/count/500)*500})).sort((a,b)=>b.usualCents-a.usualCents);
-    const totalCents=suggestions.reduce((n,r)=>n+r.suggestedCents,0),incomeCents=count?Math.round(income/count):0;
+    const skipped=new Set([...excluded,...[...automatic].filter(key=>!included.has(key))]);
+    const linkedRefund=t=>t.type==='Refund'&&(t.relatedExpense&&skipped.has(t.relatedExpense.key)||
+        expenses.some(e=>skipped.has(flowTransactionKey(e))&&merchant(e)===merchant(t)&&Math.round(-e.amount*100)===Math.round(t.amount*100)&&e.date<=t.date&&planDays(e.date,t.date)<=120));
+    const categories=new Set(),byMonth=new Map(months.map(month=>[month,{income:0,spending:new Map()}]));
+    for(const t of selected){
+        const month=byMonth.get(t.date.slice(0,7));
+        // Explicit one-time deposits also stay outside the income baseline. Refunds never become pay.
+        if(!excluded.has(flowTransactionKey(t)))month.income+=flowReportingAmounts(t).incomeCents;
+        if(t.type!=='Refund'&&t.amount>=0)continue;
+        for(const part of flowTransactionParts(t))if(!part.income)categories.add(part.category);
+        if(skipped.has(flowTransactionKey(t))||linkedRefund(t))continue;
+        for(const part of flowTransactionParts(t))if(!part.income)month.spending.set(part.category,(month.spending.get(part.category)||0)+(t.type==='Refund'?-1:1)*part.cents);
+    }
+    const suggestions=[...categories].map(category=>{
+        const totals=months.map(month=>Math.max(0,byMonth.get(month).spending.get(category)||0)),usualCents=flowMedian(totals);
+        return {category,usualCents,suggestedCents:usualCents>0?Math.max(1,Math.floor(usualCents/100)*100):0,monthlyCents:totals};
+    }).sort((a,b)=>b.usualCents-a.usualCents);
+    const totalCents=suggestions.reduce((n,r)=>n+r.suggestedCents,0),incomeCents=flowMedian(months.map(m=>byMonth.get(m).income));
     if(!Number.isSafeInteger(totalCents)||!Number.isSafeInteger(incomeCents)||suggestions.some(r=>!Number.isSafeInteger(r.usualCents)))throw new Error('Check large or invalid history amounts.');
-    return {months,preliminary,rows:suggestions,incomeCents,totalCents,hasIncome:incomeCents>0,shortfallCents:incomeCents>0?Math.max(0,totalCents-incomeCents):null};
+    const purchases=expenses.map(t=>({key:flowTransactionKey(t),name:t.name,date:t.date,cents:Math.round(-t.amount*100),category:t.category||'Other',automatic:automatic.has(flowTransactionKey(t)),excluded:skipped.has(flowTransactionKey(t))})).sort((a,b)=>Number(b.excluded)-Number(a.excluded)||b.cents-a.cents);
+    return {months,partial,preliminary:partial||months.length<3,rows:suggestions,incomeCents,totalCents,hasIncome:incomeCents>0,shortfallCents:incomeCents>0?Math.max(0,totalCents-incomeCents):null,purchases,outlierCount:purchases.filter(r=>r.excluded).length,automaticKeys:[...automatic]};
+}
+function flowBudgetBillCosts(planning,transactions,month) {
+    const costs={};if(!planning)return costs;
+    const end=flowMonthBefore(month,-1)+'-01';
+    for(const bill of planning.bills){
+        const match=transactions.filter(t=>t.amount<0&&t.type==='Expense'&&t.status!=='pending'&&(bill.tracking?billSourceKey(t)===billTrackingKey(bill.tracking):billName(t.name)===billName(bill.name))).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+        let due=bill.nextDate;
+        for(let n=0;validPlanDate(due)&&due<end&&n<2000;n++){
+            if(due.slice(0,7)===month&&flowBillIncluded(bill,due)){
+                const amount=billAmountAt(bill,due),parts=match?flowTransactionParts(match).filter(p=>!p.income):[{category:'Bills',cents:1}],total=parts.reduce((n,p)=>n+p.cents,0);let remaining=amount;
+                parts.forEach((p,i)=>{const cents=i===parts.length-1?remaining:Math.floor(amount*p.cents/total);remaining-=cents;costs[p.category]=(costs[p.category]||0)+cents;});
+            }
+            const next=nextPlanDate(due,bill.frequency,bill.anchorDay||Number(bill.nextDate.slice(-2)));if(!next||next<=due)break;due=next;
+        }
+    }
+    if(Object.values(costs).some(n=>!Number.isSafeInteger(n)))throw new Error('Check your bill amounts.');return costs;
+}
+function flowFitBudget(rows,billCosts,incomeCents,savingsCents) {
+    if(!Number.isSafeInteger(incomeCents)||incomeCents<0||!Number.isSafeInteger(savingsCents)||savingsCents<0)throw new Error('Enter your monthly take-home income and savings target.');
+    const essential=new Set(['Food','Transport','Bills']),categories=new Set(rows.map(r=>r.category));
+    const floor=r=>Math.max(billCosts[r.category]||0,essential.has(r.category)?r.suggestedCents:0);
+    const fixed=rows.reduce((n,r)=>n+floor(r),0)+Object.entries(billCosts).filter(([c])=>!categories.has(c)).reduce((n,[,c])=>n+c,0);
+    const available=Math.max(0,incomeCents-savingsCents-fixed),flex=rows.reduce((n,r)=>n+Math.max(0,r.suggestedCents-floor(r)),0),factor=flex?Math.min(1,available/flex):1;
+    return rows.map(r=>({...r,suggestedCents:floor(r)+Math.floor(Math.max(0,r.suggestedCents-floor(r))*factor),adjusted:factor<1&&r.suggestedCents>floor(r)}));
+}
+function flowBudgetCapacity(budgets,billCosts,incomeCents,savingsCents) {
+    if(!Number.isSafeInteger(incomeCents)||incomeCents<0||!Number.isSafeInteger(savingsCents)||savingsCents<0)throw new Error('Enter your monthly take-home income and savings target.');
+    const limits=new Map(budgets.map(r=>[r.category,Math.round(r.limit*100)])),limitsCents=[...limits.values()].reduce((n,c)=>n+c,0);
+    const outsideBillsCents=Object.entries(billCosts).reduce((n,[category,cents])=>n+Math.max(0,cents-(limits.get(category)||0)),0);
+    const leftoverCents=incomeCents-limitsCents-outsideBillsCents;
+    if(![limitsCents,outsideBillsCents,leftoverCents].every(Number.isSafeInteger))throw new Error('Check your budget amounts.');
+    return {limitsCents,outsideBillsCents,leftoverCents,savingsCents,afterSavingsCents:leftoverCents-savingsCents,fits:leftoverCents>=savingsCents};
 }
 function flowApplySuggestedBudgets(snapshot,month,choices) {
     if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||!choices.length||choices.length>100)throw new Error('Select at least one category.');
     const next=flowCopy(snapshot),saved=next.budgetsByMonth[month]||next.budgets||[],byCategory=new Map(saved.map(r=>[r.category,r]));
     const seen=new Set();
     for(const c of choices){
-        if(!c.category?.trim()||seen.has(c.category)||!Number.isSafeInteger(c.cents)||c.cents<=0)throw new Error('Choose a positive amount for each selected category.');
+        if(!c.category?.trim()||seen.has(c.category)||!Number.isSafeInteger(c.cents)||c.cents<0)throw new Error('Choose a positive amount for each selected category.');
         seen.add(c.category);const old=byCategory.get(c.category);
+        if(c.cents===0){byCategory.delete(c.category);continue;}
         byCategory.set(c.category,{...(old||{id:makeRecordId([...byCategory.values()])}),category:c.category,limit:c.cents/100});
     }
     next.budgetsByMonth[month]=[...byCategory.values()];return next;

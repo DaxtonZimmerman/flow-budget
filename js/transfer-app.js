@@ -106,7 +106,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             if (!card) { card = el('section', '', 'card transfer-review-card'); card.id = 'transfer-review-card'; review.before(card); }
             card.hidden = !data.suggestions.length && !data.linked.length;
             card.replaceChildren(el('p', 'Money moves', 'small-label'), el('h3', 'Between your accounts'));
-            card.append(el('p', `${data.linked.length} linked ${data.linked.length === 1 ? 'transfer' : 'transfers'} · ${data.suggestions.length} possible ${data.suggestions.length === 1 ? 'match' : 'matches'} to check. The original bank entries stay in Activity.`, 'detail-help'));
+            if (data.suggestions.length) card.append(el('p', 'Do these payments belong together?', 'detail-help'));
             for (const pair of data.suggestions.slice(0, 5)) {
                 const row = el('div', '', 'transfer-review-row'), info = el('div');
                 info.append(el('strong', pair.label), el('small', `${money(pair.outgoing.amount)} · ${day(pair.outgoing.date)}${pair.outgoing.date !== pair.incoming.date ? ' / ' + day(pair.incoming.date) : ''}`));
@@ -114,7 +114,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             }
             if (data.suggestions.length > 5) card.append(el('p', 'The next matches appear as you finish these. You can also open any bank entry in Activity.', 'detail-help'));
             if (data.linked.length) {
-                const list = el('details', '', 'transfer-matched-list'); list.append(el('summary', `View ${data.linked.length} linked ${data.linked.length === 1 ? 'transfer' : 'transfers'}`));
+                const list = el('details', '', 'transfer-matched-list'); list.append(el('summary', 'Completed transfers'));
                 for (const pair of data.linked.slice(0, 12)) {
                     const row = el('div', '', 'transfer-review-row'), info = el('div');
                     info.append(el('strong', pair.label), el('small', `${money(pair.item.amount)} · ${day(pair.item.date)}`));
@@ -127,7 +127,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             let hint = document.querySelector('#transfer-quick-hint');
             if (!hint) { hint = el('div', '', 'transfer-activity-summary'); hint.id = 'transfer-quick-hint'; groups.before(hint); }
             hint.hidden = !data.suggestions.length;
-            hint.replaceChildren(el('span', `${data.suggestions.length} possible transfer matches can be checked by account.`), button('Check transfers by account', () => {
+            hint.replaceChildren(el('span', 'Some payments may be the same transfer.'), button('Check transfers', () => {
                 if (typeof window.hasFlowReviewDraft === 'function' && window.hasFlowReviewDraft()) {
                     document.querySelector('#quick-review-message').textContent = 'Apply your current group choice before checking transfer matches.'; return;
                 }
@@ -138,9 +138,9 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (history) {
             let banner = document.querySelector('#transfer-activity-summary');
             if (!banner) { banner = el('div', '', 'transfer-activity-summary'); banner.id = 'transfer-activity-summary'; history.after(banner); }
-            banner.hidden = !data.linked.length && !data.suggestions.length;
-            banner.replaceChildren(el('span', `${data.linked.length} linked ${data.linked.length === 1 ? 'transfer' : 'transfers'}${data.suggestions.length ? ' · ' + data.suggestions.length + ' possible matches to check' : ' · excluded from income and spending'}`));
-            const link = el('a', 'Review transfers', 'inline-link'); link.href = 'review.html#transfer-review-card'; banner.append(link);
+            banner.hidden = !data.suggestions.length;
+            banner.replaceChildren(el('span', 'A transfer to check'));
+            const link = el('a', 'Take a look', 'inline-link'); link.href = 'review.html#transfer-review-card'; banner.append(link);
         }
     }
     function reconcile() {

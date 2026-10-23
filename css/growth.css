@@ -161,3 +161,26 @@
  .subscription-symbol { width:36px;height:40px;flex-basis:36px; }
 }
 @media(prefers-reduced-motion:no-preference) { .goal-finished { animation:goal-reached .35s ease-out; } @keyframes goal-reached { from{transform:translateY(8px);opacity:.2;} to{transform:translateY(0);opacity:1;} } }
+.budget-income-fields { padding:18px;border:1px solid #dce6d3;border-radius:18px;background:#f7f9f1; }
+.budget-oneoff-summary { display:flex;align-items:center;gap:12px;padding:15px 0;font-size:14px; }
+.budget-oneoff-summary>span { display:grid;place-items:center;width:35px;height:35px;flex-shrink:0;background:#e9f1dd;border-radius:11px;color:#537744; }
+.budget-oneoff-summary strong,.budget-oneoff-summary small { display:block; }
+.budget-oneoff-summary small { font-size:12px;color:#738169;margin-top:4px;line-height:1.5; }
+.growth-summary .budget-leftover { margin-top:13px;padding-top:13px;border-top:1px solid #d8e3cb;color:#254f35; }
+.budget-leftover strong { font-size:20px; }
+.budget-purchase-list { max-height:300px;overflow-y:auto;margin-top:13px; }
+.budget-purchase { display:flex;align-items:center;gap:10px;border-bottom:1px solid #e3e9da;padding:13px 0;color:#2c5139;font-size:12px;cursor:pointer; }
+.budget-purchase[hidden] { display:none; }
+.budget-purchase>span { min-width:0;flex:1; }
+.budget-purchase>span strong { display:block;overflow-wrap:anywhere; }
+.budget-purchase small { display:block;font-size:11px;line-height:1.5;color:#73816d;margin-top:4px; }
+.budget-purchase input { width:19px;height:19px;flex-shrink:0;accent-color:#2b6646; }
+.budget-purchase>strong { flex-shrink:0; }
+@media(max-width:380px) { .budget-income-fields { grid-template-columns:1fr; } }
+.budget-income-fields .field { justify-content:flex-end; }
+.budget-rate-preset { margin-top:9px;font-size:12px!important; }
+.budget-rate-preset[aria-pressed=true] { color:#526e42; }
+.growth-summary .budget-leftover { margin-top:0;padding-top:0;border:0;align-items:center; }
+.budget-costs { font-size:12px;color:#63785b;margin-top:12px; }
+.budget-costs summary { cursor:pointer;font-weight:600; }
+.budget-costs>div { display:flex;justify-content:space-between;gap:12px;margin:12px 0 0; }
