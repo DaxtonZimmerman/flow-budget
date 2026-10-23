@@ -45,7 +45,7 @@ function validFlowPlanning(p) {
         (p.manualBalance === null || p.manualBalance && Number.isSafeInteger(p.manualBalance.cents) && validPlanDate(p.manualBalance.date)) &&
         p.payday && (p.payday.nextDate === '' || validPlanDate(p.payday.nextDate)) && frequencies.includes(p.payday.frequency) &&
         (p.payday.anchorDay === undefined || Number.isInteger(p.payday.anchorDay) && p.payday.anchorDay >= 1 && p.payday.anchorDay <= 31) &&
-        (p.lastPaydayCheckIn === undefined || p.lastPaydayCheckIn && validPlanDate(p.lastPaydayCheckIn.date) && validPlanDate(p.lastPaydayCheckIn.previousPayday) && validPlanDate(p.lastPaydayCheckIn.nextPayday) && p.lastPaydayCheckIn.nextPayday > p.lastPaydayCheckIn.date) &&
+        (p.lastPaydayCheckIn === undefined || p.lastPaydayCheckIn && validPlanDate(p.lastPaydayCheckIn.date) && validPlanDate(p.lastPaydayCheckIn.previousPayday) && validPlanDate(p.lastPaydayCheckIn.nextPayday) && p.lastPaydayCheckIn.nextPayday > p.lastPaydayCheckIn.date && (p.lastPaydayCheckIn.receivedOn === undefined || p.lastPaydayCheckIn.receivedOn === p.lastPaydayCheckIn.date)) &&
         Array.isArray(p.bills) && p.bills.every(b => b && typeof b.id === 'string' && typeof b.name === 'string' && b.name.trim() &&
             cents(b.amountCents) && b.amountCents > 0 && validPlanDate(b.nextDate) && frequencies.includes(b.frequency) && (b.anchorDay === undefined || Number.isInteger(b.anchorDay) && b.anchorDay >= 1 && b.anchorDay <= 31)) && new Set(p.bills.map(b => b.id)).size === p.bills.length &&
         typeof p.billsConfirmed === 'boolean' && Array.isArray(p.essentials) && p.essentials.every(e => e && typeof e.id === 'string' &&
@@ -109,15 +109,18 @@ function paydayCheckInAvailable(planning, today = flowToday()) {
 function paydayCheckInDue(planning, today = flowToday(), now = Date.now()) {
     return Boolean(planning.setup.completed && planDateEnded(planning.payday.nextDate, today, now));
 }
-function suggestNextPayday(planning, today = flowToday(), now = Date.now()) {
-    if (!paydayCheckInAvailable(planning, today) || !['weekly', 'biweekly', 'semimonthly', 'monthly'].includes(planning.payday.frequency)) return '';
+function suggestNextPayday(planning, today = flowToday(), now = Date.now(), receivedPay = false) {
+    if ((!(receivedPay && planning.setup.completed && validPlanDate(planning.payday.nextDate)) && !paydayCheckInAvailable(planning, today)) || !['weekly', 'biweekly', 'semimonthly', 'monthly'].includes(planning.payday.frequency)) return '';
     let date = planning.payday.nextDate;
     const anchor = planning.payday.anchorDay || Number(date.slice(-2));
+    if (receivedPay && date > today) date = nextPlanDate(date, planning.payday.frequency, anchor);
     for (let i = 0; i < 4000 && date <= today; i++) date = nextPlanDate(date, planning.payday.frequency, anchor);
     return validPlanDate(date) && date > today && planDays(today, date) <= 366 ? date : '';
 }
 function preparePaydayCheckIn(planning, choices, today = flowToday(), now = Date.now()) {
-    if (!validFlowPlanning(planning) || !paydayCheckInAvailable(planning, today)) throw new Error('Your current plan is still running, or has changed. Reopen the check-in when its end date arrives.');
+    if (!validFlowPlanning(planning) || !(paydayCheckInAvailable(planning, today) || choices.receivedPay === true && planning.setup.completed && validPlanDate(planning.payday.nextDate))) throw new Error('Your current plan is still running, or has changed. Reopen the check-in when its end date arrives.');
+    if (choices.receivedPay === true && planning.lastPaydayCheckIn?.receivedOn === today) throw new Error('Already marked paid today. You can edit your plan without starting it again.');
+    if (choices.receivedPay !== undefined && typeof choices.receivedPay !== 'boolean') throw new Error('Confirm whether you received your pay.');
     if (!validPlanDate(choices.nextDate) || choices.nextDate <= today || planDays(today, choices.nextDate) > 366) throw new Error('Choose your next payday or a planning date within the next year.');
     if (!['weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular'].includes(choices.frequency)) throw new Error('Choose a supported payday schedule.');
     const cents = n => Number.isSafeInteger(n) && n >= 0;
@@ -125,7 +128,7 @@ function preparePaydayCheckIn(planning, choices, today = flowToday(), now = Date
     if (!['bank', 'manual'].includes(choices.balanceMode) || choices.balanceMode === 'manual' && !Number.isSafeInteger(choices.balanceCents)) throw new Error('Confirm your available money for today.');
     if (choices.balanceMode === 'bank' && !planning.selectedAccountIds.length) throw new Error('Choose a spending account in Plan, or enter your available balance.');
     const next = JSON.parse(JSON.stringify(planning));
-    const keepAnchor = choices.frequency === planning.payday.frequency && choices.nextDate === suggestNextPayday(planning, today, now);
+    const keepAnchor = choices.frequency === planning.payday.frequency && choices.nextDate === suggestNextPayday(planning, today, now, choices.receivedPay === true);
     next.payday = { nextDate: choices.nextDate, frequency: choices.frequency,
         anchorDay: keepAnchor ? planning.payday.anchorDay || Number(planning.payday.nextDate.slice(-2)) : Number(choices.nextDate.slice(-2)) };
     next.manualBalance = choices.balanceMode === 'manual' ? { cents: choices.balanceCents, date: today } : null;
@@ -136,6 +139,7 @@ function preparePaydayCheckIn(planning, choices, today = flowToday(), now = Date
     next.billsConfirmed = true; next.reservesConfirmed = true;
     delete next.setup.reserveDraft;
     next.lastPaydayCheckIn = { date: today, previousPayday: planning.payday.nextDate, nextPayday: choices.nextDate };
+    if (choices.receivedPay === true) next.lastPaydayCheckIn.receivedOn = today;
     if (!validFlowPlanning(next)) throw new Error('Check the dates and amounts in your new plan.');
     return next;
 }
