@@ -350,49 +350,24 @@ function flowReserveSuggestions(planning, transactions, accounts, today = flowTo
     return {amounts,observedDays,transactions:rows.length,days,uncategorized:rows.filter(t=>t.category==='Other').length};
 }
 /* Editable starting points for a payday period. Never changes saved amounts or bank facts. */
-function flowStarterReserves(planning, transactions, accounts, today = flowToday(), now = Date.now()) {
+function flowStarterReserves(planning, transactions, accounts, today = flowToday(), now = Date.now(), options = {}) {
     if (!validPlanDate(planning.payday.nextDate) || planning.payday.nextDate <= today) return null;
     const days = planDays(today, planning.payday.nextDate);
     if (days > 366) return null;
     const entries = planning.essentials.length ? planning.essentials : [
         {id:'food',name:'Food & groceries',category:'Food'}, {id:'transport',name:'Transport',category:'Transport'},
         {id:'fun',name:'Entertainment',category:'Entertainment'}];
-    const scope = transactions.filter(t => !planning.selectedAccountIds.length || accounts.some(a =>
-        planning.selectedAccountIds.includes(a.id) && a.accountId === t.accountId && a.bankConnectionId === t.bankConnectionId) ||
-        typeof flowFundedCardPurchase === 'function' && flowFundedCardPurchase(t, planning, accounts));
-    // Bills already have their own reserve. Do not suggest reserving them again as everyday spending.
-    const everyday = scope.filter(t => !planning.bills.some(b => b.tracking ? billTrackingKey(b.tracking) === billSourceKey(t) : billName(b.name) === billName(t.name)));
-    const history = typeof flowSuggestedBudgets === 'function' ? flowSuggestedBudgets(everyday, today.slice(0,7), today,
-        {...flowBudgetGuide(planning), planning}) : null;
-    const dates = everyday.filter(t => validPlanDate(t.date) && t.date <= today && t.status !== 'pending').map(t => t.date).sort();
-    const observed = typeof flowUniqueHistory === 'function' ? flowUniqueHistory(everyday,today) : [];
-    const enough = observed.filter(t=>t.type==='Expense' && t.amount<0).length >= 4 && dates.length && planDays(dates[0],today) >= 14;
-    let source = 'starter', amounts = entries.map(() => 0), cushionCents = 0;
-    const probe = {...planning, setup:{...planning.setup,completed:true}, essentials:[], cushionCents:0,
-        periodStartedOn:today, reservesConfirmed:true};
-    const estimate = paydayEstimate(probe,accounts,transactions,today,now);
-    const fundsKnown = estimate.ready;
-    const availableCents = fundsKnown ? Math.max(0,estimate.leftCents) : 0;
-    if (enough && history?.rows.some(row=>entries.some(e=>e.category===row.category) && row.usualCents>0)) {
-        source = 'history';
-        const period = history.months[0], lastDay = addPlanDays(flowMonthBefore(period,-1)+'-01',-1);
-        const first = dates.find(d => d.slice(0,7) === period) || period+'-01';
-        const denominator = history.partial ? Math.max(1,planDays(first,period===today.slice(0,7)?today:lastDay)+1) :
-            history.months.reduce((sum,m) => sum+planDays(m+'-01',flowMonthBefore(m,-1)+'-01'),0)/history.months.length;
-        amounts = entries.map(e => Math.max(0,Math.floor((history.rows.find(row=>row.category===e.category)?.usualCents || 0)/denominator*days/100)*100));
-        cushionCents = planning.reservesConfirmed ? planning.cushionCents : Math.min(2500,Math.floor(availableCents*.1/100)*100);
-    } else if (planning.reservesConfirmed) {
-        source = 'previous'; amounts = entries.map(e=>e.amountCents || 0); cushionCents = planning.cushionCents;
-    } else {
-        // No claimed spending history: a small editable allocation of money available after bills.
-        amounts = entries.map(e=>Math.floor(Math.min(availableCents*({Food:.5,Transport:.3,Entertainment:.1}[e.category] || 0),days*({Food:1000,Transport:700,Entertainment:300}[e.category] || 0))/100)*100);
-        cushionCents = Math.min(2500,Math.floor(availableCents*.1/100)*100);
-    }
+    const history=typeof flowPeriodSpending==='function'?flowPeriodSpending(planning,transactions,accounts,today,options):null;
+    const probe={...planning,setup:{...planning.setup,completed:true},essentials:[],cushionCents:0,periodStartedOn:today,reservesConfirmed:true};
+    const estimate=paydayEstimate(probe,accounts,transactions,today,now),availableCents=estimate.ready?Math.max(0,estimate.leftCents):null;
+    const source=history?.rows.some(r=>['periods','purchase-floor','purchases'].includes(r.method))?'history':planning.reservesConfirmed?'previous':'starter';
+    const amounts=entries.map(e=>history?.rows.find(r=>r.category===e.category)?.suggestedCents??(planning.reservesConfirmed?e.amountCents||0:0));
+    // A cushion is a choice, not inferred spending. Keep the user's choice or leave it at zero.
+    const cushionCents=planning.reservesConfirmed?planning.cushionCents:0;
     const reservedCents = amounts.reduce((sum,n)=>sum+n,0)+cushionCents;
     if (![...amounts,cushionCents,reservedCents].every(Number.isSafeInteger)) return null;
     return {source,days,entries:entries.map((e,i)=>({...e,amountCents:amounts[i]})),cushionCents,
-        availableCents:fundsKnown?availableCents:null,reservedCents,months:history?.months.length || 0,
-        outlierCount:history?.outlierCount || 0,preliminary:Boolean(history?.preliminary)};
+        availableCents,reservedCents,history,months:0,outlierCount:history?.outlierCount||0,preliminary:history?.rows.some(r=>r.confidence==='limited')??true};
 }
 function flowReminderItems(planning, estimate, accounts, transactions, today = flowToday()) {
     const items = [], f = flowFeatures(planning);

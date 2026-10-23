@@ -17,7 +17,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     const amountField = (label, name, cents = null, extra = '') => field(label, name, cents == null ? '' : (cents / 100).toFixed(2), 'number', `step="0.01" min="0" required ${extra}`);
     const selectFrequency = (name, value, bill = false) => `<label class="field">${bill ? 'Repeats' : 'How often?'}<select name="${name}">${Object.entries(frequencyNames).filter(([key]) => bill ? !['irregular', 'semimonthly'].includes(key) : !['once', 'quarterly', 'yearly'].includes(key)).map(([key, label]) => `<option value="${key}" ${key === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`;
     const header = (eyebrow, title, action = '') => `<div class="section-top"><div><p class="small-label">${eyebrow}</p><h3>${title}</h3></div>${action}</div>`;
-    let modalInvoker = null;
+    let modalInvoker = null, reserveReview = null, evidenceContext = null;
     let p, accounts, transactions, pageBase, owner = flowStorage.getItem('flow_user_id'), modalBase, setupDirty = false, checkIn = null, renderedDay = flowToday(), renderedCheckInDue = false;
     const dialog = document.createElement('dialog');
     dialog.id = 'payday-dialog'; dialog.className = 'transaction-details-dialog'; dialog.setAttribute('aria-labelledby', 'payday-dialog-title');
@@ -30,7 +30,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     function persist(next, base = pageBase) {
         if (owner !== flowStorage.getItem('flow_user_id')) throw new Error('Your signed-in account changed. Reload to continue.');
         if (flowStorage.getItem('flowPlanning') !== base) throw new Error('Your plan changed on another screen or device. Reload to see the latest copy before saving.');
-        saveFlowPlanning(next); p = next; pageBase = flowStorage.getItem('flowPlanning');
+        saveFlowPlanning(next); reserveReview=null; p = next; pageBase = flowStorage.getItem('flowPlanning');
     }
     function clone() { return JSON.parse(JSON.stringify(p)); }
     function readCents(value, allowNegative = false) {
@@ -311,26 +311,49 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (!suggestion) return '';
         return `<div class="reserve-period"><span class="reserve-period-icon">${icon('calendar-days')}</span><div><strong>${suggestion.days} days · until ${date(p.payday.nextDate)}</strong><small>For this plan, not a whole month</small></div></div>`;
     }
-    function reserveInput(row, name, value, suggested) {
+    function reserveInput(row, name, value, suggested, evidenceRow = null) {
         const symbol = ({Food:'utensils',Transport:'car',Entertainment:'music',Cushion:'shield-check'})[row.category] || 'wallet';
-        return `<label class="reserve-choice"><span class="reserve-choice-icon">${icon(symbol)}</span><span class="reserve-choice-copy"><strong>${esc(row.name)}</strong><small>${suggested == null ? 'Your amount' : 'Suggested '+money(suggested)}</small></span><span class="reserve-choice-amount"><span aria-hidden="true">$</span><input aria-label="${esc(row.name)}" name="${name}" type="number" inputmode="decimal" min="0" step="0.01" required value="${esc(value)}"></span></label>`;
+        const basis=evidenceRow ? evidenceRow.method==='previous'?'Your last plan':evidenceRow.method==='none'?'Choose what you need':evidenceRow.wholePurchase?'One usual purchase covered':`${evidenceRow.windows.length} matching spending periods` : row.category==='Cushion'?'Your choice':'Your amount';
+        return `<div class="reserve-item"><label class="reserve-choice"><span class="reserve-choice-icon">${icon(symbol)}</span><span class="reserve-choice-copy"><strong>${esc(row.name)}</strong><small>${basis}</small></span><span class="reserve-choice-amount"><span aria-hidden="true">$</span><input aria-label="${esc(row.name)}" name="${name}" type="number" inputmode="decimal" min="0" step="0.01" required value="${esc(value)}"></span></label>${evidenceRow?`<div class="reserve-item-footer"><span>${evidenceRow.confidence==='limited'?'Needs your check':'Based on your spending'}</span>${button('Why this amount? '+icon('chevron-right'),'reserve-evidence','inline-link',`data-category="${esc(row.category)}" data-input="${name}"`)}</div>`:''}</div>`;
+
     }
     function reserveFields(values = p.essentials, guided = false) {
-        const suggestion = guided ? flowStarterReserves(p,transactions,accounts) : null;
+        const suggestion = guided ? flowStarterReserves(p,transactions,accounts,flowToday(),Date.now(),reserveReview||{}) : null;
         const entries = values.length ? values : suggestion?.entries || [{id:'food',name:'Food & groceries',category:'Food',amountCents:0},{id:'transport',name:'Transport',category:'Transport',amountCents:0},{id:'fun',name:'Entertainment',category:'Entertainment',amountCents:0}];
         const defaults = guided && !p.reservesConfirmed;
         const draft = setup && p.setup.step === 4 ? p.setup.reserveDraft : null;
         const inputs = entries.map((row,i) => reserveInput(row,'essential-'+i,
             draft?.['essential-'+i] ?? ((defaults ? suggestion?.entries[i]?.amountCents ?? 0 : row.amountCents || 0)/100).toFixed(2),
-            suggestion?.entries[i]?.amountCents)).join('') + reserveInput({name:'Safety cushion',category:'Cushion'},'cushion',
+            suggestion?.entries[i]?.amountCents,suggestion?.history?.rows.find(r=>r.category===row.category))).join('') + reserveInput({name:'Safety cushion',category:'Cushion'},'cushion',
                 draft?.cushion ?? ((defaults ? suggestion?.cushionCents || 0 : p.cushionCents)/100).toFixed(2), suggestion?.cushionCents);
         return inputs;
     }
     function reserveGuideNote(suggestion) {
-        if (!suggestion) return '<p class="detail-help">Add what you expect to need. You can change it later.</p>';
-        const text = suggestion.source === 'history' ? 'Based on your usual spending'+(suggestion.preliminary ? ' · limited history' : '') : suggestion.source === 'previous' ? 'Starts with your last plan' : 'Starter amounts from your available money';
-        return `<p class="reserve-suggestion-note">${icon('wand-sparkles')} ${text}</p><details class="setup-extra"><summary>How were these picked?</summary><p>${suggestion.source === 'history' ? 'Usual spending is adjusted to the number of days in this plan. Unusual large purchases and bills already in your plan are left out.' : suggestion.source === 'previous' ? 'There isn’t enough spending history yet, so these are your previous amounts.' : 'There isn’t enough spending history yet. These are small daily starting amounts, limited to the money left after planned costs. They are not a prediction of your spending.'} Change any amount to fit your needs.</p></details>`;
+        if (!suggestion) return '';
+        return `<p class="reserve-suggestion-note">${icon('history')} ${suggestion.source==='history'?'Compared with spending over the same number of days':suggestion.source==='previous'?'Your last amounts, ready to adjust':'No reliable history yet. Choose what you need; 0 means none.'}</p>`;
     }
+    function applyReserveReview(next) {
+        if(!reserveReview)return;
+        const guide=flowBudgetGuide(next),g=flowEnableGrowth(next);g.version=2;
+        g.budgetGuide={...guide,excludedKeys:[...reserveReview.excludedKeys],includedKeys:[...reserveReview.includedKeys]};
+    }
+    const evidenceDialog=document.createElement('dialog');evidenceDialog.id='reserve-evidence-dialog';evidenceDialog.className='transaction-details-dialog reserve-evidence-dialog';evidenceDialog.setAttribute('aria-labelledby','reserve-evidence-title');document.body.append(evidenceDialog);
+    function evidenceModel(){const c=evidenceContext;return flowStarterReserves(c.plan,c.tx,c.accounts,flowToday(),Date.now(),c.review).history.rows.find(r=>r.category===c.category);}
+    function evidenceGuard(){if(!evidenceContext||evidenceContext.owner!==flowStorage.getItem('flow_user_id')||evidenceContext.day!==flowToday()||evidenceContext.base!==flowStorage.getItem('flowPlanning')||evidenceContext.txStamp!==flowStorage.getItem('transactions'))throw new Error('New saved changes arrived. Close and reopen this breakdown.');}
+    function renderEvidence(){
+        const row=evidenceModel(),c=evidenceContext,max=Math.max(1,...row.windows.map(w=>w.cents));
+        const purchases=new Map([...row.samples,...row.excluded].map(t=>[t.key,t]));
+        evidenceDialog.innerHTML=`<div class="dialog-head"><div><p class="small-label">Behind your suggestion</p><h2 id="reserve-evidence-title" tabindex="-1">${esc(c.category)}</h2></div><button type="button" class="icon-button" data-evidence-action="close" aria-label="Close breakdown">${icon('x')}</button></div><div class="evidence-hero"><span>For ${planDays(flowToday(),c.plan.payday.nextDate)} days</span><strong>${money(row.suggestedCents)}</strong><p>${row.wholePurchase?'Covers one usual purchase instead of part of one.':row.method==='previous'?'Your last confirmed amount; history is limited.':row.method==='none'?'No reliable estimate yet. Choose an amount that fits your needs.':row.method==='purchases'?'A usual purchase amount; history is limited.':'The middle amount from your matching spending periods.'}</p></div>${row.windows.length?`<section class="evidence-chart" aria-label="Past spending periods">${[...row.windows].reverse().map(w=>`<div><strong>${money(w.cents)}</strong><span class="evidence-bar" style="--bar-size:${Math.max(3,w.cents/max*100)}%" aria-hidden="true"></span><small>${date(w.from)}<br>${date(w.through)}</small></div>`).join('')}</section>`:''}<h3 class="evidence-section-title">Purchases behind it</h3><p class="detail-help">Mark a one-off purchase to leave it out of suggestions.</p><div class="evidence-purchases">${[...purchases.values()].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`<label class="evidence-purchase"><span><strong>${esc(t.name)}</strong><small>${date(t.date)} · ${money(t.cents)}</small></span><span class="evidence-oneoff"><input type="checkbox" data-evidence-key="${esc(t.key)}" ${c.review.excludedKeys.includes(t.key)||t.excluded&&!c.review.includedKeys.includes(t.key)?'checked':''} aria-label="Leave ${esc(t.name)} out of suggestions">One-off</span></label>`).join('')||'<p class="detail-help">No categorised purchases in this history.</p>'}</div>${row.refunds.length?`<details class="setup-extra"><summary>Refunds reduce these totals</summary>${row.refunds.map(t=>`<p>${esc(t.name)} · ${date(t.date)} · −${money(t.cents)}</p>`).join('')}</details>`:''}<p class="evidence-footnote">These choices change suggestions, not your transactions.</p><p class="form-message" role="alert"></p><footer class="evidence-footer"><button type="button" class="save-button" data-evidence-action="use">Use ${money(row.suggestedCents)} for ${esc(c.category)}</button></footer>`;
+        icons();
+    }
+    function openEvidence(target){
+        const inCheck=Boolean(checkIn&&checkIn.step===2),draft=clone();if(inCheck)draft.payday.nextDate=checkIn.nextDate;
+        evidenceContext={category:target.dataset.category,input:target.dataset.input,plan:draft,tx:loadTransactions(),accounts:loadBankAccounts(),review:JSON.parse(JSON.stringify(reserveReview||flowBudgetGuide(p))),owner,base:pageBase,day:flowToday(),txStamp:flowStorage.getItem('transactions'),invoker:target,inCheck};
+        evidenceGuard();renderEvidence();evidenceDialog.showModal();evidenceDialog.querySelector('h2').focus({preventScroll:true});
+    }
+    evidenceDialog.addEventListener('change',event=>{if(!event.target.dataset.evidenceKey)return;try{evidenceGuard();const key=event.target.dataset.evidenceKey,r=evidenceContext.review;r.excludedKeys=r.excludedKeys.filter(k=>k!==key);r.includedKeys=r.includedKeys.filter(k=>k!==key);(event.target.checked?r.excludedKeys:r.includedKeys).push(key);renderEvidence();[...evidenceDialog.querySelectorAll('[data-evidence-key]')].find(n=>n.dataset.evidenceKey===key)?.focus({preventScroll:true});}catch(error){evidenceDialog.querySelector('.form-message').textContent=error.message;}});
+    evidenceDialog.addEventListener('click',event=>{const action=event.target.closest('[data-evidence-action]')?.dataset.evidenceAction;if(!action)return;if(action==='close')return evidenceDialog.close();try{evidenceGuard();const row=evidenceModel(),c=evidenceContext,parent=c.inCheck?dialog:setup,input=parent.querySelector(`[name="${c.input}"]`);if(!input)throw new Error('Reopen this amount to update it.');reserveReview=c.review;input.value=(row.suggestedCents/100).toFixed(2);input.dispatchEvent(new Event('input',{bubbles:true}));evidenceDialog.close();}catch(error){evidenceDialog.querySelector('.form-message').textContent=error.message;}});
+    evidenceDialog.addEventListener('close',()=>{const invoker=evidenceContext?.invoker;evidenceContext=null;if(invoker?.isConnected)invoker.focus({preventScroll:true});});
     function updateSetupReservePreview() {
         if (!setup || p.setup.step !== 4) return;
         const box = setup.querySelector('#reserve-preview'), form = setup.querySelector('form');
@@ -344,7 +367,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
     function collectReserves(form, next) {
         const rows = next.essentials.length ? next.essentials : [{ id: 'food', name: 'Food & groceries', category: 'Food' }, { id: 'transport', name: 'Transport', category: 'Transport' }, { id: 'fun', name: 'Entertainment', category: 'Entertainment' }];
         next.essentials = rows.map((r, i) => ({ ...r, amountCents: readCents(form.get('essential-' + i)) }));
-        next.cushionCents = readCents(form.get('cushion')); delete next.setup.reserveDraft; next.reservesConfirmed = true; next.periodStartedOn = flowToday(); next.reservePeriodKey = makeRecordId([]);
+        next.cushionCents = readCents(form.get('cushion')); applyReserveReview(next); delete next.setup.reserveDraft; next.reservesConfirmed = true; next.periodStartedOn = flowToday(); next.reservePeriodKey = makeRecordId([]);
     }
     function renderSetup() {
         if (!setup) return;
@@ -443,36 +466,65 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             essentialAmounts: checkIn.amounts.map(value => readCents(value)), cushionCents: readCents(checkIn.cushion) };
     }
     function checkInEstimate() {
-        const next = preparePaydayCheckIn(p, checkInChoices());
+        const next = preparePaydayCheckIn(p, checkInChoices());applyReserveReview(next);
         return paydayEstimate(next, loadBankAccounts(), loadTransactions());
     }
     function applyCheckInSuggestions() {
-        const draft = {...p,payday:{...p.payday,nextDate:checkIn.nextDate},manualBalance:checkIn.balanceMode==='manual'?{cents:readCents(checkIn.balance,true),date:flowToday()}:null};
-        const suggestion=flowStarterReserves(draft,loadTransactions(),loadBankAccounts());
+        const draft = clone();draft.payday.nextDate=checkIn.nextDate;draft.manualBalance=checkIn.balanceMode==='manual'?{cents:readCents(checkIn.balance,true),date:flowToday()}:null;
+        const suggestion=flowStarterReserves(draft,loadTransactions(),loadBankAccounts(),flowToday(),Date.now(),reserveReview||{});
         if (!suggestion) return;
         checkIn.suggestion=suggestion;checkIn.amounts=suggestion.entries.map(e=>(e.amountCents/100).toFixed(2));
         checkIn.cushion=(suggestion.cushionCents/100).toFixed(2);checkIn.reservesEdited=false;
     }
     function startPaydayCheckIn(receivedPay = false) {
-        load();
+        reserveReview=null;load();
         if (receivedPay && p.lastPaydayCheckIn?.receivedOn === flowToday()) throw new Error('Already marked paid today. You can edit your plan in Plan.');
         if (!(paydayCheckInAvailable(p) || receivedPay && p.setup.completed && validPlanDate(p.payday.nextDate))) throw new Error('Your current plan is still running. You can edit its date and amounts in Plan.');
         checkIn = { step: 0, receivedPay, base: pageBase, startedOn: flowToday(), nextDate: suggestNextPayday(p,flowToday(),Date.now(),receivedPay), frequency: p.payday.frequency,
-            balanceMode: p.manualBalance || !p.selectedAccountIds.length ? 'manual' : 'bank',
+            balanceMode: p.selectedAccountIds.length ? 'bank' : 'manual', bankCheck:'idle',
             balance: p.manualBalance?.date === flowToday() ? (p.manualBalance.cents / 100).toFixed(2) : '',
             amounts: p.essentials.map(e => (e.amountCents / 100).toFixed(2)), cushion: (p.cushionCents / 100).toFixed(2), accountStamp: '' };
         renderPaydayCheckIn();
+    }
+    function selectedMoneyStamp() {
+        return JSON.stringify(loadBankAccounts().filter(a=>p.selectedAccountIds.includes(a.id)).map(a=>[a.id,a.availableCents,a.currentCents,a.currency]).sort((a,b)=>a[0].localeCompare(b[0])));
+    }
+    function renderCheckInBankStatus() {
+        const box=dialog.querySelector('#checkin-bank-status');if(!box||!checkIn)return;
+        const stamp=selectedMoneyStamp();if(checkIn.shownMoneyStamp&&checkIn.shownMoneyStamp!==stamp){if(checkIn.bankCheck!=='checking')checkIn.bankCheck='changed';if(checkIn.balanceMode==='bank'){const confirm=dialog.querySelector('[name=moneyChecked]');if(confirm)confirm.checked=false;}}checkIn.shownMoneyStamp=stamp;
+        const chosen=loadBankAccounts().filter(a=>p.selectedAccountIds.includes(a.id)),complete=chosen.length===p.selectedAccountIds.length&&chosen.length>0&&chosen.every(supported);
+        const total=complete?chosen.reduce((sum,a)=>sum+a.availableCents,0):null;
+        const label=checkIn.bankCheck==='checking'?'Checking for updates…':checkIn.bankCheck==='changed'?'A different balance arrived':checkIn.bankCheck==='same'?'No different balance returned':checkIn.bankCheck==='unavailable'?'Update check unavailable':'Selected spending accounts';
+        box.innerHTML=`<section class="payday-bank-card"><div class="payday-bank-caption">${icon(checkIn.bankCheck==='checking'?'loader-circle':'landmark')}<span role="status">${label}</span></div><strong class="payday-bank-total">${total===null?'Balance needed':money(total)}</strong><span class="payday-bank-subtitle">${total===null?'Choose a confirmed balance below':'Available in your connected accounts'}</span>${chosen.length?`<details><summary>${chosen.length} ${chosen.length===1?'account':'accounts'} ${icon('chevron-down')}</summary>${chosen.map(a=>`<div><span>${esc(a.name)}</span><strong>${supported(a)?money(a.availableCents):'Unavailable'}</strong></div>`).join('')}</details>`:''}</section>${['same','changed'].includes(checkIn.bankCheck)?'<p class="payday-bank-note">This is the balance returned by your bank feed. A completed check does not confirm that your pay is included.</p>':''}${p.selectedAccountIds.length?button(checkIn.bankCheck==='checking'?'Checking…':'Check again','checkin-refresh','inline-link',checkIn.bankCheck==='checking'?'disabled':''):''}`;
+        icons();
+    }
+    async function checkPaydayBank() {
+        const draft=checkIn;if(!draft||draft.step!==1||draft.bankCheck==='checking')return;
+        draft.bankCheck='checking';const before=selectedMoneyStamp();renderCheckInBankStatus();
+        let result,timer;
+        try {
+            const work=(async()=>{
+                // These are existing free cached endpoints, not a paid institution refresh.
+                if(window.updateBanksAutomatically) await window.updateBanksAutomatically({force:true});
+                return window.refreshFlowAccounts?await window.refreshFlowAccounts(true):{status:'unavailable'};
+            })().catch(()=>({status:'unavailable'}));
+            result=await Promise.race([work,new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'unavailable'}),20000);})]);
+        } finally {clearTimeout(timer);}
+        if(checkIn!==draft||owner!==flowStorage.getItem('flow_user_id')||draft.base!==flowStorage.getItem('flowPlanning')||draft.startedOn!==flowToday()||!dialog.open)return;
+        const changed=before!==selectedMoneyStamp();
+        draft.bankCheck=result?.status==='checked'?(changed?'changed':'same'):'unavailable';
+        if(draft.step!==1)return;
+        if(changed){const confirm=dialog.querySelector('[name=moneyChecked]');if(confirm&&draft.balanceMode==='bank')confirm.checked=false;}
+        renderCheckInBankStatus();
     }
     function renderPaydayCheckIn() {
         const step = checkIn.step;
         let body;
         if (step === 0) body = `<p class="detail-help">When is your next payday? This date comes from your usual schedule.</p><div class="stack">${field('Next payday or planning end date', 'nextDate', checkIn.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', checkIn.frequency)}</div><p class="detail-help">No regular payday? Choose a date for this plan to end.</p>`;
         if (step === 1) {
-            const chosen = loadBankAccounts().filter(a => p.selectedAccountIds.includes(a.id));
-            const cached = chosen.length ? `<div class="checkin-account-list">${chosen.map(a => `<div><strong>${esc(a.name)}</strong><span>${supported(a) ? money(a.availableCents) : 'Available balance needed'}</span><small>Flow received this balance ${esc(new Date(a.retrievedAt).toLocaleString())}${a.bankUpdatedAt ? ' · Bank data ' + esc(new Date(a.bankUpdatedAt).toLocaleString()) : ' · Bank date unavailable'}</small></div>`).join('')}</div>` : '<p class="detail-help">No selected cash account is available. Enter the available money you can use today.</p>';
-            body = `<p class="detail-help">${checkIn.receivedPay?'Use your available balance after payday. Don’t enter just the paycheck amount.':'Check your available money today. Your paycheck might arrive later than its scheduled date.'}</p>${cached}${button('Check connected accounts', 'checkin-refresh', 'inline-link')}<div class="stack" style="margin-top:20px"><label class="field">Use for this plan<select name="balanceMode"><option value="bank" ${checkIn.balanceMode === 'bank' ? 'selected' : ''} ${!p.selectedAccountIds.length ? 'disabled' : ''}>Connected bank accounts</option><option value="manual" ${checkIn.balanceMode === 'manual' ? 'selected' : ''}>Amount I enter</option></select></label><div id="checkin-manual" ${checkIn.balanceMode === 'manual' ? '' : 'hidden'}>${field('Available spending money today', 'checkinBalance', checkIn.balance, 'number', `step="0.01" ${checkIn.balanceMode === 'manual' ? 'required' : 'disabled'}`)}</div><label class="toggle-label"><input type="checkbox" name="moneyChecked" required>${checkIn.receivedPay?'My pay has arrived and is included in this balance.':'I checked this matches the available money I can use today.'}</label></div><p class="detail-help">Pay not showing yet? Wait for your bank to update, or enter today’s available balance.</p>`;
+            body = `<p class="detail-help">${checkIn.receivedPay?'Use your full available balance, including your pay.':'Start with the money available today.'}</p><div id="checkin-bank-status"></div><div class="stack checkin-money-fields"><label class="field">Use for this plan<select name="balanceMode"><option value="bank" ${checkIn.balanceMode === 'bank' ? 'selected' : ''} ${!p.selectedAccountIds.length ? 'disabled' : ''}>Connected bank accounts</option><option value="manual" ${checkIn.balanceMode === 'manual' ? 'selected' : ''}>Balance I confirm</option></select></label><div id="checkin-manual" ${checkIn.balanceMode === 'manual' ? '' : 'hidden'}>${field('Full available balance today', 'checkinBalance', checkIn.balance, 'number', `step="0.01" ${checkIn.balanceMode === 'manual' ? 'required' : 'disabled'}`)}<small>Use the available balance in your bank, not just your paycheck.</small></div><label class="toggle-label"><input type="checkbox" name="moneyChecked" required>${checkIn.receivedPay?'My pay is included in this balance.':'This is the available money I can use today.'}</label></div><details class="setup-extra"><summary>Pay is in my bank but missing here</summary><p>Your bank can show a deposit before its feed sends it to Flow. Flow checks automatically; checking again cannot force a newer bank balance.</p><p>Wait for the feed, or choose “Balance I confirm” above to use your bank’s full available balance now. Don’t add the paycheck a second time.</p></details>`;
         }
-        if (step === 2) body = `<p class="detail-help">Until ${date(checkIn.nextDate)} · ${planDays(flowToday(),checkIn.nextDate)} days. Tap an amount to adjust it.</p><div class="reserve-choices">${p.essentials.map((e,i)=>reserveInput(e,'checkinEssential-'+i,checkIn.amounts[i],checkIn.suggestion?.entries[i]?.amountCents)).join('')}${reserveInput({name:'Safety cushion',category:'Cushion'},'checkinCushion',checkIn.cushion,checkIn.suggestion?.cushionCents)}</div>${button('Reset to suggestions','checkin-suggestions','inline-link')}${reserveGuideNote(checkIn.suggestion)}<div id="checkin-preview" class="checkin-preview"></div><label class="toggle-label"><input type="checkbox" name="planChecked" required>These amounts work for this plan.</label><details class="setup-extra"><summary>Your bills carry forward</summary><p>Unpaid bills stay in your plan. You can check them before starting.</p>${button('See bills','checkin-bills','inline-link')}</details>`;
+        if (step === 2) body = `<p class="detail-help">Until ${date(checkIn.nextDate)} · ${planDays(flowToday(),checkIn.nextDate)} days. Tap an amount to adjust it.</p><div class="reserve-choices">${p.essentials.map((e,i)=>reserveInput(e,'checkinEssential-'+i,checkIn.amounts[i],checkIn.suggestion?.entries[i]?.amountCents,checkIn.suggestion?.history?.rows.find(r=>r.category===e.category))).join('')}${reserveInput({name:'Safety cushion',category:'Cushion'},'checkinCushion',checkIn.cushion,checkIn.suggestion?.cushionCents)}</div>${button('Reset to suggestions','checkin-suggestions','inline-link')}${reserveGuideNote(checkIn.suggestion)}<div id="checkin-preview" class="checkin-preview"></div><label class="toggle-label"><input type="checkbox" name="planChecked" required>These amounts work for this plan.</label><details class="setup-extra"><summary>Your bills carry forward</summary><p>Unpaid bills stay in your plan. You can check them before starting.</p>${button('See bills','checkin-bills','inline-link')}</details>`;
         showModal(checkIn.receivedPay ? 'I got paid' : 'A quick payday check-in', `<p class="small-label">${['Next payday', 'Available money', 'Your new plan'][step]} · ${step + 1} of 3</p><div class="setup-progress" aria-label="Step ${step + 1} of 3">${[0, 1, 2].map(i => `<span class="${i <= step ? 'active' : ''}"></span>`).join('')}</div><form id="payday-checkin-form">${body}<p class="form-message" role="alert"></p><div class="setup-footer">${step ? button('Back', 'checkin-back', 'back-button') : '<span class="optional">Nothing changes until you finish.</span>'}<button type="submit" class="save-button">${step === 2 ? checkIn.receivedPay ? 'Mark paid & start plan' : 'Start new plan' : 'Continue'}</button></div></form>`);
         const form = dialog.querySelector('#payday-checkin-form');
         dialog.scrollTop = 0;
@@ -485,6 +537,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             form.querySelector('#checkin-manual').hidden = !manual; input.disabled = !manual; input.required = manual;
             form.querySelector('[name=moneyChecked]').checked = false;
         });
+        if (step === 1) { renderCheckInBankStatus(); if(checkIn.bankCheck==='idle' && p.selectedAccountIds.length) void checkPaydayBank(); }
         if (step === 2) {
             form.addEventListener('input', event => {
                 if (event.target.name === 'planChecked') return;
@@ -522,6 +575,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             if (checkIn.step === 0) {
                 if (!validPlanDate(checkIn.nextDate) || checkIn.nextDate <= flowToday() || planDays(flowToday(), checkIn.nextDate) > 366) throw new Error('Choose a future payday or planning date within the next year.');
             } else if (checkIn.step === 1) {
+                if (checkIn.balanceMode==='bank' && checkIn.bankCheck==='checking') throw new Error('Finishing the bank check. Your amounts are kept.');
                 if (!values.get('moneyChecked')) throw new Error('Check your available money first.');
                 const e = checkInEstimate(), missing = e.missing.filter(value => /balance|account/i.test(value));
                 if (missing.length) throw new Error(missing.join(' · ') + '. Enter your available balance if needed.');
@@ -533,7 +587,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
                     updateCheckInPreview(); form.querySelector('[name=planChecked]').checked = false;
                     throw new Error('New activity arrived. Check the updated estimate and confirm your plan again.');
                 }
-                const next = preparePaydayCheckIn(p, checkInChoices());
+                const next = preparePaydayCheckIn(p, checkInChoices());applyReserveReview(next);
                 const e = paydayEstimate(next, loadBankAccounts(), loadTransactions());
                 if (!e.ready) throw new Error('Before starting: ' + e.missing.join(' · ') + '.');
                 const paid=checkIn.receivedPay;persist(next, checkIn.base); dialog.close(); render(); notify(paid?'Marked paid. Your next payday plan is ready.':'Your new plan is saved. Bills carried forward and everyday set-asides restarted today.'); return;
@@ -570,8 +624,9 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             if (action === 'transaction') return window.FlowTransactionDetails.open(target.dataset.id);
             if (action === 'setup-back' || action === 'save-close') return advanceSetup(setup.querySelector('form'), action === 'setup-back' ? 'back' : 'close');
             if (setupDirty && ['bill', 'suggested-bill', 'refresh-accounts'].includes(action)) { notify('Continue or save this step before opening another decision.'); return; }
+            if (action === 'reserve-evidence') return openEvidence(target);
             if (action === 'reserve-suggestions') {
-                const suggestion=flowStarterReserves(p,transactions,accounts);if(!suggestion)return;
+                const suggestion=flowStarterReserves(p,transactions,accounts,flowToday(),Date.now(),reserveReview||{});if(!suggestion)return;
                 for (const [i,row] of suggestion.entries.entries()) setup.querySelector('[name=essential-'+i+']').value=(row.amountCents/100).toFixed(2);
                 setup.querySelector('[name=cushion]').value=(suggestion.cushionCents/100).toFixed(2);
                 setupDirty=true;updateSetupReservePreview();return;
@@ -601,12 +656,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             if (action === 'payday-checkin' || action === 'payday' && paydayCheckInDue(p)) return startPaydayCheckIn();
             if (action === 'checkin-back' && checkIn) { rememberCheckInFields(); checkIn.step--; renderPaydayCheckIn(); return; }
             if (action === 'checkin-bills' && checkIn) { dialog.close(); location.href = 'bills.html#bill-tracking'; return; }
-            if (action === 'checkin-refresh' && checkIn) {
-                rememberCheckInFields(); const draft = checkIn; target.disabled = true;
-                const refresh = window.refreshFlowAccounts;
-                if (!refresh) { target.disabled = false; throw new Error('Open Account to check your bank, or enter your available amount.'); }
-                Promise.resolve().then(() => refresh(true)).then(() => { if (checkIn === draft && dialog.open) { renderPaydayCheckIn(); dialog.querySelector('.form-message').textContent = 'Account check finished. Check the dates and amounts before continuing.'; } }).catch(error => { if (checkIn === draft && dialog.open) { target.disabled = false; dialog.querySelector('.form-message').textContent = error.message || 'Could not check accounts. Enter your available amount instead.'; } }); return;
-            }
+            if (action === 'checkin-refresh' && checkIn) { void checkPaydayBank(); return; }
             if (action === 'payday') return showModal('Your next payday', `<div class="stack">${field('Next payday or planning end date', 'date', p.payday.nextDate, 'date', `required min="${addPlanDays(flowToday(), 1)}" max="${addPlanDays(flowToday(), 366)}"`)}${selectFrequency('frequency', p.payday.frequency)}</div><p class="detail-help">Your plan lasts through 11:59 PM on payday. It won’t assume you’ve been paid.</p>${receivedPayButton()}<p class="detail-help">Change the date here if your pay is delayed.</p>`, (values, next) => { const date = String(values.get('date')); if (!validPlanDate(date) || date <= flowToday()) throw new Error('Choose a future date.'); next.payday = { nextDate: date, frequency: String(values.get('frequency')), anchorDay: date === next.payday.nextDate ? next.payday.anchorDay || Number(date.slice(-2)) : Number(date.slice(-2)) }; });
             if (action === 'essentials') return showModal('Keep a little aside', `<div class="stack">${reserveFields()}</div><p class="detail-help">Choose amounts to reserve from today. This starts a fresh reserve period; your bank balances and past transactions stay intact.</p>`, collectReserves);
             if (action === 'bill') return editBill(target.dataset.id);
@@ -648,10 +698,10 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         catch (error) { event.target.checked = !event.target.checked; notify(error.message); }
     });
     document.addEventListener('flow-bank-updated', () => { if (setupDirty || dialog.open) notify('New bank activity arrived. Finish your current edit to refresh the view.'); else render(); });
-    dialog.addEventListener('close', () => { checkIn = null; if (!setupDirty) render(); window.FlowApp?.restoreControl(modalInvoker); });
+    dialog.addEventListener('close', () => { reserveReview=null; checkIn = null; if (!setupDirty) render(); window.FlowApp?.restoreControl(modalInvoker); });
     document.addEventListener('flow-transaction-updated', render);
     document.addEventListener('flow-transaction-view-refresh', render);
-    document.addEventListener('flow-accounts-updated', () => { if (setupDirty || dialog.open) notify('Account balances updated. Finish your current edit to refresh the view.'); else render(); });
+    document.addEventListener('flow-accounts-updated', () => { if(checkIn?.step===1){renderCheckInBankStatus();return;} if (setupDirty || dialog.open) notify('Account balances updated. Finish your current edit to refresh the view.'); else render(); });
     document.addEventListener('flow-transaction-data-updated', () => { if (setupDirty || dialog.open) notify('Your saved copy changed. Reload before saving another edit.'); else render(); });
     dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
     if (setup) {

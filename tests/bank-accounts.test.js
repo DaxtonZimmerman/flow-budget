@@ -49,3 +49,10 @@ test('retry stops across an account switch and never loops on another owner',asy
 test('blocked session storage still keeps successful checks throttled',async()=>{
  const x=setup({blockSession:true});await x.event('focus');await x.event('online');assert.deepEqual(x.calls,['connections','accounts']);assert.equal(x.timers.size,0);
 });
+
+test('a payday check shares an in-progress cached fetch and receives an honest outcome',async()=>{
+ const x=setup();const a=x.refresh(),b=x.refresh();assert.equal(a,b);assert.equal((await b).status,'checked');assert.deepEqual(x.calls,['connections','accounts']);
+ assert.equal((await setup({unavailable:true}).refresh()).status,'unavailable');
+ assert.equal((await setup({reconnect:true}).refresh()).status,'unavailable');
+ const offline=setup();offline.context.navigator.onLine=false;assert.equal((await offline.refresh()).status,'unavailable');assert.equal(offline.calls.length,0);
+});

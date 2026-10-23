@@ -267,3 +267,31 @@ input[type="checkbox"] {width:18px;height:18px;accent-color:#23644c;flex-shrink:
 /* Receipt is an explicit action, separate from the scheduled payday reminder. */
 .home-hero-actions{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px;margin-top:15px}.home-hero-actions:has(>:only-child){grid-template-columns:1fr}.home-hero .home-hero-actions .home-primary{margin:0;font-size:13px;padding:12px 9px}
 .home-paid-button,.mobile-paid-button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:50px;padding:12px 10px;border:1px solid #98ba9b;border-radius:15px;background:transparent;color:#eef7e9;font:inherit;font-size:13px;font-weight:650;cursor:pointer}.home-paid-button svg,.mobile-paid-button svg,.plan-paid-button svg{width:18px;height:18px;flex-shrink:0}.home-paid-button:hover{background:#ffffff12}.home-paid-button:disabled{opacity:.75;cursor:default}.mobile-paid-button{width:100%;margin:20px 0 12px;background:#184f3d;color:#fff;border-color:#184f3d}.mobile-paid-button:disabled{background:#edf3e7;border-color:#dfe8d6;color:#42684f;cursor:default}.plan-paid-button{margin:16px 0 0;display:inline-flex;align-items:center;gap:8px}.plan-paid-button:disabled{opacity:.75;cursor:default}
+
+/* Payday amounts stay visible; their evidence opens only when asked for. */
+.reserve-item{border:1px solid #e1e7da;border-radius:18px;overflow:hidden;background:#f7f8f3}
+.reserve-item .reserve-choice{border:0;border-radius:0;background:transparent;padding-bottom:10px}
+.reserve-item-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px 9px 66px;color:#657569;font-size:10px}
+.reserve-item-footer .inline-link{display:flex;align-items:center;gap:2px;min-height:38px;font-size:11px;white-space:nowrap;text-decoration:none;font-weight:650}
+.reserve-item-footer svg{width:14px;height:14px}.reserve-item:focus-within{border-color:#52745a;box-shadow:0 0 0 2px #52745a22}.reserve-item .reserve-choice:focus-within{outline:0}
+.reserve-evidence-dialog{width:min(600px,calc(100% - 24px));padding:26px;color:#203f32;background:#fbfcf8}
+.reserve-evidence-dialog .small-label{margin:0 0 6px;color:#66805c;font-size:10px;letter-spacing:1.4px}
+.evidence-hero{padding:22px 24px;border-radius:22px;background:#184f3d;color:#f5f9ef;margin-top:20px}
+.evidence-hero>span{font-size:12px;color:#d6e6cc}.evidence-hero>strong{display:block;font-size:44px;letter-spacing:-1.6px;line-height:1.3;margin:6px 0}.evidence-hero>p{font-size:12px;line-height:1.6;color:#e2eddb;margin:0;max-width:340px}
+.evidence-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:22px 0 12px;margin:14px 0 22px;border-bottom:1px solid #e1e8db}
+.evidence-chart>div{display:grid;grid-template-rows:22px 88px 32px;gap:6px;text-align:center;min-width:0;align-items:end}
+.evidence-chart strong{font-size:11px;font-weight:650}.evidence-chart small{font-size:9px;line-height:1.5;color:#627565;align-self:start}
+.evidence-bar{height:var(--bar-size);min-height:3px;background:#9fbd83;border-radius:8px 8px 3px 3px;width:65%;justify-self:center}
+.evidence-section-title{font-size:16px;margin:25px 0 0}.evidence-purchases{margin-top:12px}.evidence-purchase{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #e5eadd;cursor:pointer}
+.evidence-purchase>span:first-child{min-width:0}.evidence-purchase strong{display:block;font-size:13px;overflow-wrap:anywhere}.evidence-purchase small{display:block;color:#667869;font-size:11px;margin-top:5px}
+.evidence-oneoff{display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:11px;min-height:44px}.evidence-purchase:has(input:checked)>span:first-child{color:#73806d}.evidence-footnote{font-size:11px;color:#6b7b67;line-height:1.6;margin:20px 0}
+.evidence-footer{position:sticky;bottom:-26px;padding:14px 0 4px;background:#fbfcf8;box-shadow:0 -12px 20px #fbfcf8}.evidence-footer .save-button{width:100%;min-height:50px}
+.payday-bank-card{margin:20px 0 10px;padding:23px;border-radius:22px;background:#edf3e7;color:#244d38}
+.payday-bank-caption{display:flex;align-items:center;gap:8px;font-size:12px}.payday-bank-caption svg{width:18px;height:18px}.payday-bank-caption:has([data-lucide=loader-circle]) svg{animation:flow-bank-spin 1.5s linear infinite}
+.payday-bank-total{display:block;font-size:38px;line-height:1.3;letter-spacing:-1.2px;margin:12px 0 3px}.payday-bank-subtitle{display:block;font-size:11px;color:#63795b}
+.payday-bank-card details{margin-top:18px;border-top:1px solid #dbe5d2}.payday-bank-card summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding-top:13px;font-size:12px}.payday-bank-card summary svg{width:16px;height:16px}.payday-bank-card details>div{display:flex;justify-content:space-between;gap:15px;padding:13px 0 0;font-size:12px}.payday-bank-card details>div span{min-width:0;overflow-wrap:anywhere}
+.payday-bank-note{font-size:11px;color:#637262;line-height:1.6;margin:10px 0}.checkin-money-fields{margin-top:22px}.checkin-money-fields small{color:#657565;font-size:11px;line-height:1.6}
+@keyframes flow-bank-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.payday-bank-caption svg{animation:none!important}}
+@media(max-width:540px){.reserve-item-footer{padding:0 10px 6px 54px}.reserve-item-footer>span{font-size:9px}.reserve-item-footer .inline-link{font-size:10px}.reserve-evidence-dialog{padding:20px}.evidence-footer{bottom:-20px}.evidence-hero{padding:20px}.evidence-chart{gap:4px}.evidence-chart strong{font-size:10px}.payday-bank-total{font-size:34px}}
+@media(max-width:360px){.reserve-item-footer{padding-left:10px}.evidence-chart small{font-size:8px}.evidence-purchase strong{font-size:12px}}

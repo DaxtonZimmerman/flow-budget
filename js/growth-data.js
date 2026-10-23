@@ -56,7 +56,7 @@ function flowSuggestedBudgets(transactions,targetMonth,today=flowToday(),options
     let months=Array.from({length:3},(_,i)=>flowMonthBefore(anchor,3-i)).filter(m=>first&&(m+'-01')>=first),partial=false;
     if(!months.length&&first){months=[eligible.map(t=>t.date.slice(0,7)).sort().at(-1)];partial=true;}
     if(!months.length&&rows.some(t=>t.date.slice(0,7)===anchor)&&targetMonth>=anchor){months=[anchor];partial=true;}
-    const selected=rows.filter(t=>months.includes(t.date.slice(0,7))),expenses=selected.filter(t=>t.amount<0&&t.type!=='Refund');
+    const selected=options.period?rows:rows.filter(t=>months.includes(t.date.slice(0,7))),expenses=selected.filter(t=>t.amount<0&&t.type!=='Refund');
     const excluded=new Set(options.excludedKeys||[]),included=new Set(options.includedKeys||[]),automatic=new Set(),samples=new Map();
     const merchant=t=>JSON.stringify([t.bankConnectionId||t.source||'manual',t.accountId||'',billName(t.name)]);
     const groups=new Map();for(const t of expenses){const key=merchant(t);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t);}
@@ -82,6 +82,7 @@ function flowSuggestedBudgets(transactions,targetMonth,today=flowToday(),options
     const categories=new Set(),byMonth=new Map(months.map(month=>[month,{income:0,spending:new Map()}]));
     for(const t of selected){
         const month=byMonth.get(t.date.slice(0,7));
+        if(!month)continue;
         // Explicit one-time deposits also stay outside the income baseline. Refunds never become pay.
         if(!excluded.has(flowTransactionKey(t)))month.income+=flowReportingAmounts(t).incomeCents;
         if(t.type!=='Refund'&&t.amount>=0)continue;
@@ -96,7 +97,57 @@ function flowSuggestedBudgets(transactions,targetMonth,today=flowToday(),options
     const totalCents=suggestions.reduce((n,r)=>n+r.suggestedCents,0),incomeCents=flowMedian(months.map(m=>byMonth.get(m).income));
     if(!Number.isSafeInteger(totalCents)||!Number.isSafeInteger(incomeCents)||suggestions.some(r=>!Number.isSafeInteger(r.usualCents)))throw new Error('Check large or invalid history amounts.');
     const purchases=expenses.map(t=>({key:flowTransactionKey(t),name:t.name,date:t.date,cents:Math.round(-t.amount*100),category:t.category||'Other',automatic:automatic.has(flowTransactionKey(t)),excluded:skipped.has(flowTransactionKey(t))})).sort((a,b)=>Number(b.excluded)-Number(a.excluded)||b.cents-a.cents);
-    return {months,partial,preliminary:partial||months.length<3,rows:suggestions,incomeCents,totalCents,hasIncome:incomeCents>0,shortfallCents:incomeCents>0?Math.max(0,totalCents-incomeCents):null,purchases,outlierCount:purchases.filter(r=>r.excluded).length,automaticKeys:[...automatic]};
+    return {months,partial,preliminary:partial||months.length<3,rows:suggestions,incomeCents,totalCents,hasIncome:incomeCents>0,shortfallCents:incomeCents>0?Math.max(0,totalCents-incomeCents):null,purchases,outlierCount:purchases.filter(r=>r.excluded).length,automaticKeys:[...automatic],effectiveExcludedKeys:[...skipped],excludedRefundKeys:rows.filter(linkedRefund).map(flowTransactionKey)};
+}
+/* Compare completed periods of the same length. Monthly targets are a different view. */
+function flowPeriodSpending(planning, transactions, accounts, today=flowToday(), options={}) {
+    const through=planning.payday.nextDate;
+    if(!validPlanDate(through)||through<=today||planDays(today,through)>366)return null;
+    const days=planDays(today,through),from=addPlanDays(today,-Math.max(180,Math.min(366,days*6)));
+    const selected=new Set(planning.selectedAccountIds),scope=transactions.filter(t=>validPlanDate(t.date)&&t.date>=from&&t.date<=today&&
+        (!selected.size||accounts.some(a=>selected.has(a.id)&&a.accountId===t.accountId&&a.bankConnectionId===t.bankConnectionId)||flowFundedCardPurchase(t,planning,accounts)));
+    const all=flowUniqueHistory(scope,today);
+    const everyday=all.filter(t=>!planning.bills.some(b=>b.tracking?billTrackingKey(b.tracking)===billSourceKey(t):billName(b.name)===billName(t.name)));
+    const guide={...flowBudgetGuide(planning),...options};
+    const basis=flowSuggestedBudgets(everyday,today.slice(0,7),today,{...guide,planning,period:true});
+    const skipped=new Set([...basis.effectiveExcludedKeys,...basis.excludedRefundKeys]);
+    const clean=everyday.filter(t=>!skipped.has(flowTransactionKey(t))),spending=clean.filter(t=>t.type==='Expense'&&t.amount<0||t.type==='Refund'&&t.amount>0),byKey=new Map(everyday.map(t=>[flowTransactionKey(t),t]));
+    const group=t=>JSON.stringify([t.bankConnectionId||'manual',t.accountId||'']),starts=new Map();
+    for(const t of all){const key=group(t);if(!starts.has(key)||t.date<starts.get(key))starts.set(key,t.date);}
+    // A newly linked account must not contribute invented zero-spending months.
+    const chosenAccounts=accounts.filter(a=>selected.has(a.id)),missingSelected=chosenAccounts.length!==selected.size||chosenAccounts.some(a=>!starts.has(group(a)));
+    const coverage=missingSelected?'':[...starts.values()].sort().at(-1);
+    const historyEnd=all.map(t=>t.date).sort().at(-1),endDate=historyEnd&&historyEnd<today?historyEnd:addPlanDays(today,-1);
+    const windows=[];
+    for(let i=0;i<6;i++){
+        const end=addPlanDays(endDate,-days*i),start=addPlanDays(end,1-days);
+        if(coverage&&start>=coverage)windows.push({from:start,through:end});
+    }
+    const sampleStart=windows.at(-1)?.from||from;
+    const categoryNames=new Set([...planning.essentials.map(e=>e.category),'Food','Transport','Entertainment']);
+    const parts=t=>flowTransactionParts(t).filter(p=>!p.income);
+    const rows=[...categoryNames].map(category=>{
+        const refunds=spending.filter(t=>t.type==='Refund'&&t.date>=sampleStart&&t.date<=endDate).flatMap(t=>parts(t).filter(p=>p.category===category).map(p=>({key:flowTransactionKey(t),expenseKey:t.relatedExpense?.key,name:t.name,date:t.date,cents:p.cents})));
+        const samples=spending.filter(t=>t.type==='Expense'&&t.date>=sampleStart&&t.date<=endDate).flatMap(t=>parts(t).filter(p=>p.category===category&&p.cents>0).map(p=>({key:flowTransactionKey(t),name:t.name,date:t.date,cents:p.cents})));
+        const purchaseCosts=samples.map(t=>Math.max(0,t.cents-refunds.filter(r=>r.expenseKey===t.key).reduce((sum,r)=>sum+r.cents,0))).filter(n=>n>0);
+        const totals=windows.map(w=>spending.filter(t=>t.date>=w.from&&t.date<=w.through).reduce((sum,t)=>sum+parts(t).filter(p=>p.category===category).reduce((n,p)=>n+(t.type==='Refund'?-p.cents:p.cents),0),0)).map(n=>Math.max(0,n));
+        const previous=planning.reservesConfirmed?planning.essentials.find(e=>e.category===category)?.amountCents:null;
+        const observed=everyday.some(t=>t.type==='Expense'&&t.date>=sampleStart&&t.date<=endDate&&parts(t).some(p=>p.category===category));
+        let method=!observed?(previous!=null?'previous':'none'):totals.length>=2?'periods':previous!=null?'previous':samples.length?'purchases':'none',wholePurchase=false;
+        let amount=method==='periods'?flowMedian(totals):method==='previous'?previous:method==='purchases'?flowMedian(purchaseCosts):0;
+        // Essential purchases happen in whole amounts. Cover one usual purchase for a week or longer,
+        // rather than recommending a fraction of a fill-up or grocery trip; the user previews this choice.
+        const typicalPurchase=flowMedian(purchaseCosts);
+        if(['Food','Transport'].includes(category)&&days>=7&&purchaseCosts.length>=3&&typicalPurchase>amount){amount=typicalPurchase;wholePurchase=true;method='purchase-floor';}
+        amount=method==='previous'?amount:Math.max(0,Math.round(amount/100)*100);
+        const includedKeys=new Set(samples.map(t=>t.key)),excluded=basis.purchases.filter(t=>t.date>=sampleStart&&t.date<=endDate&&t.excluded&&(t.category===category||byKey.has(t.key)&&parts(byKey.get(t.key)).some(p=>p.category===category)));
+        if(![amount,typicalPurchase,...totals].every(Number.isSafeInteger))throw new Error('Check unusually large history amounts.');
+        return {category,suggestedCents:amount,method,wholePurchase,typicalPurchaseCents:typicalPurchase,windows:windows.map((w,i)=>({...w,cents:totals[i]})),
+            samples:samples.sort((a,b)=>b.date.localeCompare(a.date)),refunds,excluded,confidence:totals.length>=3&&samples.length>=3&&historyEnd&&planDays(historyEnd,today)<=14?'supported':'limited',
+            range:totals.length?{lowCents:Math.min(...totals),highCents:Math.max(...totals)}:null,includedKeys:[...includedKeys]};
+    });
+    return {days,from,through,historyEnd:historyEnd||'',rows,windows,coverage:coverage||'',uncategorized:all.filter(t=>t.type==='Expense'&&t.category==='Other').length,
+        excludedKeys:basis.effectiveExcludedKeys,outlierCount:basis.outlierCount};
 }
 function flowBudgetBillCosts(planning,transactions,month) {
     const costs={};if(!planning)return costs;

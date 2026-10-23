@@ -1,19 +1,19 @@
 var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof localStorage !== 'undefined' ? localStorage : null);
 /* Read the free cached account endpoint. A successful check is not a bank balance date. */
 (function () {
-    let running = false, retryTimer;
+    let running = false, retryTimer, inFlight;
     const checks = new Map(), interval = 15 * 60000;
     function savedCheck(key) {
         try { const time = Number(sessionStorage.getItem(key)); return time > 0 && time <= Date.now() + 5000 ? time : 0; }
         catch (_) { return 0; }
     }
-    async function refresh(force = false) {
+    async function performRefresh(force = false) {
         const owner = flowStorage.getItem('flow_user_id');
-        if (running || document.hidden || !owner || !navigator.onLine || flowStorage.getItem('flow_pending') === '1' || !getFlowClient()) return;
+        if (running || document.hidden || !owner || !navigator.onLine || flowStorage.getItem('flow_pending') === '1' || !getFlowClient()) return {status:'unavailable'};
         const key = `flow_accounts_checked_${owner}`;
         const check = checks.get(owner) || { success: savedCheck(key), retryAt: 0, failures: 0 };
         checks.set(owner, check);
-        if (!force && (Date.now() - check.success < interval || Date.now() < check.retryAt)) return;
+        if (!force && (Date.now() - check.success < interval || Date.now() < check.retryAt)) return {status:'skipped'};
         clearTimeout(retryTimer);
         running = true;
         let failed = false;
@@ -29,6 +29,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             for (const connection of result.connections) {
                 if (flowStorage.getItem('flow_user_id') !== owner || flowStorage.getItem('flow_pending') === '1') return;
                 if (connection.needs_reconnect) {
+                    failed = true;
                     accounts = accounts.filter(a => a.bankConnectionId !== connection.id);
                     continue;
                 }
@@ -61,6 +62,13 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
                 retryTimer = setTimeout(() => { if (flowStorage.getItem('flow_user_id') === owner) return refresh(); }, delay);
             }
         }
+        return {status:failed?'unavailable':'checked'};
+    }
+    // A payday check joins an account check already in progress instead of claiming it finished.
+    function refresh(force = false) {
+        if (inFlight) return inFlight;
+        inFlight = performRefresh(force).finally(() => { inFlight = null; });
+        return inFlight;
     }
     window.refreshFlowAccounts = refresh;
     document.addEventListener('flow-cloud-ready', () => refresh());
