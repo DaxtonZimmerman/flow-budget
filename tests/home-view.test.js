@@ -41,3 +41,15 @@ test('an old or missing retrieval remains actionable even when the bank supplies
   assert.equal(s.caution,true);assert.equal(s.kind,'check');assert.match(s.label,/Waiting for a bank update/);
  }
 });
+
+test('the source sheet keeps the last known amount without presenting it as fresh bank data',()=>{
+ const {flowHomeMoneySource}=require('../js/home-view.js'),a={id:'cash',name:'Checking',type:'depository',currency:'USD',availableCents:12345,retrievedAt:'2026-10-18T12:00:00Z',bankUpdatedAt:null};
+ const m=flowHomeMoneySource({selectedAccountIds:['cash']},[a],today,now);assert.equal(m.amountCents,12345);assert.equal(m.caution,true);assert.equal(m.rows[0].bankUpdatedAt,null);
+ for(const over of [{availableCents:null},{currency:'EUR'},{type:'credit'},{availableCents:NaN}])assert.equal(flowHomeMoneySource({selectedAccountIds:['cash']},[{...a,...over}],today,now).amountCents,null);
+ assert.equal(flowHomeMoneySource({selectedAccountIds:['cash','gone']},[a],today,now).amountCents,null);
+ assert.equal(flowHomeMoneySource({selectedAccountIds:['cash']},[{...a,availableCents:0}],today,now).amountCents,0);
+});
+test('confirmed balances remain separate from cached bank amounts, including an overdraft',()=>{
+ const {flowHomeMoneySource}=require('../js/home-view.js');const m=flowHomeMoneySource({manualBalance:{cents:-1250,date:today},selectedAccountIds:['cash']},[{id:'cash',availableCents:99999}],today,now);
+ assert.equal(m.amountCents,-1250);assert.equal(m.manual,true);assert.equal(m.kind,'confirmed');assert.equal(m.rows.length,0);
+});

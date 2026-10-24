@@ -38,3 +38,14 @@ function flowHomeTasks(planning, estimate, tracking, reviewCount, reminders, che
     return tasks;
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = { flowHomeSourceStatus, flowHomeTasks };
+
+/* Report known amounts without treating a retrieval timestamp as bank freshness. */
+function flowHomeMoneySource(planning, accounts, today, now=Date.now()) {
+    const status=flowHomeSourceStatus(planning,accounts,today,now);
+    if(planning.manualBalance)return {...status,amountCents:Number.isSafeInteger(planning.manualBalance.cents)?planning.manualBalance.cents:null,manual:true,confirmedOn:planning.manualBalance.date,rows:[]};
+    const ids=planning.selectedAccountIds||[],rows=ids.map(id=>accounts.find(a=>a.id===id)||{id,name:'Spending account',missing:true});
+    const known=rows.length>0&&rows.every(a=>a.type==='depository'&&a.currency==='USD'&&Number.isSafeInteger(a.availableCents));
+    const sum=known?rows.reduce((n,a)=>n+a.availableCents,0):null;
+    return {...status,amountCents:Number.isSafeInteger(sum)?sum:null,manual:false,rows};
+}
+if(typeof module!=='undefined'&&module.exports)module.exports.flowHomeMoneySource=flowHomeMoneySource;
