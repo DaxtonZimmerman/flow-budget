@@ -89,6 +89,22 @@ function keepTransaction(item) {
 }
 
 
+
+// /item/get already runs for connection checks. Return only its transaction dates.
+function transactionFeedStatus(item) {
+    const status = item?.status?.transactions;
+    const safeTime = value => {
+        if (typeof value !== "string" || !/^\d{4}-\d\d-\d\dT/.test(value)) return null;
+        const time = Date.parse(value);
+        return Number.isFinite(time) && time > 0 && time <= Date.now() + 300000
+            ? new Date(time).toISOString() : null;
+    };
+    return {
+        last_successful_update: safeTime(status?.last_successful_update),
+        last_failed_update: safeTime(status?.last_failed_update)
+    };
+}
+
 async function getPlaidChanges(connection) {
     for (let attempt = 0; attempt < 3; attempt++) {
         const changes = { added: [], modified: [], removed: [] };
@@ -303,11 +319,13 @@ Deno.serve(async function(request) {
 
             for (const connection of data) {
                 let needsReconnect = connection.reconnect_required === true;
+                let feedStatus = transactionFeedStatus(null);
 
                 try {
                     const item = await plaidRequest("/item/get", {
                         access_token: connection.access_token
                     }, connectionEnvironment(connection));
+                    feedStatus = transactionFeedStatus(item);
                     needsReconnect = needsReconnect ||
                         item.item?.error?.error_code === "ITEM_LOGIN_REQUIRED";
                 } catch (error) {
@@ -320,6 +338,7 @@ Deno.serve(async function(request) {
                     institution_name: connection.institution_name,
                     created_at: connection.created_at,
                     last_synced_at: connection.last_synced_at,
+                    transaction_status: feedStatus,
                     needs_reconnect: needsReconnect,
                     environment: connectionEnvironment(connection)
                 });
@@ -437,7 +456,8 @@ Deno.serve(async function(request) {
 
             return reply({
                 transactions: transactions.map(function(row) { return row.data; }),
-                last_synced_at: new Date().toISOString()
+                last_synced_at: new Date().toISOString(),
+                transaction_status: transactionFeedStatus(item)
             });
         }
 

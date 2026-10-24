@@ -10,6 +10,7 @@ let bankReturnChecking = false;
 let bankSyncState = { phase: 'idle', message: '' };
 
 async function bankRequest(action, values = {}) {
+    const requestOwner=flowStorage.getItem('flow_user_id'), startedAt=Date.now();
     const result = await getFlowClient().functions.invoke("plaid", {
         body: { action: action, ...values }
     });
@@ -38,12 +39,14 @@ async function bankRequest(action, values = {}) {
         throw error;
     }
 
+    if(action==='connections' && typeof rememberBankFeedConnections==='function') rememberBankFeedConnections(result.data.connections,requestOwner,startedAt);
     return result.data;
 }
 
 
 function showBankSyncStatus(phase, message) {
     bankSyncState = { phase, message };
+    window.FlowBankFeed?.render();
     if (!document.body) return;
     let panel = document.querySelector('#flow-bank-sync');
     const owner = flowStorage.getItem('flow_user_id');
@@ -51,13 +54,15 @@ function showBankSyncStatus(phase, message) {
     if (!panel) {
         const main = document.querySelector('.main'); if (!main) return;
         panel = document.createElement('section'); panel.id = 'flow-bank-sync'; panel.className = 'bank-sync-banner';
-        panel.innerHTML = '<div class="bank-sync-line"><p id="flow-bank-sync-status" role="status" aria-live="polite"></p><button type="button" class="inline-link" id="flow-bank-check-now">Check now</button></div><details><summary>When will new transfers appear?</summary><p>Flow checks for available updates every minute while open and when you return. Your bank and Plaid can take time to report new activity. A check does not force the bank to send it sooner. Pending payments appear in Activity when the bank supplies them; transfers between your own accounts do not count as income or spending.</p></details>';
+        panel.innerHTML = '<button type="button" class="bank-feed-summary" data-bank-feed-open aria-label="Bank update details"><span class="bank-feed-dot" aria-hidden="true"></span><span id="flow-bank-sync-status" role="status" aria-live="polite"></span><span aria-hidden="true">›</span></button>';
         const toolbar = main.querySelector('.app-toolbar'); if (toolbar) toolbar.after(panel); else main.prepend(panel);
-        panel.querySelector('button').addEventListener('click', () => checkBanksOnReturn(true));
     }
     panel.hidden = phase === 'none'; panel.dataset.phase = phase;
-    panel.querySelector('#flow-bank-sync-status').textContent = message;
-    panel.querySelector('button').disabled = phase === 'checking';
+    const rows=typeof loadBankFeedStatus==='function'?loadBankFeedStatus(owner):[];
+    const summary=typeof bankFeedSummary==='function'?bankFeedSummary(rows,phase):null;
+    panel.querySelector('#flow-bank-sync-status').textContent = summary?.title || message;
+    panel.querySelector('#flow-bank-sync-status').setAttribute('aria-live',['error','reconnect','signin'].includes(phase)?'polite':'off');
+    panel.dataset.feedKind=summary?.kind || phase;
 }
 function validBankCheckTime(value) {
     const time = Number(value); return Number.isFinite(time) && time > 0 && time <= Date.now() + 5000 ? time : 0;
@@ -94,6 +99,7 @@ async function syncBankConnection(connectionId) {
         }
         if (!bankOwnerIsCurrent(owner)) return { changed: false };
         if (!bankDisconnectingIds.has(connectionId)) flowStorage.setItem(`flow_bank_applied_at_${owner}_${connectionId}`, String(Date.parse(result.last_synced_at) || Date.now()));
+        if(typeof markBankFeedApplied==='function') markBankFeedApplied(connectionId,result.transaction_status,owner);
         if (changed) document.dispatchEvent(new CustomEvent('flow-bank-updated', { detail: { changed: true } }));
         return { ...result, changed };
     })();
@@ -130,7 +136,8 @@ async function updateBanksAutomatically(options = {}) {
             const lastSync = Date.parse(connection.last_synced_at || '') || 0;
             const appliedAt = validBankCheckTime(flowStorage.getItem(`flow_bank_applied_at_${owner}_${connection.id}`));
             const lastPull = validBankCheckTime(sessionStorage.getItem(`flow_bank_pulled_at_${owner}_${connection.id}`));
-            if (!options.force && appliedAt && lastSync <= appliedAt && Date.now() - Math.max(lastSync, lastPull) < bankPullInterval) continue;
+            const newerFeed=typeof bankFeedNeedsImport==='function'&&bankFeedNeedsImport(connection.id,owner);
+            if (!options.force && !newerFeed && appliedAt && lastSync <= appliedAt && Date.now() - Math.max(lastSync, lastPull) < bankPullInterval) continue;
             try {
                 await syncBankConnection(connection.id);
                 if (!bankOwnerIsCurrent(owner)) return;
@@ -181,6 +188,7 @@ window.addEventListener('storage', event => {
     if (event.key === 'flow_user_id') { bankAutoOwner = ''; showBankSyncStatus('none', ''); return; }
     if (!flowStorage.getItem('flow_user_id')) return;
     if (['transactions', 'bankAccounts', 'flowPlanning', 'budgets', 'budgetsByMonth', 'categoryRules'].includes(event.key) && typeof refreshFlowDataViews === 'function') refreshFlowDataViews();
+    if (event.key === `flow_bank_feed:${flowStorage.getItem('flow_user_id')}`) { showBankSyncStatus(bankSyncState.phase,bankSyncState.message); return; }
     if (event.key === `flow_bank_checked_at_${flowStorage.getItem('flow_user_id')}`) showBankSyncStatus('ready', bankCheckLabel(flowStorage.getItem('flow_user_id')));
 });
 scheduleBankCheck();

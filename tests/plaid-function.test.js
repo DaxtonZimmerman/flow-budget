@@ -157,7 +157,7 @@ function makeServer(options = {}) {
                     }
                     if (itemGet) {
                         return { item: { error: needsReconnect
-                            ? { error_code: "ITEM_LOGIN_REQUIRED" } : null } };
+                            ? { error_code: "ITEM_LOGIN_REQUIRED" } : null }, status:options.itemStatus };
                     }
                     if (sync && !body.cursor) {
                         return {
@@ -481,4 +481,23 @@ test('cached account balances require authentication and ownership, stay in the 
  assert.equal(result.body.balance_source,'cached');assert.ok(result.body.retrieved_at);
  const encoded=JSON.stringify(result.body);for(const privateValue of ['never-send','1234','production-secret-test','access-secret-test','5000'])assert.equal(encoded.includes(privateValue),false);
  assert.equal(server.calls.length,1);assert.equal(server.calls[0].url,'https://production.plaid.com/accounts/get');
+});
+
+
+test('connection checks return the bank feed date separately from Flow import dates without extra or paid requests',async()=>{
+ const status={transactions:{last_successful_update:'2026-10-23T17:00:00Z',last_failed_update:'2026-10-22T17:00:00Z',access_token:'never-return'},investments:{last_successful_update:'2026-10-24T12:00:00Z'}};
+ const server=makeServer({itemStatus:status}),result=await server.request({action:'connections'});
+ assert.equal(result.status,200);assert.deepEqual(result.body.connections[0].transaction_status,{last_successful_update:'2026-10-23T17:00:00.000Z',last_failed_update:'2026-10-22T17:00:00.000Z'});
+ assert.equal(server.calls.length,1);assert.ok(server.calls[0].url.endsWith('/item/get'));
+ for(const value of ['never-return','access-secret-test','sandbox-secret-test','investments'])assert.equal(JSON.stringify(result.body).includes(value),false);
+});
+test('a successful import returns only the transaction timing observed before that import',async()=>{
+ const server=makeServer({itemStatus:{transactions:{last_successful_update:'2026-10-23T17:00:00Z',last_failed_update:null}}}),result=await server.request({action:'sync',connection_id:'connection-1'});
+ assert.equal(result.status,200);assert.equal(result.body.transaction_status.last_successful_update,'2026-10-23T17:00:00.000Z');assert.equal(result.body.transaction_status.last_failed_update,null);
+ assert.equal(server.calls.filter(c=>c.url.endsWith('/item/get')).length,1);assert.equal(server.calls.some(c=>c.url.endsWith('/transactions/refresh')),false);
+});
+test('missing, malformed and future bank-feed dates stay unknown and are never replaced by now',async()=>{
+ for(const itemStatus of [undefined,{transactions:{}},{transactions:{last_successful_update:'not-a-date',last_failed_update:'2035-01-01T00:00:00Z'}}]){
+  const result=await makeServer({itemStatus}).request({action:'connections'});assert.deepEqual(result.body.connections[0].transaction_status,{last_successful_update:null,last_failed_update:null});
+ }
 });

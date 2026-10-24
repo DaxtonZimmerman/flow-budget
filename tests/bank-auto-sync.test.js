@@ -1,17 +1,17 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),test=require('node:test'),vm=require('node:vm');
 function makeApp(options={}){
- const saved=options.saved||new Map([['flow_user_id','person-1']]),session=new Map(),actions=[],events=[],timers=[],listeners={window:new Map(),document:new Map()};let clock=Date.parse('2026-10-19T16:00:00Z'),saves=0,cloudChecks=0,failed=false,authOwner='person-1',rows=[{transaction_id:'t1',account_id:'cash',amount:12.5,date:'2026-10-19',name:'Test Market',pending:false}],serverSyncedAt=null;
+ const saved=options.saved||new Map([['flow_user_id','person-1']]),session=new Map(),actions=[],events=[],timers=[],listeners={window:new Map(),document:new Map()};let clock=Date.parse('2026-10-19T16:00:00Z'),saves=0,cloudChecks=0,failed=false,authOwner='person-1',rows=[{transaction_id:'t1',account_id:'cash',amount:12.5,date:'2026-10-19',name:'Test Market',pending:false}],serverSyncedAt=null,feedStatus=options.feedStatus;
  class ClockDate extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
  const listen=target=>(name,fn)=>{if(!listeners[target].has(name))listeners[target].set(name,[]);listeners[target].get(name).push(fn);};
- const context=vm.createContext({Date:ClockDate,Event,CustomEvent,localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},sessionStorage:{getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,v)},navigator:{onLine:true},getFlowClient:()=>options.noClient?null:({auth:{getUser:async()=>({data:{user:{id:authOwner}},error:null})},functions:{invoke:async(_name,request)=>{
- const action=request.body.action;actions.push(action);if(failed)throw Error('Unavailable');
- if(action==='connections'){if(options.duringConnections)await options.duringConnections(saved);return {data:{connections:[{id:'bank-1',needs_reconnect:options.reconnect,last_synced_at:serverSyncedAt}]},error:null};}
+ const context=vm.createContext({Date:ClockDate,Event,CustomEvent,localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>{if(options.blockFeedStorage&&k.startsWith('flow_bank_feed:'))throw Error('Status cache full');saved.set(k,v);},removeItem:k=>saved.delete(k)},sessionStorage:{getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,v)},navigator:{onLine:true},getFlowClient:()=>options.noClient?null:({auth:{getUser:async()=>({data:{user:{id:authOwner}},error:null})},functions:{invoke:async(_name,request)=>{
+ const action=request.body.action;actions.push(action);if(failed||action==='sync'&&options.syncFailure)throw Error('Unavailable');
+ if(action==='connections'){if(options.duringConnections)await options.duringConnections(saved);return {data:{connections:[{id:'bank-1',needs_reconnect:options.reconnect,last_synced_at:serverSyncedAt,institution_name:'Test Bank',transaction_status:feedStatus}]},error:null};}
  if(options.duringSync)await options.duringSync(saved);
- return {data:{transactions:rows,last_synced_at:new Date(clock).toISOString()},error:null};
+ return {data:{transactions:rows,last_synced_at:new Date(clock).toISOString(),transaction_status:feedStatus},error:null};
  }}}),getFlowSnapshot:()=>({transactions:JSON.parse(saved.get('transactions')||'[]')}),flowDataChanged:async()=>{saves++;},refreshFlowDataViews:()=>events.push('view-refresh'),document:{hidden:false,addEventListener:listen('document'),dispatchEvent:event=>{events.push(event.type);for(const fn of listeners.document.get(event.type)||[])fn(event);},querySelector:()=>null},window:{addEventListener:listen('window'),location:{reload:()=>{throw Error('Sync must not reload the page');}}},setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;}});
  context.flowSync=async()=>{cloudChecks++;if(options.cloudBlocked)return false;context.document.dispatchEvent(new Event('flow-cloud-ready'));return true;};
- for(const file of ['bank-data.js','bank-auto-sync.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js',file),'utf8'),context);
- return {saved,actions,events,context,timers,run:()=>vm.runInContext('updateBanksAutomatically()',context),force:()=>vm.runInContext('checkBanksOnReturn(true)',context),status:()=>vm.runInContext('bankSyncState',context),rows:value=>{rows=value;},advance:ms=>{clock+=ms;},webhook:()=>{serverSyncedAt=new Date(clock).toISOString();},fail:value=>{failed=value;},auth:value=>{authOwner=value;},saves:()=>saves,cloudChecks:()=>cloudChecks,tick:async()=>{const timer=timers.shift();clock+=timer.delay;await timer.fn();},emit:async(target,name,event={})=>{for(const fn of listeners[target].get(name)||[])await fn(event);await new Promise(setImmediate);}};
+ for(const file of ['bank-status.js','bank-data.js','bank-auto-sync.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js',file),'utf8'),context);
+ return {saved,actions,events,context,timers,run:()=>vm.runInContext('updateBanksAutomatically()',context),force:()=>vm.runInContext('checkBanksOnReturn(true)',context),status:()=>vm.runInContext('bankSyncState',context),rows:value=>{rows=value;},feed:value=>{feedStatus=value;},advance:ms=>{clock+=ms;},webhook:()=>{serverSyncedAt=new Date(clock).toISOString();},fail:value=>{failed=value;},auth:value=>{authOwner=value;},saves:()=>saves,cloudChecks:()=>cloudChecks,tick:async()=>{const timer=timers.shift();clock+=timer.delay;await timer.fn();},emit:async(target,name,event={})=>{for(const fn of listeners[target].get(name)||[])await fn(event);await new Promise(setImmediate);}};
 }
 test('opening Flow imports available data once, with a visible status and no page reload',async()=>{
  const a=makeApp();await a.run();await a.run();assert.deepEqual(a.actions,['connections','sync']);assert.equal(a.saves(),1);assert.ok(a.events.includes('view-refresh'));assert.equal(JSON.parse(a.saved.get('transactions')).length,1);assert.match(a.status().message,/checked for bank updates/i);
@@ -54,4 +54,21 @@ test('visible copies share the check timestamp, while storage updates refresh th
 });
 test('new bank data merges with the latest saved category and note instead of replacing user choices',async()=>{
  const a=makeApp();await a.run();const rows=JSON.parse(a.saved.get('transactions'));rows[0].category='Food';rows[0].notes='Keep this note';rows[0].reviewStatus='reviewed';a.saved.set('transactions',JSON.stringify(rows));a.advance(61000);a.webhook();await a.run();const current=JSON.parse(a.saved.get('transactions'));assert.equal(current[0].category,'Food');assert.equal(current[0].notes,'Keep this note');assert.equal(current.length,1);
+});
+
+
+test('a newer bank feed triggers an immediate free import even before its webhook reaches Flow',async()=>{
+ const a=makeApp({feedStatus:{last_successful_update:'2026-10-19T15:00:00Z'}});await a.run();
+ a.advance(60000);await a.run();assert.equal(a.actions.filter(x=>x==='sync').length,1);
+ a.feed({last_successful_update:'2026-10-19T16:01:00Z'});a.rows([{transaction_id:'new',account_id:'cash',amount:9,date:'2026-10-19',name:'New pending payment',pending:true}]);a.advance(60000);await a.run();
+ assert.equal(a.actions.filter(x=>x==='sync').length,2);assert.equal(JSON.parse(a.saved.get('transactions'))[0].status,'pending');
+ assert.equal(a.context.bankFeedNeedsImport('bank-1','person-1'),false);assert.ok(a.actions.every(x=>['connections','sync'].includes(x)));
+});
+test('failed imports leave the newer feed unapplied and recover on the automatic retry',async()=>{
+ const options={feedStatus:{last_successful_update:'2026-10-19T15:00:00Z'}},a=makeApp(options);await a.run();
+ options.syncFailure=true;a.feed({last_successful_update:'2026-10-19T16:00:00Z'});a.advance(60000);await a.run();assert.equal(a.context.bankFeedNeedsImport('bank-1','person-1'),true);assert.equal(a.status().phase,'error');
+ options.syncFailure=false;a.advance(60000);await a.run();assert.equal(a.context.bankFeedNeedsImport('bank-1','person-1'),false);assert.equal(a.status().phase,'ready');
+});
+test('an unavailable status cache cannot block bank imports or alter the saved account',async()=>{
+ const a=makeApp({blockFeedStorage:true,feedStatus:{last_successful_update:'2026-10-19T15:00:00Z'}});await a.run();assert.equal(JSON.parse(a.saved.get('transactions')).length,1);assert.equal(a.saves(),1);assert.equal(a.status().phase,'ready');assert.equal(a.saved.has('flow_bank_feed:person-1'),false);
 });

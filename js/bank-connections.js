@@ -45,11 +45,9 @@ async function showBankConnections() {
 
             name.textContent = connection.environment === "sandbox"
                 ? `${connection.institution_name} (test)` : connection.institution_name;
-            updated.textContent = connection.needs_reconnect
-                ? "Needs to be reconnected"
-                : connection.last_synced_at
-                    ? `Last check ${new Date(connection.last_synced_at).toLocaleString()}`
-                    : "Not synced yet";
+            const feed=loadBankFeedStatus().find(row=>row.id===connection.id);
+            updated.textContent=feed?bankFeedState(feed).title:connection.needs_reconnect?'Reconnect needed':'Bank feed timing unavailable';
+            const feedDetails=document.createElement('button');feedDetails.type='button';feedDetails.className='inline-link bank-feed-account-link';feedDetails.textContent='Update details';feedDetails.setAttribute('data-bank-feed-open','');
             if (connection.needs_reconnect) updated.className = "bank-warning";
             syncButton.type = "button";
             syncButton.className = "back-button";
@@ -69,7 +67,8 @@ async function showBankConnections() {
                         `flow_bank_checked_at_${flowStorage.getItem("flow_user_id")}`,
                         String(Date.now())
                     );
-                    updated.textContent = `Checked for updates ${new Date(update.last_synced_at).toLocaleString()}`;
+                    const currentFeed=loadBankFeedStatus().find(row=>row.id===connection.id);
+                    updated.textContent=currentFeed?bankFeedState(currentFeed).title:'Bank feed timing unavailable';
                     bankMessage.textContent = `Checked ${connection.institution_name}. New activity can arrive later from your bank.`;
                 } catch (error) {
                     bankMessage.textContent = error.message;
@@ -160,6 +159,7 @@ async function showBankConnections() {
                     flowStorage.removeItem(
                         `flow_bank_applied_at_${flowStorage.getItem("flow_user_id")}_${connection.id}`
                     );
+                    forgetBankFeedConnection(connection.id,flowStorage.getItem('flow_user_id'));
                     const accounts = JSON.parse(flowStorage.getItem("bankAccounts") || "[]");
                     flowStorage.setItem("bankAccounts", JSON.stringify(accounts.filter(a => a.bankConnectionId !== connection.id)));
                     await flowDataChanged();
@@ -177,6 +177,7 @@ async function showBankConnections() {
 
             details.appendChild(name);
             details.appendChild(updated);
+            details.appendChild(feedDetails);
             actions.className = "bank-actions";
             actions.appendChild(syncButton);
             actions.appendChild(removeButton);
