@@ -24,6 +24,20 @@ function refreshFlowDataViews() {
 document.addEventListener('close', flushFlowDataViews, true);
 document.addEventListener('flow-cloud-ready', flushFlowDataViews);
 
+async function flowAuthFetch(input, options = {}) {
+    const requestUrl = typeof input === 'string' ? input : input.url;
+    const url = new URL(requestUrl, flowCloudUrl);
+    if (url.origin !== new URL(flowCloudUrl).origin || !url.pathname.startsWith('/auth/v1/') ||
+        typeof AbortController === 'undefined') return fetch(input, options);
+    const controller = new AbortController(), previousSignal = options.signal || input?.signal;
+    const cancel = () => controller.abort();
+    if (previousSignal?.aborted) cancel();
+    else previousSignal?.addEventListener('abort', cancel, { once:true });
+    const timeout = setTimeout(cancel, 8000);
+    try { return await fetch(input, { ...options, signal:controller.signal }); }
+    finally { clearTimeout(timeout); previousSignal?.removeEventListener('abort', cancel); }
+}
+
 function getFlowClient() {
     if (typeof flowDemoMode !== 'undefined' && flowDemoMode) return null;
     if (!flowCloudUrl || !flowCloudKey || typeof supabase === "undefined") {
@@ -33,6 +47,7 @@ function getFlowClient() {
     if (!flowClient) {
         flowAuthStorage = typeof createFlowAuthStorage === 'function' ? createFlowAuthStorage() : localStorage;
         flowClient = supabase.createClient(flowCloudUrl, flowCloudKey, {
+            global: { fetch:flowAuthFetch },
             auth: { persistSession:true, autoRefreshToken:true, storage:flowAuthStorage }
         });
     }

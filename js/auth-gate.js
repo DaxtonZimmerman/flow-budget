@@ -5,7 +5,7 @@
     const accountPage = location.pathname === new URL('account.html', root).pathname;
     const callback = /(?:access_token=|[?&]code=)/.test(location.hash + location.search);
     const pageReady = document.readyState === 'complete' ? Promise.resolve() : new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once:true }));
-    let resolveReady, running = false, retryTimer, redirecting = false;
+    let resolveReady, running = false, retryTimer, redirecting = false, attemptNumber = 0;
     const state = { authorized: false, user: null, checking: true, root: root.href };
     state.ready = new Promise(resolve => { resolveReady = resolve; });
     window.FlowAuth = state;
@@ -89,6 +89,17 @@
         if (running) return;
         clearTimeout(retryTimer);
         running = true; state.checking = true;
+        const attempt = ++attemptNumber;
+        let deadline;
+        // A stalled request or SDK lock must not leave the app covered forever.
+        // Racing the reads also prevents a late response from reopening an old attempt.
+        const stalled = new Promise((_, reject) => {
+            deadline = setTimeout(() => {
+                const error = new Error('Sign-in check took too long.'); error.name = 'AbortError';
+                reject(error);
+            }, 12000);
+        });
+        const read = operation => Promise.race([Promise.resolve().then(operation), stalled]);
         try {
             const client = getFlowClient();
             if (!client) {
@@ -96,7 +107,8 @@
                 lock('Reconnect to open your saved account.', true);
                 resolveReady(null); return;
             }
-            const result = await client.auth.getSession();
+            const result = await read(() => client.auth.getSession());
+            if (attempt !== attemptNumber || redirecting) return;
             const session = result.data?.session;
             if (result.error) { if (retryable(result.error)) retryLater(); else signIn('expired'); return; }
             if (!session?.user?.id) { signIn('missing'); return; }
@@ -108,7 +120,8 @@
                 }
                 user = session.user;
             } else {
-                const verified = await client.auth.getUser();
+                const verified = await read(() => client.auth.getUser());
+                if (attempt !== attemptNumber || redirecting) return;
                 if (verified.error) {
                     if (retryable(verified.error)) { retryLater(); return; }
                     signIn('expired'); return;
@@ -136,7 +149,7 @@
         } catch (_) {
             if (loginPage) { reveal(); resolveReady(null); }
             else { retryLater(); }
-        } finally { running = false; state.checking = false; }
+        } finally { clearTimeout(deadline); running = false; state.checking = false; }
     }
     state.recheck = check;
     if (typeof flowDemoMode !== 'undefined' && flowDemoMode) {
@@ -149,6 +162,7 @@
     const client = getFlowClient();
     client?.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT') {
+            attemptNumber++;
             if (!loginPage) { lock('You’re signed out.'); if (!state.handlingSignOut) setTimeout(() => signIn(), 0); }
         } else if (state.authorized && session?.user?.id && session.user.id !== state.user?.id) {
             lock('Your signed-in account changed.'); setTimeout(() => location.reload(), 0);
