@@ -19,6 +19,7 @@ function makeServer(options = {}) {
         id: "connection-1", user_id: "user-1", item_id: "item-1",
         access_token: "access-secret-test", cursor: null,
         environment: options.connectionEnvironment || "sandbox",
+        recovery_required: options.recoveryRequired || false, history_complete: options.historyComplete || false,
         reconnect_required: options.reconnectRequired || false
     };
     let connections = options.noConnections ? []
@@ -32,7 +33,8 @@ function makeServer(options = {}) {
         PLAID_SANDBOX_SECRET: "sandbox-secret-test",
         PLAID_PRODUCTION_SECRET: "production-secret-test",
         PLAID_PILOT_USER_ID: "user-1",
-        PLAID_PILOT_ENABLED: options.pilotEnabled ? "true" : "false"
+        PLAID_PILOT_ENABLED: options.pilotEnabled ? "true" : "false",
+        PLAID_RECOVERY_ENABLED: options.recoveryEnabled ? "true" : "false"
     };
 
     const context = {
@@ -114,7 +116,7 @@ function makeServer(options = {}) {
                     rpcCalls.push({ name, ...values });
                     return { data: name === "disconnect_plaid_connection"
                         ? { revision: 2, data: { transactions: [] } } : null,
-                    error: null };
+                    error: options.rpcError || null };
                 }
             };
         },
@@ -173,7 +175,7 @@ function makeServer(options = {}) {
                         return {
                             added: [], modified: [],
                             removed: [{ transaction_id: "old-txn" }],
-                            next_cursor: "cursor-2", has_more: false
+                            next_cursor: "cursor-2", has_more: false, transactions_update_status: options.historyComplete ? "HISTORICAL_UPDATE_COMPLETE" : "INITIAL_UPDATE_COMPLETE"
                         };
                     }
                     return { link_token: "link-test" };
@@ -226,7 +228,7 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
     assert.equal(server.calls[1].url, "https://sandbox.plaid.com/item/public_token/exchange");
     assert.equal(server.saved[0].access_token, "access-secret-test");
     assert.equal(server.saved[0].user_id, "user-1");
-    assert.deepEqual(exchange.body, { connected: true });
+    assert.deepEqual(exchange.body, { connected: true, recovery_required: false });
     assert.equal(JSON.stringify(exchange.body).includes("access-secret-test"), false);
 });
 
@@ -500,4 +502,33 @@ test('missing, malformed and future bank-feed dates stay unknown and are never r
  for(const itemStatus of [undefined,{transactions:{}},{transactions:{last_successful_update:'not-a-date',last_failed_update:'2035-01-01T00:00:00Z'}}]){
   const result=await makeServer({itemStatus}).request({action:'connections'});assert.deepEqual(result.body.connections[0].transaction_status,{last_successful_update:null,last_failed_update:null});
  }
+});
+
+test('a replacement Production connection is staged, requests history once, and cannot import before review',async()=>{
+ const server=makeServer({noConnections:true,pilotEnabled:true,recoveryEnabled:true});
+ assert.equal((await server.request({action:'create-link-token'})).status,200);
+ assert.deepEqual(server.calls[0].body.transactions,{days_requested:730});
+ assert.deepEqual(server.calls[0].body.products,['transactions']);
+ const exchange=await server.request({action:'exchange-public-token',public_token:'public-test'});
+ assert.equal(exchange.body.recovery_required,true);assert.equal(server.saved[0].recovery_required,true);
+ const pending=makeServer({connectionEnvironment:'production',recoveryRequired:true});
+ assert.equal((await pending.request({action:'sync',connection_id:'connection-1'})).status,409);
+ assert.equal(pending.calls.length,0);assert.equal(pending.rpcCalls.length,0);
+ assert.equal((await pending.request({action:'connections'})).body.connections[0].recovery_required,true);
+});
+test('recovery preview checks ownership, stages every page and exposes full-history readiness without secrets',async()=>{
+ const server=makeServer({connectionEnvironment:'production',recoveryRequired:true,historyComplete:true});
+ const preview=await server.request({action:'recovery-preview',connection_id:'connection-1'});
+ assert.equal(preview.status,200);assert.equal(preview.body.history_complete,true);assert.equal(preview.body.cursor,'cursor-2');assert.equal(preview.body.recovery_required,true);
+ assert.equal(server.rpcCalls[0].name,'save_plaid_sync');assert.equal(JSON.stringify(preview).includes('access-secret'),false);
+ const denied=await server.request({action:'recovery-preview',connection_id:'connection-1'},'other-token');assert.equal(denied.status,404);
+ assert.equal((await makeServer().request({action:'recovery-preview',connection_id:'connection-1'})).status,409);
+ const partial=await makeServer({recoveryRequired:true}).request({action:'recovery-preview',connection_id:'connection-1'});assert.equal(partial.body.history_complete,false);
+});
+test('recovery completion requires a checked versioned snapshot and passes only the verified owner to its atomic RPC',async()=>{
+ const server=makeServer({recoveryRequired:true});
+ assert.equal((await server.request({action:'complete-recovery',connection_id:'connection-1'})).status,400);assert.equal(server.rpcCalls.length,0);
+ const result=await server.request({action:'complete-recovery',connection_id:'connection-1',expected_revision:7,expected_cursor:'cursor-2',owner_id:'attacker',data:{clientSchemaVersion:2,transactions:[],bankAccounts:[]}});
+ assert.equal(result.status,200);assert.equal(server.rpcCalls[0].owner_id,'user-1');assert.equal(server.rpcCalls[0].expected_revision,7);assert.equal(server.calls.length,0,'completion never creates, removes or rotates a Plaid Item');
+ const stale=await makeServer({rpcError:new Error('stale')}).request({action:'complete-recovery',connection_id:'connection-1',expected_revision:7,expected_cursor:'cursor-2',data:{clientSchemaVersion:2,transactions:[],bankAccounts:[]}});assert.equal(stale.status,409);
 });

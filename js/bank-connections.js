@@ -35,14 +35,26 @@ async function showBankConnections() {
         const testBankConnected = productionPilot && data.connections.some(
             connection => connection.environment === "sandbox"
         );
-        bankButton.textContent = productionPilot ? "Connect my bank" : "Connect test bank";
+        bankButton.hidden = data.recovery_mode && (!productionPilot || realBankConnected);
+        bankButton.textContent = data.recovery_mode && productionPilot ? "Restore bank updates" : productionPilot ? "Connect my bank" : "Connect test bank";
         bankButton.disabled = realBankConnected || testBankConnected;
-        bankIntro.textContent = productionPilot
+        bankIntro.textContent = data.connections.some(c=>c.recovery_required)
+            ? "Your new connection is saved. Review the accounts and replacement history below before starting automatic updates. Your original connection stays untouched."
+            : data.recovery_mode && productionPilot && !realBankConnected
+            ? "Restore Mountain America updates with one new connection. This uses another lifetime Trial slot. Flow will preview the new history before replacing the old feed and keep a recovery copy. Your original connection stays untouched."
+            : productionPilot
             ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. Flow checks for available updates while open and when you return. Your bank may report new activity later. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
             : "Connect a test bank in Plaid Sandbox. Flow checks for available updates while open and when you return; you can also check here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
         bankList.replaceChildren();
 
         for (const connection of data.connections) {
+            if (connection.recovery_required) {
+                const row = document.createElement('li'), name = document.createElement('strong'), finish = document.createElement('button');
+                name.textContent = `${connection.institution_name} · finish recovery review`;
+                finish.type='button';finish.className='save-button';finish.textContent='Review bank recovery';
+                finish.addEventListener('click',()=>window.FlowBankRecovery.open(connection));row.append(name,finish);bankList.append(row);
+                continue;
+            }
             const item = document.createElement("li");
             const details = document.createElement("div");
             const name = document.createElement("strong");
@@ -208,6 +220,8 @@ bankButton.addEventListener("click", async function() {
             throw new Error("Could not load Plaid. Check your connection and reload.");
         }
 
+        if (await flowSync() !== true || flowStorage.getItem('flow_pending') === '1') throw new Error('Wait for your saved changes before connecting.');
+        keepFlowRecoveryCopy(flowStorage.getItem('flow_user_id'),getFlowSnapshot(),'before-bank-connection');
         const data = await bankRequest("create-link-token");
         const link = Plaid.create({
             token: data.link_token,
@@ -215,10 +229,15 @@ bankButton.addEventListener("click", async function() {
                 bankMessage.textContent = "Saving your bank connection…";
 
                 try {
-                    await bankRequest("exchange-public-token", {
+                    const exchanged = await bankRequest("exchange-public-token", {
                         public_token: publicToken,
                         institution_name: metadata?.institution?.name || "Bank"
                     });
+                    if (exchanged.recovery_required) {
+                        bankMessage.textContent = 'Bank connected. Choose Review bank recovery to finish safely.';
+                        await showBankConnections();
+                        return;
+                    }
                     bankMessage.textContent = "Bank connected. Checking transactions…";
                     await showBankConnections();
                     sessionStorage.removeItem(

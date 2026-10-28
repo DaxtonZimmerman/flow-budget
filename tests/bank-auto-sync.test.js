@@ -5,7 +5,7 @@ function makeApp(options={}){
  const listen=target=>(name,fn)=>{if(!listeners[target].has(name))listeners[target].set(name,[]);listeners[target].get(name).push(fn);};
  const context=vm.createContext({Date:ClockDate,Event,CustomEvent,localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>{if(options.blockFeedStorage&&k.startsWith('flow_bank_feed:'))throw Error('Status cache full');saved.set(k,v);},removeItem:k=>saved.delete(k)},sessionStorage:{getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,v)},navigator:{onLine:true},getFlowClient:()=>options.noClient?null:({auth:{getUser:async()=>({data:{user:{id:authOwner}},error:null})},functions:{invoke:async(_name,request)=>{
  const action=request.body.action;actions.push(action);if(failed||action==='sync'&&options.syncFailure)throw Error('Unavailable');
- if(action==='connections'){if(options.duringConnections)await options.duringConnections(saved);return {data:{connections:[{id:'bank-1',needs_reconnect:options.reconnect,last_synced_at:serverSyncedAt,institution_name:'Test Bank',transaction_status:feedStatus}]},error:null};}
+ if(action==='connections'){if(options.duringConnections)await options.duringConnections(saved);return {data:{connections:[{id:'bank-1',recovery_required:options.recoveryRequired,needs_reconnect:options.reconnect,last_synced_at:serverSyncedAt,institution_name:'Test Bank',transaction_status:feedStatus}]},error:null};}
  if(options.duringSync)await options.duringSync(saved);
  return {data:{transactions:rows,last_synced_at:new Date(clock).toISOString(),transaction_status:feedStatus},error:null};
  }}}),getFlowSnapshot:()=>({transactions:JSON.parse(saved.get('transactions')||'[]')}),flowDataChanged:async()=>{saves++;},refreshFlowDataViews:()=>events.push('view-refresh'),document:{hidden:false,addEventListener:listen('document'),dispatchEvent:event=>{events.push(event.type);for(const fn of listeners.document.get(event.type)||[])fn(event);},querySelector:()=>null},window:{addEventListener:listen('window'),location:{reload:()=>{throw Error('Sync must not reload the page');}}},setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;}});
@@ -79,4 +79,9 @@ test('server recovery pauses bank requests while keeping saved transactions unto
  await app.run();await app.force();
  assert.deepEqual(app.actions,[]);assert.equal(app.saves(),0);
  assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'saved-before-outage');
+});
+
+test('a staged replacement is never imported by minute checks or manual background checks',async()=>{
+ const a=makeApp({recoveryRequired:true});a.saved.set('transactions','[{"id":"old-history"}]');await a.run();await a.force();
+ assert.deepEqual(a.actions,['connections']);assert.equal(a.status().phase,'recovery');assert.equal(JSON.parse(a.saved.get('transactions'))[0].id,'old-history');assert.equal(a.saves(),0);
 });

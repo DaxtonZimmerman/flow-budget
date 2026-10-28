@@ -24,6 +24,8 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
             const result = await bankRequest('connections');
             if (flowStorage.getItem('flow_user_id') !== owner) return;
             if (!Array.isArray(result.connections)) throw new Error('Bank connections are unavailable.');
+            // A staged replacement must never prune the original cached accounts.
+            if (result.connections.some(c => c.recovery_required) || result.recovery_mode && !result.connections.length) return {status:'recovery'};
             const ids = new Set(result.connections.map(c => c.id));
             const cacheBase = flowStorage.getItem('bankAccounts');
             let accounts = loadBankAccounts().filter(a => ids.has(a.bankConnectionId));

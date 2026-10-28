@@ -3,7 +3,7 @@ function setup(options={}){
  const saved=new Map([['flow_user_id','owner']]), session=new Map(),events=[],calls=[],listeners=new Map(),timers=new Map();let flushed=0,now=Date.now(),timerId=0;
  const remember=(name,fn)=>listeners.set(name,fn);
  class Clock extends Date { static now(){return now;} }
- const context={Date:Clock,Event,navigator:{onLine:true},setTimeout:(fn,delay)=>{timers.set(++timerId,{fn,at:now+delay});return timerId;},clearTimeout:id=>timers.delete(id),localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>saved.set(k,v)},sessionStorage:{getItem:k=>{if(options.blockSession)throw Error('storage blocked');return session.get(k)??null;},setItem:(k,v)=>{if(options.blockSession)throw Error('storage blocked');session.set(k,v);}},document:{hidden:false,addEventListener:remember,dispatchEvent:e=>events.push(e.type)},window:{addEventListener:remember},getFlowClient:()=>({auth:{getUser:async()=>({data:{user:{id:options.authOwner||'owner'}}})}}),flowDataChanged:async()=>flushed++,bankRequest:async action=>{calls.push(action);if(action==='connections'){if(options.connectionFailure)throw Error('unavailable');return {connections:[{id:'conn',needs_reconnect:options.reconnect}]};}if(options.duringFetch)options.duringFetch(saved);if(options.unavailable)throw Error('Old endpoint');return {accounts:[{account_id:'cash',name:'Checking',type:'depository',subtype:'checking',balances:{available:50,iso_currency_code:'USD'}}],retrieved_at:new Date(now).toISOString()};}};
+ const context={Date:Clock,Event,navigator:{onLine:true},setTimeout:(fn,delay)=>{timers.set(++timerId,{fn,at:now+delay});return timerId;},clearTimeout:id=>timers.delete(id),localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>saved.set(k,v)},sessionStorage:{getItem:k=>{if(options.blockSession)throw Error('storage blocked');return session.get(k)??null;},setItem:(k,v)=>{if(options.blockSession)throw Error('storage blocked');session.set(k,v);}},document:{hidden:false,addEventListener:remember,dispatchEvent:e=>events.push(e.type)},window:{addEventListener:remember},getFlowClient:()=>({auth:{getUser:async()=>({data:{user:{id:options.authOwner||'owner'}}})}}),flowDataChanged:async()=>flushed++,bankRequest:async action=>{calls.push(action);if(action==='connections'){if(options.connectionFailure)throw Error('unavailable');return {connections:options.emptyRecovery?[]:[{id:'conn',needs_reconnect:options.reconnect,recovery_required:options.recoveryRequired}],recovery_mode:options.emptyRecovery};}if(options.duringFetch)options.duringFetch(saved);if(options.unavailable)throw Error('Old endpoint');return {accounts:[{account_id:'cash',name:'Checking',type:'depository',subtype:'checking',balances:{available:50,iso_currency_code:'USD'}}],retrieved_at:new Date(now).toISOString()};}};
  vm.createContext(context);for(const file of ['planning-data','bank-accounts'])vm.runInContext(fs.readFileSync(`${__dirname}/../js/${file}.js`,'utf8'),context);
  return {saved,session,events,calls,context,refresh:(force=true)=>context.window.refreshFlowAccounts(force),event:(name)=>listeners.get(name)({}),onBankChange:()=>listeners.get('flow-bank-updated')({detail:{changed:true}}),flushes:()=>flushed,timers,advance:async ms=>{now+=ms;for(const [id,timer]of [...timers])if(timer.at<=now){timers.delete(id);await timer.fn();}}};
 }
@@ -62,4 +62,11 @@ test('replacement-server preparation keeps cached balances and does not query em
  const saved='[{"id":"retained-balance"}]';app.saved.set('bankAccounts',saved);
  assert.equal((await app.refresh()).status,'unavailable');
  assert.equal(app.saved.get('bankAccounts'),saved);assert.deepEqual(app.calls,[]);assert.equal(app.flushes(),0);
+});
+
+test('empty replacement server and staged connections never prune original cached account selections',async()=>{
+ for(const options of [{recoveryRequired:true},{emptyRecovery:true}]){
+  const a=setup(options);a.saved.set('bankAccounts','[{"id":"old-account"}]');assert.equal((await a.refresh()).status,'recovery');
+  assert.equal(a.saved.get('bankAccounts'),'[{"id":"old-account"}]');assert.deepEqual(a.calls,['connections']);assert.equal(a.flushes(),0);
+ }
 });

@@ -1,0 +1,1815 @@
+commit 0f112942ba7128c6899372211934d9e7a70126c6
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-27 22:44:39 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-27 22:44:39 -0600
+
+    Restore Flow sign-in on the recovery server and protect saved work
+
+ account.html                                | 20 +++----
+ add-transaction.html                        | 16 ++---
+ bills.html                                  | 16 ++---
+ budgets.html                                | 16 ++---
+ css/auth.css                                |  1 +
+ demo/account.html                           | 20 +++----
+ demo/add-transaction.html                   | 16 ++---
+ demo/bills.html                             | 16 ++---
+ demo/budgets.html                           | 16 ++---
+ demo/import.html                            | 16 ++---
+ demo/index.html                             | 16 ++---
+ demo/review.html                            | 16 ++---
+ demo/setup.html                             | 16 ++---
+ demo/transactions.html                      | 16 ++---
+ import.html                                 | 16 ++---
+ index.html                                  | 16 ++---
+ js/account.js                               | 15 ++++-
+ js/auth-gate.js                             |  1 +
+ js/bank-accounts.js                         |  1 +
+ js/bank-auto-sync.js                        |  6 ++
+ js/bank-connections.js                      |  8 +++
+ js/bank-status.js                           |  1 +
+ js/cloud-config.js                          |  8 ++-
+ js/cloud-sync.js                            | 91 +++++++++++++++++++++++++++--
+ js/login.js                                 |  3 +-
+ login.html                                  | 12 ++--
+ offline.html                                |  2 +-
+ review.html                                 | 16 ++---
+ setup.html                                  | 16 ++---
+ supabase/functions/flow-auth-email/index.ts | 11 +++-
+ sw.js                                       |  4 +-
+ tests/auth-email-hook.test.js               | 21 +++++++
+ tests/bank-accounts.test.js                 |  7 +++
+ tests/bank-auto-sync.test.js                |  8 +++
+ tests/cloud-sync.test.js                    | 83 +++++++++++++++++++++++++-
+ transactions.html                           | 16 ++---
+ 36 files changed, 407 insertions(+), 172 deletions(-)
+
+commit 68955fb048c26a220ed3aee9b374b307981548ef
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-25 14:02:56 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-25 14:02:56 -0600
+
+    Recover automatically when sign-in checks stall
+
+ account.html              |  6 +++---
+ add-transaction.html      |  6 +++---
+ bills.html                |  6 +++---
+ budgets.html              |  6 +++---
+ demo/account.html         |  6 +++---
+ demo/add-transaction.html |  6 +++---
+ demo/bills.html           |  6 +++---
+ demo/budgets.html         |  6 +++---
+ demo/import.html          |  6 +++---
+ demo/index.html           |  6 +++---
+ demo/review.html          |  6 +++---
+ demo/setup.html           |  6 +++---
+ demo/transactions.html    |  6 +++---
+ import.html               |  6 +++---
+ index.html                |  6 +++---
+ js/auth-gate.js           | 22 ++++++++++++++++++----
+ js/cloud-sync.js          | 15 +++++++++++++++
+ login.html                |  6 +++---
+ offline.html              |  2 +-
+ review.html               |  6 +++---
+ setup.html                |  6 +++---
+ sw.js                     |  4 ++--
+ tests/auth-fetch.test.js  | 31 +++++++++++++++++++++++++++++++
+ tests/auth-gate.test.js   | 34 +++++++++++++++++++++++++++++++---
+ transactions.html         |  6 +++---
+ 25 files changed, 155 insertions(+), 67 deletions(-)
+
+commit 7c04c0587c71a914f4639698b4901fb1ad41ed6a
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-24 13:51:45 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-24 13:51:45 -0600
+
+    Show bank feed timing and import newly available activity promptly
+
+ account.html                      |  11 +--
+ add-transaction.html              |   7 +-
+ bills.html                        |   9 +--
+ budgets.html                      |   9 +--
+ css/experience.css                |  11 +++
+ demo/account.html                 |  11 +--
+ demo/add-transaction.html         |   7 +-
+ demo/bills.html                   |   9 +--
+ demo/budgets.html                 |   9 +--
+ demo/import.html                  |   7 +-
+ demo/index.html                   |   9 +--
+ demo/review.html                  |   7 +-
+ demo/setup.html                   |   9 +--
+ demo/transactions.html            |   7 +-
+ import.html                       |   7 +-
+ index.html                        |   9 +--
+ js/bank-auto-sync.js              |  18 +++--
+ js/bank-connections.js            |  13 ++--
+ js/bank-status.js                 | 138 ++++++++++++++++++++++++++++++++++++++
+ js/payday-app.js                  |  12 +++-
+ login.html                        |   4 +-
+ offline.html                      |   4 +-
+ review.html                       |   7 +-
+ setup.html                        |   9 +--
+ supabase/functions/plaid/index.ts |  22 +++++-
+ sw.js                             |   4 +-
+ tests/bank-auto-sync.test.js      |  31 +++++++--
+ tests/bank-status.test.js         |  29 ++++++++
+ tests/plaid-function.test.js      |  21 +++++-
+ transactions.html                 |   7 +-
+ 30 files changed, 363 insertions(+), 94 deletions(-)
+
+commit ab00ad3d21985772a7e05000d31bb1e272e0e7de
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-24 12:20:49 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-24 12:20:49 -0600
+
+    Simplify payday setup and clarify spendable money
+
+ account.html               |  10 +--
+ add-transaction.html       |   6 +-
+ bills.html                 |  10 +--
+ budgets.html               |  10 +--
+ css/experience.css         |   8 +++
+ css/payday.css             |   3 +
+ demo/account.html          |  10 +--
+ demo/add-transaction.html  |   6 +-
+ demo/bills.html            |  10 +--
+ demo/budgets.html          |  10 +--
+ demo/import.html           |   6 +-
+ demo/index.html            |  10 +--
+ demo/review.html           |   6 +-
+ demo/setup.html            |  11 +--
+ demo/transactions.html     |   6 +-
+ import.html                |   6 +-
+ index.html                 |  10 +--
+ js/home-view.js            |  11 +++
+ js/payday-app.js           | 163 +++++++++++++++++++++++++++------------------
+ js/setup-data.js           |  48 +++++++++++++
+ login.html                 |   4 +-
+ offline.html               |   4 +-
+ review.html                |   6 +-
+ setup.html                 |  11 +--
+ sw.js                      |   4 +-
+ tests/home-view.test.js    |  12 ++++
+ tests/simple-setup.test.js |  15 +++++
+ transactions.html          |   6 +-
+ 28 files changed, 276 insertions(+), 146 deletions(-)
+
+commit 124039d925817e8575da803d54164585dbae4223
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-23 09:06:54 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-23 09:06:54 -0600
+
+    Explain payday suggestions and check bank updates automatically
+
+ account.html                     |  12 ++---
+ add-transaction.html             |  10 ++--
+ bills.html                       |  12 ++---
+ budgets.html                     |  12 ++---
+ css/payday.css                   |  28 ++++++++++
+ demo/account.html                |  12 ++---
+ demo/add-transaction.html        |  10 ++--
+ demo/bills.html                  |  12 ++---
+ demo/budgets.html                |  12 ++---
+ demo/import.html                 |  10 ++--
+ demo/index.html                  |  12 ++---
+ demo/review.html                 |  10 ++--
+ demo/setup.html                  |  12 ++---
+ demo/transactions.html           |  10 ++--
+ import.html                      |  10 ++--
+ index.html                       |  12 ++---
+ js/bank-accounts.js              |  16 ++++--
+ js/growth-data.js                |  55 +++++++++++++++++++-
+ js/payday-app.js                 | 110 ++++++++++++++++++++++++++++-----------
+ js/product-data.js               |  43 ++++-----------
+ login.html                       |   2 +-
+ offline.html                     |   2 +-
+ review.html                      |  10 ++--
+ setup.html                       |  12 ++---
+ sw.js                            |   4 +-
+ tests/bank-accounts.test.js      |   7 +++
+ tests/guided-plan.test.js        |   8 +--
+ tests/period-suggestions.test.js |  18 +++++++
+ transactions.html                |  10 ++--
+ 29 files changed, 315 insertions(+), 178 deletions(-)
+
+commit 47c863127875c745bb1dbf0014abdd369f32352d
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-23 08:08:07 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-23 08:08:07 -0600
+
+    Add explicit payday receipt on Home and Plan
+
+ account.html                     | 10 +++++-----
+ add-transaction.html             |  8 ++++----
+ bills.html                       | 10 +++++-----
+ budgets.html                     | 10 +++++-----
+ css/payday.css                   |  4 ++++
+ demo/account.html                | 10 +++++-----
+ demo/add-transaction.html        |  8 ++++----
+ demo/bills.html                  | 10 +++++-----
+ demo/budgets.html                | 10 +++++-----
+ demo/import.html                 |  8 ++++----
+ demo/index.html                  | 10 +++++-----
+ demo/review.html                 |  8 ++++----
+ demo/setup.html                  | 10 +++++-----
+ demo/transactions.html           |  8 ++++----
+ import.html                      |  8 ++++----
+ index.html                       | 10 +++++-----
+ js/mobile-views.js               |  7 ++++++-
+ js/payday-app.js                 | 28 ++++++++++++++++++----------
+ js/planning-data.js              | 14 +++++++++-----
+ login.html                       |  2 +-
+ offline.html                     |  2 +-
+ review.html                      |  8 ++++----
+ scripts/browser-guided-plan.cjs  |  2 +-
+ scripts/browser-pay-received.cjs | 22 ++++++++++++++++++++++
+ setup.html                       | 10 +++++-----
+ sw.js                            |  4 ++--
+ tests/pay-received.test.js       | 12 ++++++++++++
+ transactions.html                |  8 ++++----
+ 28 files changed, 158 insertions(+), 103 deletions(-)
+
+commit ef5496809c2a79b9d80f0c14347bd606ec4ba41a
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-23 07:56:52 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-23 07:56:52 -0600
+
+    Simplify payday setup and fit budget suggestions to typical spending
+
+ account.html                     |  20 +++----
+ add-transaction.html             |  18 +++----
+ bills.html                       |  20 +++----
+ budgets.html                     |  24 ++++-----
+ css/growth.css                   |  23 +++++++++
+ css/payday.css                   |  24 +++++++++
+ demo/account.html                |  20 +++----
+ demo/add-transaction.html        |  18 +++----
+ demo/bills.html                  |  20 +++----
+ demo/budgets.html                |  24 ++++-----
+ demo/import.html                 |  18 +++----
+ demo/index.html                  |  20 +++----
+ demo/review.html                 |  18 +++----
+ demo/setup.html                  |  20 +++----
+ demo/transactions.html           |  20 +++----
+ import.html                      |  18 +++----
+ index.html                       |  20 +++----
+ js/growth-app.js                 |  67 +++++++++++++++++++-----
+ js/growth-data.js                | 106 +++++++++++++++++++++++++++++++------
+ js/mobile-views.js               |   2 +-
+ js/payday-app.js                 | 109 +++++++++++++++++++++++++++------------
+ js/planning-data.js              |  24 ++++++---
+ js/product-data.js               |  45 ++++++++++++++++
+ js/transfer-app.js               |  12 ++---
+ login.html                       |   2 +-
+ offline.html                     |   2 +-
+ review.html                      |  18 +++----
+ scripts/browser-budget-fit.cjs   |  34 ++++++++++++
+ scripts/browser-growth.cjs       |   4 +-
+ scripts/browser-guided-plan.cjs  |  32 ++++++++++++
+ setup.html                       |  20 +++----
+ sw.js                            |   4 +-
+ tests/budget-suggestions.test.js |  18 +++++++
+ tests/growth-data.test.js        |   2 +-
+ tests/guided-plan.test.js        |  14 +++++
+ tests/payday-checkin.test.js     |   4 +-
+ transactions.html                |  20 +++----
+ 37 files changed, 619 insertions(+), 265 deletions(-)
+
+commit bc5b6fad74d6b6eeba6192f0d602773a67a3addc
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-22 11:59:38 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-22 11:59:38 -0600
+
+    Add suggested budgets, photo savings goals, net worth, and subscription help
+
+ account.html                |  13 +--
+ add-transaction.html        |  11 ++-
+ bills.html                  |  13 +--
+ budgets.html                |  13 +--
+ css/growth.css              | 163 ++++++++++++++++++++++++++++++++++
+ demo/account.html           |  13 +--
+ demo/add-transaction.html   |  11 ++-
+ demo/bills.html             |  13 +--
+ demo/budgets.html           |  13 +--
+ demo/import.html            |  11 ++-
+ demo/index.html             |  13 +--
+ demo/review.html            |  11 ++-
+ demo/setup.html             |  13 +--
+ demo/transactions.html      |  11 ++-
+ import.html                 |  11 ++-
+ index.html                  |  13 +--
+ js/growth-app.js            | 210 ++++++++++++++++++++++++++++++++++++++++++++
+ js/growth-data.js           | 173 ++++++++++++++++++++++++++++++++++++
+ js/mobile-app.js            |   2 +-
+ js/payday-app.js            |   4 +
+ js/product-app.js           |   1 +
+ js/product-data.js          |   2 +-
+ login.html                  |   2 +-
+ offline.html                |   2 +-
+ review.html                 |  11 ++-
+ scripts/browser-growth.cjs  |  48 ++++++++++
+ scripts/browser-mobile.cjs  |   6 +-
+ scripts/browser-offline.cjs |   4 +-
+ scripts/browser-product.cjs |   6 +-
+ setup.html                  |  13 +--
+ sw.js                       |   4 +-
+ tests/growth-data.test.js   |  26 ++++++
+ transactions.html           |  11 ++-
+ 33 files changed, 775 insertions(+), 96 deletions(-)
+
+commit db77b584d16cf97f6a03ea65264cd0e0026cb0ae
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-21 13:28:56 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-21 13:28:56 -0600
+
+    Redesign Flow with visual payday planning and native-style account controls
+
+ account.html                    |  46 ++++----
+ add-transaction.html            |  31 ++---
+ bills.html                      |  34 +++---
+ budgets.html                    |  34 +++---
+ css/experience.css              | 251 ++++++++++++++++++++++++++++++++++++++++
+ demo/account.html               |  46 ++++----
+ demo/add-transaction.html       |  31 ++---
+ demo/bills.html                 |  34 +++---
+ demo/budgets.html               |  34 +++---
+ demo/import.html                |  31 ++---
+ demo/index.html                 |  34 +++---
+ demo/review.html                |  31 ++---
+ demo/setup.html                 |  34 +++---
+ demo/transactions.html          |  33 +++---
+ import.html                     |  31 ++---
+ index.html                      |  34 +++---
+ js/account.js                   |  49 ++------
+ js/app-offline.js               |   2 +-
+ js/app-shell.js                 |  25 +++-
+ js/auth-gate.js                 |  12 +-
+ js/experience-data.js           |  30 +++++
+ js/experience.js                |  63 ++++++++++
+ js/mobile-views.js              |  14 ++-
+ js/payday-app.js                |  25 ++--
+ js/product-app.js               |  15 ++-
+ login.html                      |   7 +-
+ offline.html                    |   3 +-
+ review.html                     |  31 ++---
+ scripts/browser-experience.cjs  |  62 ++++++++++
+ scripts/browser-home-polish.cjs |   2 +
+ scripts/browser-product.cjs     |   2 +-
+ setup.html                      |  34 +++---
+ sw.js                           |   4 +-
+ tests/auth-gate.test.js         |  10 +-
+ tests/experience-data.test.js   |  18 +++
+ tests/profile-signout.test.js   |  18 +++
+ transactions.html               |  33 +++---
+ 37 files changed, 896 insertions(+), 332 deletions(-)
+
+commit fc790bf34f39caf8d53209d86cedaa3cd213e8a1
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-21 09:03:33 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-21 09:03:33 -0600
+
+    Automate bank balance recovery and smooth highlight swipes
+
+ account.html                    | 14 +++----
+ add-transaction.html            | 10 ++---
+ bills.html                      | 14 +++----
+ budgets.html                    | 14 +++----
+ css/mobile.css                  |  2 +-
+ css/redesign.css                |  9 ++++-
+ demo/account.html               | 14 +++----
+ demo/add-transaction.html       | 10 ++---
+ demo/bills.html                 | 14 +++----
+ demo/budgets.html               | 14 +++----
+ demo/import.html                | 10 ++---
+ demo/index.html                 | 14 +++----
+ demo/review.html                | 10 ++---
+ demo/setup.html                 | 14 +++----
+ demo/transactions.html          | 10 ++---
+ import.html                     | 10 ++---
+ index.html                      | 14 +++----
+ js/bank-accounts.js             | 48 +++++++++++++++++------
+ js/home-view.js                 | 17 ++++++++-
+ js/mobile-app.js                | 11 ------
+ js/payday-app.js                | 66 +++++++++++++++++++++++++++-----
+ login.html                      |  2 +-
+ offline.html                    |  2 +-
+ review.html                     | 10 ++---
+ scripts/browser-home-polish.cjs | 84 +++++++++++++++++++++++++++++++++++++++++
+ setup.html                      | 14 +++----
+ sw.js                           |  4 +-
+ tests/bank-accounts.test.js     | 35 +++++++++++++++--
+ tests/home-view.test.js         | 18 ++++++++-
+ transactions.html               | 10 ++---
+ 30 files changed, 363 insertions(+), 155 deletions(-)
+
+commit 84a31c8ac4793b3f8c903d7892433e9c9e938a82
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-21 08:24:25 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-21 08:24:25 -0600
+
+    Open saved accounts automatically and protect conflicting edits
+
+ account.html                         |  32 +++---
+ add-transaction.html                 |   8 +-
+ bills.html                           |   8 +-
+ budgets.html                         |   8 +-
+ css/app.css                          |   6 ++
+ demo/account.html                    |  32 +++---
+ demo/add-transaction.html            |   8 +-
+ demo/bills.html                      |   8 +-
+ demo/budgets.html                    |   8 +-
+ demo/import.html                     |   8 +-
+ demo/index.html                      |   8 +-
+ demo/review.html                     |   8 +-
+ demo/setup.html                      |   8 +-
+ demo/transactions.html               |   8 +-
+ import.html                          |   8 +-
+ index.html                           |   8 +-
+ js/account.js                        | 193 +++++++++++------------------------
+ js/auth-gate.js                      |   1 +
+ js/cloud-sync.js                     | 125 +++++++++++++++++++----
+ login.html                           |   8 +-
+ offline.html                         |   2 +-
+ review.html                          |   8 +-
+ scripts/browser-auth-persistence.cjs |   3 +-
+ scripts/browser-auth-updates.cjs     |   7 +-
+ scripts/browser-auto-account.cjs     |  82 +++++++++++++++
+ setup.html                           |   8 +-
+ sw.js                                |   4 +-
+ tests/cloud-sync.test.js             | 146 ++++++++++++++++++++++++--
+ transactions.html                    |   8 +-
+ 29 files changed, 495 insertions(+), 274 deletions(-)
+
+commit 15079a6b874ec87e8f5618e946d736762effd512
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 23:45:32 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 23:45:32 -0600
+
+    Redesign Flow for iPhone and adopt official logo
+
+ account.html                      |  18 +--
+ add-transaction.html              |  16 ++-
+ assets/flow-icon-192.png          | Bin 5232 -> 5187 bytes
+ assets/flow-icon-512.png          | Bin 18889 -> 19113 bytes
+ assets/flow-icon.svg              |   2 +-
+ assets/flow-logo.png              | Bin 0 -> 11121 bytes
+ bills.html                        |  18 +--
+ budgets.html                      |  18 +--
+ css/brand.css                     |   6 +
+ css/mobile.css                    | 245 ++++++++++++++++++++++++++++++++++++++
+ demo/account.html                 |  19 +--
+ demo/add-transaction.html         |  16 ++-
+ demo/bills.html                   |  18 +--
+ demo/budgets.html                 |  18 +--
+ demo/import.html                  |  16 ++-
+ demo/index.html                   |  18 +--
+ demo/review.html                  |  16 ++-
+ demo/setup.html                   |  18 +--
+ demo/transactions.html            |  18 +--
+ import.html                       |  16 ++-
+ index.html                        |  18 +--
+ js/auth-gate.js                   |   3 +-
+ js/mobile-app.js                  | 177 +++++++++++++++++++++++++++
+ js/mobile-views.js                |  38 ++++++
+ js/payday-app.js                  |  30 ++++-
+ js/transactions.js                |   4 +
+ login.html                        |  11 +-
+ offline.html                      |   3 +-
+ review.html                       |  16 ++-
+ scripts/browser-home-overview.cjs |   5 +-
+ scripts/browser-mobile.cjs        |  84 +++++++++++++
+ scripts/browser-offline.cjs       |   6 +-
+ scripts/browser-product.cjs       |   2 +-
+ scripts/build-demo.mjs            |   5 +-
+ setup.html                        |  18 +--
+ sw.js                             |   4 +-
+ transactions.html                 |  18 +--
+ 37 files changed, 796 insertions(+), 142 deletions(-)
+
+commit 84685f4cf3a2ed8dec3bd665c81a848b5b8dc984
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 22:29:33 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 22:29:33 -0600
+
+    Send private Flow sign-in codes through Resend
+
+ .github/workflows/pages.yml                 |   1 +
+ package-lock.json                           |  38 +++++++
+ package.json                                |  10 ++
+ supabase/config.toml                        |   4 +
+ supabase/functions/flow-auth-email/index.ts | 106 ++++++++++++++++++
+ tests/auth-email-hook.test.js               | 168 ++++++++++++++++++++++++++++
+ 6 files changed, 327 insertions(+)
+
+commit 92dbb0ca721299139b51ad5885cd074e78e5407c
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 22:04:51 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 22:04:51 -0600
+
+    Simplify sign-in to email codes inside Flow
+
+ account.html                         |  16 ++---
+ add-transaction.html                 |   4 +-
+ bills.html                           |   4 +-
+ budgets.html                         |   4 +-
+ css/auth.css                         |   7 ++
+ demo/account.html                    |  16 ++---
+ demo/add-transaction.html            |   4 +-
+ demo/bills.html                      |   4 +-
+ demo/budgets.html                    |   4 +-
+ demo/import.html                     |   4 +-
+ demo/index.html                      |   4 +-
+ demo/review.html                     |   4 +-
+ demo/setup.html                      |   4 +-
+ demo/transactions.html               |   4 +-
+ import.html                          |   4 +-
+ index.html                           |   4 +-
+ js/account.js                        |  21 ------
+ js/login.js                          | 130 ++++++++++++++++++++++-------------
+ login.html                           |  42 +++++------
+ offline.html                         |   2 +-
+ review.html                          |   4 +-
+ scripts/browser-auth-fixture.cjs     |   3 +
+ scripts/browser-auth-persistence.cjs |  24 +++++--
+ scripts/browser-auth-updates.cjs     |  13 ++--
+ setup.html                           |   4 +-
+ supabase/config.toml                 |   9 +++
+ supabase/templates/sign-in-code.html |   4 ++
+ sw.js                                |   4 +-
+ transactions.html                    |   4 +-
+ 29 files changed, 200 insertions(+), 155 deletions(-)
+
+commit f8d0b5cf7ad53dfdfa1d0bbe509046095348b64f
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 21:43:30 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 21:43:30 -0600
+
+    Preserve installed app sign-in and explain email failures
+
+ account.html                         |  9 ++--
+ add-transaction.html                 |  9 ++--
+ bills.html                           |  9 ++--
+ budgets.html                         |  9 ++--
+ css/auth.css                         |  3 ++
+ demo/account.html                    |  9 ++--
+ demo/add-transaction.html            |  9 ++--
+ demo/bills.html                      |  9 ++--
+ demo/budgets.html                    |  9 ++--
+ demo/import.html                     |  9 ++--
+ demo/index.html                      |  9 ++--
+ demo/review.html                     |  9 ++--
+ demo/setup.html                      |  9 ++--
+ demo/transactions.html               |  9 ++--
+ import.html                          |  9 ++--
+ index.html                           |  9 ++--
+ js/auth-gate.js                      | 34 +++++++++++----
+ js/auth-storage.js                   | 81 ++++++++++++++++++++++++++++++++++++
+ js/cloud-sync.js                     |  6 ++-
+ js/login.js                          | 47 ++++++++++++++++++---
+ login.html                           | 19 ++++++---
+ offline.html                         |  2 +-
+ review.html                          |  9 ++--
+ scripts/browser-auth-persistence.cjs | 66 +++++++++++++++++++++++++++++
+ setup.html                           |  9 ++--
+ sw.js                                |  4 +-
+ tests/auth-gate.test.js              | 40 ++++++++++++++++++
+ transactions.html                    |  9 ++--
+ 28 files changed, 370 insertions(+), 94 deletions(-)
+
+commit dcd717a1510d2c251ad1f80e9ed069742a8babe2
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 20:03:09 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 20:03:09 -0600
+
+    Require sign-in and apply app updates safely
+
+ account.html                        |  18 +++--
+ add-transaction.html                |  16 ++--
+ bills.html                          |  16 ++--
+ budgets.html                        |  16 ++--
+ css/auth.css                        |  23 ++++++
+ demo/account.html                   |  18 +++--
+ demo/add-transaction.html           |  16 ++--
+ demo/bills.html                     |  16 ++--
+ demo/budgets.html                   |  16 ++--
+ demo/import.html                    |  14 ++--
+ demo/index.html                     |  16 ++--
+ demo/review.html                    |  14 ++--
+ demo/setup.html                     |  16 ++--
+ demo/transactions.html              |  16 ++--
+ import.html                         |  14 ++--
+ index.html                          |  16 ++--
+ js/account.js                       |  11 ++-
+ js/add-transaction.js               |   4 +
+ js/app-offline.js                   | 125 +++++++++++++++++++++++--------
+ js/auth-gate.js                     | 142 ++++++++++++++++++++++++++++++++++++
+ js/cloud-sync.js                    |   5 ++
+ js/login.js                         |  38 ++++++++++
+ js/money-data.js                    |   3 +
+ js/payday-app.js                    |   1 +
+ js/planning-data.js                 |   2 +
+ js/transactions.js                  |   3 +
+ login.html                          |  46 ++++++++++++
+ offline.html                        |   2 +-
+ review.html                         |  14 ++--
+ scripts/browser-auth-fixture.cjs    |  40 ++++++++++
+ scripts/browser-auth-updates.cjs    | 112 ++++++++++++++++++++++++++++
+ scripts/browser-financial-tools.cjs |   1 +
+ scripts/browser-home-overview.cjs   |   1 +
+ scripts/browser-offline.cjs         |   1 +
+ scripts/browser-product.cjs         |   1 +
+ scripts/build-demo.mjs              |   2 +-
+ scripts/build-offline.mjs           |  11 ++-
+ scripts/sw-template.js              |  47 +++++++++++-
+ setup.html                          |  16 ++--
+ sw.js                               |  51 ++++++++++++-
+ tests/money-data.test.js            |   1 +
+ transactions.html                   |  16 ++--
+ vendor/LICENSE-supabase.txt         |  21 ++++++
+ vendor/supabase.min.js              |  17 +++++
+ 44 files changed, 832 insertions(+), 163 deletions(-)
+
+commit fecfed6b15b06901d6b9d16bb815120eee32fed6
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-20 15:32:11 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-20 15:32:11 -0600
+
+    show monthly income, expenses, add live spedning by category, and new transactions default to today
+
+ account.html                      |  34 +++---
+ add-transaction.html              |  31 ++++--
+ bills.html                        |  95 ++++++++++++++++
+ budgets.html                      |  32 ++++--
+ css/redesign.css                  | 183 +++++++++++++++++++++++++++++++
+ demo/account.html                 |  34 +++---
+ demo/add-transaction.html         |  31 ++++--
+ demo/bills.html                   |  95 ++++++++++++++++
+ demo/budgets.html                 |  32 ++++--
+ demo/import.html                  |  29 +++--
+ demo/index.html                   |  32 ++++--
+ demo/review.html                  |  29 +++--
+ demo/setup.html                   |  32 ++++--
+ demo/transactions.html            |  29 +++--
+ docs/APP_REDESIGN_PLAN.md         | 221 ++++++++++++++++++++++++++++++++++++++
+ docs/APP_SHELL_HOME_REVIEW.md     |  30 ++++++
+ import.html                       |  29 +++--
+ index.html                        |  32 ++++--
+ js/add-transaction.js             |   8 +-
+ js/app-shell.js                   |  23 ++++
+ js/home-view.js                   |  27 +++++
+ js/payday-app.js                  | 111 ++++++++++++++++---
+ js/product-app.js                 |  11 +-
+ review.html                       |  29 +++--
+ scripts/browser-home-overview.cjs | 122 +++++++++++++++++++++
+ scripts/browser-product.cjs       |  10 +-
+ setup.html                        |  32 ++++--
+ sw.js                             |   4 +-
+ tests/home-view.test.js           |  29 +++++
+ transactions.html                 |  29 +++--
+ 30 files changed, 1263 insertions(+), 202 deletions(-)
+
+commit 68a437f0704614da06be2daaf32a7f8a63de78bc
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 23:49:13 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 23:49:13 -0600
+
+    Resolve versioned app manifest from demo pages
+
+ demo/account.html                 | 2 +-
+ demo/add-transaction.html         | 2 +-
+ demo/budgets.html                 | 2 +-
+ demo/import.html                  | 2 +-
+ demo/index.html                   | 2 +-
+ demo/review.html                  | 2 +-
+ demo/setup.html                   | 2 +-
+ demo/transactions.html            | 2 +-
+ scripts/browser-cache-upgrade.cjs | 5 +++--
+ scripts/build-demo.mjs            | 2 +-
+ sw.js                             | 2 +-
+ 11 files changed, 13 insertions(+), 12 deletions(-)
+
+commit f9f1de416dd8dbfa3905381b51de951dbeada07e
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 23:45:56 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 23:45:56 -0600
+
+    Keep app updates coherent across browser caches
+
+ account.html                        | 58 ++++++++++++++++++-------------------
+ add-transaction.html                | 50 ++++++++++++++++----------------
+ budgets.html                        | 56 +++++++++++++++++------------------
+ demo/account.html                   | 58 ++++++++++++++++++-------------------
+ demo/add-transaction.html           | 50 ++++++++++++++++----------------
+ demo/budgets.html                   | 56 +++++++++++++++++------------------
+ demo/import.html                    | 52 ++++++++++++++++-----------------
+ demo/index.html                     | 58 ++++++++++++++++++-------------------
+ demo/review.html                    | 54 +++++++++++++++++-----------------
+ demo/setup.html                     | 58 ++++++++++++++++++-------------------
+ demo/transactions.html              | 56 +++++++++++++++++------------------
+ docs/PRODUCT_TOOLS_RELEASE.md       |  6 +++-
+ import.html                         | 52 ++++++++++++++++-----------------
+ index.html                          | 58 ++++++++++++++++++-------------------
+ offline.html                        |  2 +-
+ review.html                         | 54 +++++++++++++++++-----------------
+ scripts/browser-cache-upgrade.cjs   | 42 +++++++++++++++++++++++++++
+ scripts/browser-financial-tools.cjs |  2 +-
+ scripts/browser-offline.cjs         |  2 +-
+ scripts/browser-product.cjs         |  2 +-
+ scripts/build-assets.mjs            | 12 ++++++++
+ scripts/build-offline.mjs           |  8 +++--
+ scripts/build-site.mjs              |  1 +
+ scripts/sw-template.js              | 10 ++++---
+ setup.html                          | 58 ++++++++++++++++++-------------------
+ sw.js                               | 14 +++++----
+ transactions.html                   | 56 +++++++++++++++++------------------
+ 27 files changed, 525 insertions(+), 460 deletions(-)
+
+commit 4805f7c7fdfdb82916598bee5f72816c6c426e08
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 23:39:23 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 23:39:23 -0600
+
+    Build payday planning tools and offline app experience
+
+ DATA_MODEL.md                               |  35 ++-
+ README.md                                   |  22 +-
+ ROADMAP.md                                  | 142 +++--------
+ account.html                                |  11 +-
+ add-transaction.html                        |   7 +-
+ budgets.html                                |   7 +-
+ css/product.css                             |  50 ++++
+ demo/account.html                           | 182 ++++++++++++++
+ demo/add-transaction.html                   | 217 +++++++++++++++++
+ demo/budgets.html                           | 184 ++++++++++++++
+ demo/import.html                            | 119 +++++++++
+ demo/index.html                             |  85 +++++++
+ demo/review.html                            | 141 +++++++++++
+ demo/setup.html                             |  85 +++++++
+ demo/transactions.html                      | 273 +++++++++++++++++++++
+ docs/BEGINNER_EXPERIENCE_PLAN.md            |  10 +
+ docs/PAID_PRODUCT_PLAN.md                   | 316 ++++++++++++++++++++++++
+ docs/PRODUCT_TOOLS_RELEASE.md               |  74 ++++++
+ docs/production-readiness.md                |   8 +-
+ import.html                                 |   7 +-
+ index.html                                  |   7 +-
+ js/account.js                               |  49 ++--
+ js/add-transaction.js                       |  21 +-
+ js/app-offline.js                           |  32 +++
+ js/app-shell.js                             |  14 +-
+ js/backup.js                                |  85 ++++---
+ js/bank-accounts.js                         |  15 +-
+ js/bank-auto-sync.js                        |  45 ++--
+ js/bank-connections.js                      |  23 +-
+ js/bank-data.js                             |  14 +-
+ js/bill-data.js                             |   8 +-
+ js/budget-data.js                           |  54 ++---
+ js/budgets.js                               |   3 +
+ js/cloud-sync.js                            |  83 ++++---
+ js/import.js                                |   3 +-
+ js/money-data.js                            |  22 +-
+ js/payday-app.js                            |  51 ++--
+ js/planning-data.js                         |  19 +-
+ js/product-app.js                           | 252 +++++++++++++++++++
+ js/product-data.js                          | 361 ++++++++++++++++++++++++++++
+ js/review-data.js                           |   9 +-
+ js/review.js                                |  20 +-
+ js/storage.js                               |  32 +++
+ js/transaction-details-data.js              |   3 +
+ js/transaction-details.js                   |  29 ++-
+ js/transactions.js                          |   3 +-
+ js/transfer-app.js                          |  13 +-
+ offline.html                                |   1 +
+ review.html                                 |   7 +-
+ scripts/browser-financial-tools.cjs         |  46 ++++
+ scripts/browser-offline.cjs                 |  38 +++
+ scripts/browser-product.cjs                 |  42 ++++
+ scripts/build-demo.mjs                      |   7 +
+ scripts/build-offline.mjs                   |  16 ++
+ scripts/build-site.mjs                      |   7 +
+ scripts/sw-template.js                      |  27 +++
+ scripts/test-data-version.cjs               |  28 +++
+ setup.html                                  |   7 +-
+ supabase/2026-10-19-client-data-version.sql |  21 ++
+ sw.js                                       |  27 +++
+ tests/cloud-sync.test.js                    |   8 +
+ tests/product-data.test.js                  | 177 ++++++++++++++
+ transactions.html                           |   7 +-
+ vendor/LICENSE-lucide.txt                   |  37 +++
+ vendor/lucide.min.js                        |  12 +
+ 65 files changed, 3376 insertions(+), 384 deletions(-)
+
+commit db3e1f980cf6eb6a6ec3e9712c9a674bb9cc97b1
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 16:13:40 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 16:13:40 -0600
+
+    Link matching transfers between connected cash accounts
+
+ account.html                     |   2 +
+ add-transaction.html             |   2 +
+ budgets.html                     |   2 +
+ css/payday.css                   |  32 ++++++++
+ docs/BEGINNER_EXPERIENCE_PLAN.md |  21 ++++-
+ import.html                      |   2 +
+ index.html                       |   2 +
+ js/add-transaction.js            |   5 ++
+ js/backup.js                     |   1 +
+ js/bank-auto-sync.js             |   6 +-
+ js/bank-data.js                  |   3 +
+ js/payday-app.js                 |   6 +-
+ js/review-data.js                |   2 +
+ js/review.js                     |   4 +-
+ js/transaction-details-data.js   |   3 +
+ js/transaction-details.js        |  25 +++++-
+ js/transactions.js               |  25 +++++-
+ js/transfer-app.js               | 162 ++++++++++++++++++++++++++++++++++++++
+ js/transfer-data.js              | 165 +++++++++++++++++++++++++++++++++++++++
+ review.html                      |   2 +
+ setup.html                       |   2 +
+ tests/transfer-data.test.js      | 128 ++++++++++++++++++++++++++++++
+ transactions.html                |   2 +
+ 23 files changed, 591 insertions(+), 13 deletions(-)
+
+commit d6c746a36148a01b708e40f254ff55052da226b0
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 14:54:05 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 14:54:05 -0600
+
+    Keep bank activity synced while Flow is open
+
+ css/payday.css                   |  10 ++
+ docs/BEGINNER_EXPERIENCE_PLAN.md |  16 ++-
+ import.html                      |   3 +
+ js/bank-accounts.js              |   2 +-
+ js/bank-auto-sync.js             | 214 ++++++++++++++++++++++++---------------
+ js/bank-connections.js           |  10 +-
+ js/budgets.js                    |   7 +-
+ js/cloud-sync.js                 |  30 +++++-
+ js/review.js                     |  36 +++++--
+ js/transaction-details.js        |   3 +-
+ js/transactions.js               |   5 +
+ review.html                      |   3 +
+ tests/bank-accounts.test.js      |  10 +-
+ tests/bank-auto-sync.test.js     | 181 ++++++++++-----------------------
+ tests/cloud-sync.test.js         |  20 +++-
+ 15 files changed, 312 insertions(+), 238 deletions(-)
+
+commit 846e288a0ad6464e406144d198eabe009439b984
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 14:19:48 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 14:19:48 -0600
+
+    Add guided payday check-in and fresh plan rollover
+
+ css/payday.css                   |  14 ++++
+ docs/BEGINNER_EXPERIENCE_PLAN.md |  15 ++++-
+ js/payday-app.js                 | 136 +++++++++++++++++++++++++++++++++++++--
+ js/planning-data.js              |  34 ++++++++++
+ tests/payday-checkin.test.js     |  51 +++++++++++++++
+ tests/planning-data.test.js      |   9 +++
+ 6 files changed, 251 insertions(+), 8 deletions(-)
+
+commit 75c90354724c5220d59d0e00bcfeafd4c6747b09
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 13:15:59 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 13:15:59 -0600
+
+    Track recurring bills and match confirmed payments
+
+ account.html                     |   1 +
+ add-transaction.html             |   1 +
+ budgets.html                     |   1 +
+ css/payday.css                   |  18 ++++
+ docs/BEGINNER_EXPERIENCE_PLAN.md |  13 +++
+ import.html                      |   1 +
+ index.html                       |   1 +
+ js/bill-data.js                  | 203 +++++++++++++++++++++++++++++++++++++++
+ js/payday-app.js                 | 130 +++++++++++++++++++++----
+ js/planning-data.js              |  58 +++++++++--
+ review.html                      |   3 +-
+ setup.html                       |   1 +
+ tests/bill-data.test.js          | 104 ++++++++++++++++++++
+ tests/planning-data.test.js      |   7 ++
+ transactions.html                |   1 +
+ 15 files changed, 511 insertions(+), 32 deletions(-)
+
+commit 4922269bf24334e58085a5383d34a786e463dbe3
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 00:20:27 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 00:20:27 -0600
+
+    Record verified payday release deployment
+
+ docs/BEGINNER_EXPERIENCE_PLAN.md | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+commit f730ac7f63622c67b09742fad137afb9a4236f63
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-19 00:11:23 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-19 00:11:23 -0600
+
+    Build guided payday planning and approved Flow interface
+
+ account.html                                       |  75 +++---
+ add-transaction.html                               |   7 +-
+ budgets.html                                       |  31 ++-
+ css/payday.css                                     | 167 ++++++++++++++
+ docs/BEGINNER_EXPERIENCE_PLAN.md                   | 155 +++++++++++++
+ import.html                                        |   6 +-
+ index.html                                         |  78 +------
+ js/account.js                                      |   6 +-
+ js/app-shell.js                                    |   2 +-
+ js/backup.js                                       |  18 +-
+ js/bank-accounts.js                                |  44 ++++
+ js/bank-auto-sync.js                               |   2 +-
+ js/bank-connections.js                             |   4 +
+ js/bank-data.js                                    |  22 +-
+ js/budgets.js                                      |   2 +-
+ js/cloud-sync.js                                   |  15 +-
+ js/payday-app.js                                   | 252 +++++++++++++++++++++
+ js/planning-data.js                                | 155 +++++++++++++
+ js/review.js                                       |  33 ++-
+ js/transaction-details-data.js                     |   2 +-
+ js/transaction-details.js                          |   6 +-
+ review.html                                        |   8 +-
+ setup.html                                         |  77 +++++++
+ .../functions/plaid-production-webhook/index.ts    |   6 +-
+ supabase/functions/plaid-webhook/index.ts          |   8 +-
+ supabase/functions/plaid/index.ts                  |  24 +-
+ tests/bank-accounts.test.js                        |  18 ++
+ tests/bank-data.test.js                            |  12 +
+ tests/cloud-sync.test.js                           |   2 +-
+ tests/plaid-function.test.js                       |  13 ++
+ tests/planning-data.test.js                        |  69 ++++++
+ transactions.html                                  |   7 +-
+ 32 files changed, 1185 insertions(+), 141 deletions(-)
+
+commit af7e5bdcb2ea1d1342d8414ad74669abded86a86
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 17:12:35 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-18 17:12:35 -0600
+
+    Open and categorize individual transactions
+
+ README.md                         |   2 +
+ css/app.css                       |  52 +++++++++++++++++
+ index.html                        |   2 +
+ js/app-shell.js                   |   1 +
+ js/bank-auto-sync.js              |   2 +-
+ js/cloud-sync.js                  |   4 +-
+ js/review.js                      |  76 ++++++++++++++++++++++++-
+ js/script.js                      |  16 +++++-
+ js/transaction-details-data.js    |  44 ++++++++++++++
+ js/transaction-details.js         | 117 ++++++++++++++++++++++++++++++++++++++
+ js/transactions.js                |  40 ++++++++++++-
+ review.html                       |   3 +
+ tests/bank-auto-sync.test.js      |  11 +++-
+ tests/cloud-sync.test.js          |  23 +++++++-
+ tests/transaction-details.test.js |  91 +++++++++++++++++++++++++++++
+ transactions.html                 |   2 +
+ 16 files changed, 474 insertions(+), 12 deletions(-)
+
+commit cbdf60c1a6e5e3f4995e2a552064bb3cab8c1636
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 13:20:13 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-18 13:20:13 -0600
+
+    Remember confirmed bank transfer choices
+
+ DATA_MODEL.md                 |  2 +-
+ README.md                     |  2 ++
+ js/add-transaction.js         |  8 +++--
+ js/backup.js                  |  4 ++-
+ js/bank-data.js               | 19 ++++++++---
+ js/review-data.js             | 60 +++++++++++++++++++++++++++++++++-
+ js/review.js                  | 63 +++++++++++++++++++++++++----------
+ review.html                   |  8 ++---
+ tests/add-transaction.test.js | 76 +++++++++++++++++++++++++++++++++++++++++++
+ tests/backup.test.js          |  8 +++--
+ tests/bank-data.test.js       | 59 +++++++++++++++++++++++++++++++++
+ tests/cloud-sync.test.js      |  5 ++-
+ tests/review-data.test.js     | 39 ++++++++++++++++++++++
+ 13 files changed, 318 insertions(+), 35 deletions(-)
+
+commit bc4e68ff292fff3aca53e32ee30509f38fd33364
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 13:03:08 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-18 13:03:08 -0600
+
+    Visual overhaul
+
+ README.md                |   6 +
+ account.html             |  76 +++++--
+ add-transaction.html     |  62 +++---
+ assets/flow-icon-192.png | Bin 0 -> 5232 bytes
+ assets/flow-icon-512.png | Bin 0 -> 18889 bytes
+ assets/flow-icon.svg     |   1 +
+ budgets.html             |  92 ++++----
+ css/app.css              | 564 +++++++++++++++++++++++++++++++++++++++++++++++
+ docs/DESIGN_RESEARCH.md  |  36 +++
+ import.html              |  40 +++-
+ index.html               | 336 +++++-----------------------
+ js/add-transaction.js    |   6 +-
+ js/app-shell.js          | 123 +++++++++++
+ js/budgets.js            |  48 +++-
+ js/import.js             |   2 +-
+ js/review.js             |  34 ++-
+ js/script.js             |  55 +++--
+ js/transactions.js       |  18 +-
+ manifest.webmanifest     |  19 ++
+ review.html              |  78 ++++---
+ scripts/build-site.mjs   |   2 +
+ transactions.html        |  84 ++++---
+ 22 files changed, 1168 insertions(+), 514 deletions(-)
+
+commit 00d97b6e8411cbc1549d3172835012d9c5aacff9
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 12:34:23 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-18 12:34:23 -0600
+
+    Add quick review for bank transactions
+
+ README.md                 |   4 +-
+ css/styles.css            | 101 +++++++++++++++++++++++++++
+ js/bank-auto-sync.js      |   3 +-
+ js/bank-data.js           |  26 ++++---
+ js/review-data.js         |  57 +++++++++++++++
+ js/review.js              | 173 ++++++++++++++++++++++++++++++++++++++++++++--
+ review.html               |  28 +++++++-
+ tests/bank-data.test.js   |  18 +++++
+ tests/review-data.test.js |  22 ++++++
+ 9 files changed, 415 insertions(+), 17 deletions(-)
+
+commit 09643782f6d389c8336103c3e007495b33d392e8
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 11:46:01 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-18 11:46:01 -0600
+
+    Handle bank refunds and transfers in budgets
+
+ DATA_MODEL.md            |  4 ++--
+ js/add-transaction.js    | 25 +++++++++++++++++++++++--
+ js/bank-data.js          |  7 ++++++-
+ js/review.js             |  2 +-
+ js/transactions.js       | 14 ++++++++++++--
+ tests/bank-data.test.js  | 38 ++++++++++++++++++++++++++++++++++++++
+ tests/money-data.test.js | 15 +++++++++++++++
+ transactions.html        |  2 ++
+ 8 files changed, 99 insertions(+), 8 deletions(-)
+
+commit b722923def80d00bbefd5fa9a452cbc2fd0ec084
+Merge: b4d4ef5 ba81885
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-18 11:42:34 -0600
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2026-10-18 11:42:34 -0600
+
+    Merge pull request #4 from DaxtonZimmerman/codex/local-pilot-before-sync
+    
+    Codex/local pilot before sync
+
+commit ba81885eb9d6b277a176d41064eba6e5d4e78a9e
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 15:10:26 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 15:10:26 -0600
+
+    Clarify recovery requirements before bank pilot
+
+ docs/production-readiness.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+commit 77be89b005388ccb3f4d94f6d6c4d0d26d794c5a
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 15:09:42 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 15:09:42 -0600
+
+    Require removing test bank before real pilot link
+
+ docs/production-readiness.md      |  2 +-
+ js/bank-connections.js            |  8 ++++++--
+ supabase/functions/plaid/index.ts | 20 ++++++++++++++++++++
+ tests/plaid-function.test.js      | 19 +++++++++++++++++--
+ 4 files changed, 44 insertions(+), 5 deletions(-)
+
+commit e01cdcda83a9925a77785e6fbbf81d42c768faf0
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 15:05:54 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 15:05:54 -0600
+
+    Prepare Dax-only real bank pilot behind server flag
+
+ account.html                                       |   2 +-
+ docs/production-readiness.md                       |  20 +-
+ js/bank-auto-sync.js                               |   2 +
+ js/bank-connections.js                             |  52 +++--
+ supabase/2026-10-17-atomic-bank-disconnect.sql     |  54 ++++++
+ supabase/2026-10-17-plaid-environments.sql         |   8 +
+ supabase/config.toml                               |   4 +
+ .../functions/plaid-production-webhook/index.ts    | 212 +++++++++++++++++++++
+ supabase/functions/plaid-webhook/index.ts          |   4 +-
+ supabase/functions/plaid/index.ts                  |  99 +++++++---
+ supabase/plaid-setup.sql                           |   9 +
+ tests/plaid-function.test.js                       |  71 ++++++-
+ tests/plaid-webhook.test.js                        |  46 ++++-
+ 13 files changed, 522 insertions(+), 61 deletions(-)
+
+commit b4d4ef53b5579a17d8fee922f54e1efab2784e7e
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 14:09:50 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 14:09:50 -0600
+
+    Publish Flow site on main updates
+
+ .github/workflows/pages.yml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit 0e71579de46aa439af0e0d292c18cec6966ff240
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 14:05:28 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 14:05:28 -0600
+
+    Pin browser dependencies and record security checks
+
+ account.html                                | 4 ++--
+ add-transaction.html                        | 4 ++--
+ budgets.html                                | 4 ++--
+ docs/production-readiness.md                | 5 +++--
+ import.html                                 | 4 ++--
+ index.html                                  | 4 ++--
+ review.html                                 | 4 ++--
+ supabase/2026-10-17-restrict-rls-helper.sql | 9 +++++++++
+ transactions.html                           | 4 ++--
+ 9 files changed, 26 insertions(+), 16 deletions(-)
+
+commit f4c26ada7342d86275a7c4981d7a598a2491b621
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-17 13:59:37 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-17 13:59:37 -0600
+
+    Complete Plaid Sandbox reconnect handling
+
+ docs/production-readiness.md                     |  3 +-
+ js/bank-connections.js                           |  3 ++
+ supabase/2026-10-16-plaid-reconnect-warnings.sql |  4 +++
+ supabase/functions/plaid-webhook/index.ts        | 23 ++++++++++--
+ supabase/functions/plaid/index.ts                | 46 ++++++++++++++++++++++--
+ supabase/plaid-setup.sql                         |  5 +++
+ tests/plaid-function.test.js                     | 25 +++++++++++--
+ tests/plaid-webhook.test.js                      | 34 +++++++++++++++++-
+ 8 files changed, 133 insertions(+), 10 deletions(-)
+
+commit f2c031dc6f4d782fff7674dc3f3cd186b03bf37e
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 18:05:10 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 18:05:10 -0600
+
+    Prepare Plaid Sandbox webhook and real-bank readiness checks
+
+ README.md                                 |  12 +-
+ docs/production-readiness.md              |  29 +++++
+ js/bank-auto-sync.js                      |  18 ++-
+ supabase/config.toml                      |   6 +
+ supabase/functions/plaid-webhook/index.ts | 193 ++++++++++++++++++++++++++++++
+ supabase/functions/plaid/index.ts         |   3 +-
+ tests/bank-auto-sync.test.js              |  21 +++-
+ tests/plaid-function.test.js              |   2 +
+ tests/plaid-webhook.test.js               | 142 ++++++++++++++++++++++
+ 9 files changed, 414 insertions(+), 12 deletions(-)
+
+commit aeac3147787fe8930e09fa0fde44ebcf7e6fd943
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 17:48:54 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 17:48:54 -0600
+
+    Revoke Plaid access before deleting Flow accounts
+
+ js/account.js                            |  20 +++--
+ supabase/2026-10-16-account-deletion.sql |   3 +
+ supabase/functions/plaid/index.ts        |  64 ++++++++++++++-
+ supabase/setup.sql                       |  20 +----
+ tests/plaid-function.test.js             | 136 +++++++++++++++++++++++++++----
+ 5 files changed, 201 insertions(+), 42 deletions(-)
+
+commit db929ba8a506a2dbd89448b54f229bd153812a6f
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 16:46:05 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 16:46:05 -0600
+
+    Prepare Flow test website publishing
+
+ .github/workflows/pages.yml | 31 +++++++++++++++++++++++++++++++
+ README.md                   | 13 +++++++++++++
+ ROADMAP.md                  |  2 +-
+ scripts/build-site.mjs      | 15 +++++++++++++++
+ 4 files changed, 60 insertions(+), 1 deletion(-)
+
+commit c512d60130eb818f647fc3f460f5db91eae77543
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 16:37:01 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 16:37:01 -0600
+
+    Automate bank updates and add reconnect flow
+
+ BANK_CONNECTIONS.md               |   2 +-
+ account.html                      |   3 +-
+ add-transaction.html              |   2 +
+ budgets.html                      |   2 +
+ css/styles.css                    |   5 ++
+ index.html                        |   2 +
+ js/bank-auto-sync.js              | 114 +++++++++++++++++++++++++++++++++++
+ js/bank-connections.js            | 121 ++++++++++++++++++++++----------------
+ js/cloud-sync.js                  |  20 ++++++-
+ supabase/functions/plaid/index.ts |  75 +++++++++++++++++++++--
+ tests/bank-auto-sync.test.js      | 114 +++++++++++++++++++++++++++++++++++
+ tests/cloud-sync.test.js          |   6 +-
+ tests/plaid-function.test.js      |  59 +++++++++++++++++--
+ transactions.html                 |   2 +
+ 14 files changed, 458 insertions(+), 69 deletions(-)
+
+commit 27b285dee9be7b436905776d7f3307c77b752ef7
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 16:12:52 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 16:12:52 -0600
+
+    Improve Plaid errors and verify Sandbox sync
+
+ BANK_CONNECTIONS.md    |  4 ++--
+ js/bank-connections.js | 19 ++++++++++++++++++-
+ 2 files changed, 20 insertions(+), 3 deletions(-)
+
+commit 675b299242901cf954bf0e1f3919271af910d672
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 15:37:08 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 15:37:08 -0600
+
+    Fix Plaid backend permissions
+
+ BANK_CONNECTIONS.md               |  4 ++--
+ supabase/functions/plaid/index.ts | 13 ++++++++++++-
+ supabase/plaid-setup.sql          |  2 ++
+ 3 files changed, 16 insertions(+), 3 deletions(-)
+
+commit ebb04115a892aacaf2d2d7988b8208b391960725
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 15:22:57 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 15:22:57 -0600
+
+    dd Plaid Sandbox bank sync
+
+ BANK_CONNECTIONS.md               |  31 +++++
+ ROADMAP.md                        |   4 +-
+ account.html                      |  12 ++
+ css/styles.css                    |  28 ++++
+ js/add-transaction.js             |  49 +++++--
+ js/bank-connections.js            | 169 +++++++++++++++++++++++
+ js/bank-data.js                   | 145 ++++++++++++++++++++
+ js/transactions.js                |   4 +-
+ supabase/functions/plaid/index.ts | 272 ++++++++++++++++++++++++++++++++++++++
+ supabase/plaid-setup.sql          |  80 +++++++++++
+ tests/bank-data.test.js           | 165 +++++++++++++++++++++++
+ tests/plaid-function.test.js      | 217 ++++++++++++++++++++++++++++++
+ 12 files changed, 1160 insertions(+), 16 deletions(-)
+
+commit e632e22ab2e5f1a025410450e082f0bbb82abe0e
+Merge: f382573 f61b8e4
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 14:42:57 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 14:42:57 -0600
+
+    Merge branch 'main' of https://github.com/DaxtonZimmerman/flow-budget
+
+commit f3825733792c5e475bff43d0f62c0d8046346fd5
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 14:41:34 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 14:41:34 -0600
+
+    automate transaction sorting and review
+
+ DATA_MODEL.md             |  12 ++-
+ README.md                 |   6 ++
+ ROADMAP.md                |  10 +-
+ add-transaction.html      |   9 ++
+ css/styles.css            | 126 ++++++++++++++++++++++
+ import.html               |   1 +
+ index.html                |   3 +-
+ js/account.js             |   7 +-
+ js/add-transaction.js     | 101 ++++++++++++++++--
+ js/backup.js              |  37 ++++++-
+ js/cloud-sync.js          |  10 +-
+ js/import-data.js         |  16 ++-
+ js/import.js              |   7 +-
+ js/review-data.js         | 105 ++++++++++++++++++
+ js/review.js              | 266 ++++++++++++++++++++++++++++++++++++++++++++++
+ js/script.js              |  28 +++--
+ js/transactions.js        |   6 ++
+ review.html               |  83 +++++++++++++++
+ tests/backup.test.js      |  39 +++++++
+ tests/cloud-sync.test.js  |  22 ++++
+ tests/import.test.js      |  13 ++-
+ tests/review-data.test.js |  49 +++++++++
+ transactions.html         |   2 +
+ 23 files changed, 920 insertions(+), 38 deletions(-)
+
+commit f61b8e4e079f11ed1102df594b61a79869605907
+Merge: 3386e7e d39cb64
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 14:28:13 -0600
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2026-10-16 14:28:13 -0600
+
+    Merge pull request #2 from DaxtonZimmerman/feature/add-transaction
+    
+    Feature/add transaction
+
+commit d39cb644d38e74457bf22ae0bb94dc55a7e34a25
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 14:27:35 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 14:27:35 -0600
+
+    add guided setup and transaction import
+
+ README.md            |   6 ++
+ ROADMAP.md           |  10 +-
+ css/styles.css       | 137 +++++++++++++++++++++++++
+ import.html          |  87 ++++++++++++++++
+ index.html           |  11 ++
+ js/import-data.js    | 140 +++++++++++++++++++++++++
+ js/import.js         | 282 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ js/script.js         |   2 +
+ tests/import.test.js |  56 ++++++++++
+ transactions.html    |  10 +-
+ 10 files changed, 731 insertions(+), 10 deletions(-)
+
+commit 81fb4531453029187326f8854bef83be2a4d5ff4
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 14:20:44 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 14:20:44 -0600
+
+    add secure accounts and data sync
+
+ DATA_MODEL.md            |   4 +-
+ README.md                |  19 +++-
+ ROADMAP.md               |   6 +-
+ account.html             |  94 +++++++++++++++++
+ add-transaction.html     |   8 ++
+ budgets.html             |   8 ++
+ css/styles.css           |  58 ++++++++++-
+ index.html               |   8 ++
+ js/account.js            | 260 +++++++++++++++++++++++++++++++++++++++++++++++
+ js/add-transaction.js    |   1 +
+ js/backup.js             |   1 +
+ js/budget-data.js        |   5 +
+ js/cloud-config.js       |   4 +
+ js/cloud-sync.js         | 180 ++++++++++++++++++++++++++++++++
+ js/money-data.js         |   4 +
+ js/script.js             |  59 ++++++-----
+ js/transactions.js       |   1 +
+ supabase/setup.sql       |  86 ++++++++++++++++
+ tests/cloud-sync.test.js | 119 ++++++++++++++++++++++
+ transactions.html        |   8 ++
+ 20 files changed, 905 insertions(+), 28 deletions(-)
+
+commit 345a61272a4151e04508c04a1470fba30f3f9e1b
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 13:55:53 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 13:55:53 -0600
+
+    make Flow's money calculations reliable
+
+ DATA_MODEL.md            |  26 ++++++++
+ ROADMAP.md               |   8 +--
+ add-transaction.html     |   1 +
+ budgets.html             |   1 +
+ index.html               |   1 +
+ js/add-transaction.js    |  28 +++------
+ js/backup.js             |   9 ++-
+ js/budget-data.js        |  40 +++++++++---
+ js/budgets.js            |  28 +++++----
+ js/money-data.js         | 159 +++++++++++++++++++++++++++++++++++++++++++++++
+ js/script.js             |  74 +++++-----------------
+ js/transactions.js       |  53 ++--------------
+ tests/backup.test.js     |  51 +++++++++++++++
+ tests/money-data.test.js |  87 ++++++++++++++++++++++++++
+ transactions.html        |   1 +
+ 15 files changed, 415 insertions(+), 152 deletions(-)
+
+commit 12266e987dfaebcc09a2e25e43d14d40a7d3dfee
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 13:51:44 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 13:51:44 -0600
+
+    Build Flow's mobile-first daily view
+
+ ROADMAP.md            | 114 +++++++++++++
+ add-transaction.html  |  18 +-
+ budgets.html          |  14 +-
+ css/styles.css        | 460 ++++++++++++++++++++++++++++++++++----------------
+ index.html            |  47 +++---
+ js/add-transaction.js |   7 +-
+ js/budget-data.js     |  14 +-
+ js/script.js          |  95 ++++++++++-
+ transactions.html     |  14 +-
+ 9 files changed, 560 insertions(+), 223 deletions(-)
+
+commit 098a8815913ed5ce78a0041494547e8ea672dc69
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 13:34:26 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 13:34:26 -0600
+
+    Add budget data backup and restore
+
+ css/styles.css |  38 +++++++++++++++
+ index.html     |  30 ++++++++++++
+ js/backup.js   | 150 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 218 insertions(+)
+
+commit 7f01d846932f914d77a6e26c760d2e21fe0dcb7b
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 13:22:36 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 13:22:36 -0600
+
+    polish core budget app workflows
+
+ add-transaction.html  | 21 ++---------------
+ budgets.html          | 27 +++-------------------
+ css/styles.css        | 47 +-------------------------------------
+ index.html            | 47 +++++---------------------------------
+ js/add-transaction.js | 14 ++++++++++--
+ js/budgets.js         |  6 ++++-
+ js/script.js          | 62 +++++++++++++++++----------------------------------
+ js/transactions.js    | 17 +++++++++++---
+ transactions.html     | 25 ++-------------------
+ 9 files changed, 64 insertions(+), 202 deletions(-)
+
+commit 61725b33a3b569b801dc51eebd2812deb96d4a23
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 11:47:12 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 11:47:12 -0600
+
+    Add month-specific budget limits
+
+ budgets.html      |  2 +-
+ js/budget-data.js | 25 +++++++++++++++++++++++--
+ js/budgets.js     |  7 +++----
+ js/script.js      |  5 ++---
+ 4 files changed, 29 insertions(+), 10 deletions(-)
+
+commit 5e2aa9524650e62c97e6551c268bfa6507cfce9d
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 11:21:50 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 11:21:50 -0600
+
+    Keep selected month through transaction forms
+
+ js/add-transaction.js | 44 ++++++++++++++++++++++++++++++++++++++------
+ js/budgets.js         |  2 ++
+ js/script.js          |  2 ++
+ js/transactions.js    | 14 ++++++++++++++
+ 4 files changed, 56 insertions(+), 6 deletions(-)
+
+commit 4545e207cef3ce9c35abb36f6a44bc783b2deaac
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-16 11:06:45 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-16 11:06:45 -0600
+
+    Add month filter to transaction history
+
+ css/styles.css     | 33 +++++++++++++++++++++++++++++++-
+ index.html         |  2 ++
+ js/budgets.js      |  2 ++
+ js/script.js       |  6 ++++++
+ js/transactions.js | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ transactions.html  | 16 ++++++++++++----
+ 6 files changed, 108 insertions(+), 7 deletions(-)
+
+commit 75bb95c3f0ebb280994185ed4a0739207daa1fa6
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:30:12 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:30:12 -0600
+
+    Add month selection to dashboard and budgets
+
+ budgets.html      | 16 ++++++++++------
+ css/styles.css    | 17 +++++++++++++++++
+ index.html        | 14 +++++++-------
+ js/budget-data.js | 17 ++++++++++++++---
+ js/budgets.js     | 15 ++++++++++++++-
+ js/script.js      | 44 ++++++++++++++++++++++++++------------------
+ 6 files changed, 88 insertions(+), 35 deletions(-)
+
+commit 3fcd56551de53d48795133fb92f79d8ebc01273a
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:27:00 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:27:00 -0600
+
+    Connect dashboard search and show recent transaction
+
+ css/styles.css     | 25 +++++++++++++-
+ index.html         | 16 +++++----
+ js/script.js       | 99 ++++++++++++++++++++++++++++++++++++++++--------------
+ js/transactions.js |  6 ++++
+ 4 files changed, 114 insertions(+), 32 deletions(-)
+
+commit da8bc4d929010e5482c37a1b2d48a6415a5790ce
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:21:06 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:21:06 -0600
+
+    make dashboard monthly totals and charts data-driven
+
+ css/styles.css    |  77 +++++++---------------
+ index.html        | 134 +++++---------------------------------
+ js/budget-data.js |  12 +++-
+ js/script.js      | 189 +++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 4 files changed, 222 insertions(+), 190 deletions(-)
+
+commit 8c8e83e9bd17f9190534547725540979642cdda0
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:12:53 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:12:53 -0600
+
+    Add editable budgets and dashboard integration
+
+ add-transaction.html |   2 +-
+ budgets.html         | 189 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ css/styles.css       |  68 ++++++++++++++++++
+ index.html           |   5 +-
+ js/budget-data.js    |  50 ++++++++++++++
+ js/budgets.js        | 184 +++++++++++++++++++++++++++++++++++++++++++++++++
+ js/script.js         |  58 ++++------------
+ transactions.html    |   2 +-
+ 8 files changed, 508 insertions(+), 50 deletions(-)
+
+commit 664d5cd64a76a745d8f85b9af5705e7685af4ec2
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:07:22 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:07:22 -0600
+
+    Add sorting to transaction history
+
+ css/styles.css     |  4 +++-
+ js/transactions.js | 58 +++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ transactions.html  | 11 +++++++++++
+ 3 files changed, 71 insertions(+), 2 deletions(-)
+
+commit a0037a6e88a0d282c171c1e132c85bb84e3f93ac
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 09:03:51 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 09:03:51 -0600
+
+    Add search and filters to transaction history
+
+ css/styles.css     | 63 +++++++++++++++++++++++++++++++++++
+ js/transactions.js | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ transactions.html  | 40 ++++++++++++++++++++++
+ 3 files changed, 201 insertions(+)
+
+commit c3d75e8cfef9176fd7420381bd437327297f33ac
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:51:48 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:51:48 -0600
+
+    Add transaction editing to history page
+
+ add-transaction.html  |  9 ++---
+ css/styles.css        | 54 ++++++++++++++++++++++++-----
+ js/add-transaction.js | 96 ++++++++++++++++++++++++++++++++++++++++++++-------
+ js/transactions.js    | 19 +++++++++-
+ 4 files changed, 152 insertions(+), 26 deletions(-)
+
+commit fb727315d1b6b53de4c26dd16f63e3d7bcb8b425
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:48:25 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:48:25 -0600
+
+    Add transaction deletion to history page
+
+ css/styles.css     | 31 ++++++++++++++++++++++++++--
+ js/transactions.js | 59 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ transactions.html  |  1 +
+ 3 files changed, 89 insertions(+), 2 deletions(-)
+
+commit 5319b36d1a1c2a7d3480a340b18af90dc22f64da
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:40:49 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:40:49 -0600
+
+    Build transaction history page
+
+ add-transaction.html |   2 +-
+ css/styles.css       | 182 +++++++++++++++++++++++++++++++++++++++++
+ index.html           |   6 +-
+ js/transactions.js   | 185 +++++++++++++++++++++++++++++++++++++++++
+ transactions.html    | 226 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 597 insertions(+), 4 deletions(-)
+
+commit d81900e13b55af8fa00b9938ed01458faf06dcdd
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:36:40 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:36:40 -0600
+
+    Add transaction validation
+
+ add-transaction.html  |  3 +-
+ css/styles.css        | 11 ++++++++
+ js/add-transaction.js | 77 ++++++++++++++++++++++++++++++++++++++++++++++-----
+ 3 files changed, 83 insertions(+), 8 deletions(-)
+
+commit b455d61372808c8d695a302de54b4baa3b7ce25f
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:34:20 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:34:20 -0600
+
+    save transactions from form
+
+ add-transaction.html  |  1 +
+ js/add-transaction.js | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+
+commit 28f1d14fd0eaae157f6dd2e905a2a1ed2d9cca9e
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-14 08:30:30 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-14 08:30:30 -0600
+
+    build add transaction page
+
+ add-transaction.html | 210 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ css/styles.css       | 188 ++++++++++++++++++++++++++++++++++++++++++---
+ index.html           |  39 +++-------
+ js/script.js         |   4 +
+ 4 files changed, 402 insertions(+), 39 deletions(-)
+
+commit 3386e7e152409b29405d20ae3e56016f720f5fd7
+Merge: d482077 e63b5a8
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 10:09:32 -0600
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2026-10-13 10:09:32 -0600
+
+    Merge pull request #1 from DaxtonZimmerman/feature/transactions
+    
+    Add transaction calculations and local storage
+
+commit e63b5a86e9f5e1eb28041490f60d05c4f1472070
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 10:07:52 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 10:07:52 -0600
+
+    Add local transaction storage
+
+ index.html   | 69 ++++--------------------------------------------------------
+ js/script.js | 61 ++++++++++++++++++++++++++++++++++-------------------
+ 2 files changed, 43 insertions(+), 87 deletions(-)
+
+commit 3ec0f05fb3980b870ed697913ac43b645a9a3879
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:57:43 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:57:43 -0600
+
+    finish safe to spend
+
+ index.html   |  2 +-
+ js/script.js | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+), 1 deletion(-)
+
+commit 0a6df0983d9a808004d168a4ed2b30be578d79ed
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:52:42 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:52:42 -0600
+
+    add safe to spend calc
+
+ index.html   | 21 ++----------------
+ js/script.js | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 74 insertions(+), 19 deletions(-)
+
+commit 0d6c74e053b301b838ef207fab985865a43c1bc6
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:34:32 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:34:32 -0600
+
+    Render transactions dynamically
+
+ index.html   | 100 +++--------------------------------------------------------
+ js/script.js |  67 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 71 insertions(+), 96 deletions(-)
+
+commit 8d993fe9492c61e625c0994377c894366c1398e2
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:31:27 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:31:27 -0600
+
+    calculate total balance
+
+ index.html   | 2 +-
+ js/script.js | 8 +++++++-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+commit d540ba8593a67a9acc5e64bf573eb00bbbc8aea8
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:29:46 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:29:46 -0600
+
+    Calculate monthly spending
+
+ index.html   |  4 ++--
+ js/script.js | 31 +++++++++++++++++++++++++++++--
+ 2 files changed, 31 insertions(+), 4 deletions(-)
+
+commit d482077216a74c0f963b0df85dfb681734c9d70a
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:21:54 -0600
+Commit:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+CommitDate: 2026-10-13 09:21:54 -0600
+
+    Build initial Flow dashboard
+
+ css/styles.css | 1145 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ index.html     |  622 ++++++++++++++++++++++++++++++
+ js/script.js   |   27 ++
+ 3 files changed, 1794 insertions(+)
+
+commit 267880d2857fb3a87ec61d2d963a2afb2ddfd31f
+Author:     DaxtonZimmerman <daxtonmz0021@gmail.com>
+AuthorDate: 2026-10-13 09:15:37 -0600
+Commit:     GitHub <noreply@github.com>
+CommitDate: 2026-10-13 09:15:37 -0600
+
+    Initial commit
+
+ .gitignore | 149 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ LICENSE    |  21 +++++++++
+ README.md  |   1 +
+ 3 files changed, 171 insertions(+)

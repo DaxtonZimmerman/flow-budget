@@ -67,18 +67,20 @@ async function showAccount() {
     } finally { accountOpening = false; }
 }
 
-function renderRecoveryCopies() {
+let accountRecoveryRender = 0;
+async function renderRecoveryCopies() {
+    const render = ++accountRecoveryRender;
     const holder = document.querySelector('#account-recovery');
     if (!holder || !accountUser) return;
     holder.replaceChildren();
     try {
         const copies = getFlowRecoveryCopies(accountUser.id);
         holder.hidden = copies.length === 0;
-        if (!copies.length) return;
+
         const heading = document.createElement('h3'); heading.textContent = 'Earlier changes';
         const explanation = document.createElement('p');
         explanation.textContent = 'Flow opens your saved account automatically. If changes overlap, it keeps earlier edits here so you can recover them.';
-        holder.append(heading, explanation);
+        if (copies.length) holder.append(heading, explanation);
         for (const copy of [...copies].reverse()) {
             const row = document.createElement('div'); row.className = 'row-between';
             const when = document.createElement('span'); when.textContent = new Date(copy.savedAt).toLocaleString();
@@ -90,6 +92,29 @@ function renderRecoveryCopies() {
                 downloadFlowCopy(copy.data, 'flow-recovery-' + copy.savedAt.slice(0, 10) + '.json');
             });
             row.append(when, download); holder.append(row);
+        }
+        if (client && navigator.onLine) {
+            const owner=accountUser.id;
+            const remote=await client.from('flow_bank_recovery_backups').select('id,saved_at')
+                .eq('user_id',owner).order('saved_at',{ascending:false}).limit(20);
+            if (render !== accountRecoveryRender || flowStorage.getItem('flow_user_id')!==owner || accountUser.id!==owner) return;
+            if (!remote.error && remote.data?.length) {
+                holder.hidden=false;const bankCopyTitle=document.createElement('h3');bankCopyTitle.textContent='Before your bank feed switch';holder.append(bankCopyTitle);
+                for (const copy of remote.data) {
+                    const row=document.createElement('div');row.className='row-between';
+                    const when=document.createElement('span');when.textContent=new Date(copy.saved_at).toLocaleString();
+                    const download=document.createElement('button');download.type='button';download.className='back-button';download.textContent='Download bank recovery copy';
+                    download.addEventListener('click',async()=>{
+                        if(flowStorage.getItem('flow_user_id')!==owner || window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id!==owner))return;
+                        download.disabled=true;
+                        try {
+                            const saved=await client.from('flow_bank_recovery_backups').select('data').eq('user_id',owner).eq('id',copy.id).maybeSingle();
+                            if(saved.error||!saved.data)throw new Error('Could not download the recovery copy yet.');
+                            if(flowStorage.getItem('flow_user_id')===owner && (!window.FlowAuth || window.FlowAuth.authorized && window.FlowAuth.user?.id===owner))downloadFlowCopy(saved.data.data,'flow-bank-recovery-'+copy.saved_at.slice(0,10)+'.json');
+                        }catch(_){accountMessage.textContent='Could not download the recovery copy. Reconnect and try again.';}finally{download.disabled=false;}
+                    });row.append(when,download);holder.append(row);
+                }
+            }
         }
     } catch (_) {
         holder.hidden = false;

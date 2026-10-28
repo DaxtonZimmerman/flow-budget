@@ -84,6 +84,7 @@ async function syncBankConnection(connectionId) {
     if (bankSyncRequests.has(key)) return bankSyncRequests.get(key);
     const request = (async () => {
         const result = await bankRequest('sync', { connection_id: connectionId });
+        if (result.recovery_required) throw new Error('Finish the bank recovery preview in Account first.');
         if (!bankOwnerIsCurrent(owner)) throw new Error('Your signed-in account changed. Reopen Flow before syncing.');
         if (bankDisconnectingIds.has(connectionId)) return { ...result, changed: false };
         const current = getFlowSnapshot().transactions;
@@ -135,7 +136,12 @@ async function updateBanksAutomatically(options = {}) {
         if (!bankOwnerIsCurrent(owner)) return;
         if (!Array.isArray(data.connections)) throw new Error('Bank connections are unavailable.');
         flowStorage.setItem(`flow_bank_connections_present_${owner}`, data.connections.length ? '1' : '0');
-        if (!data.connections.length) { showBankSyncStatus('none', ''); flowStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now())); return; }
+        if (!data.connections.length) { showBankSyncStatus(data.recovery_mode ? 'recovery' : 'none', data.recovery_mode ? 'Restore bank updates in Account.' : ''); flowStorage.setItem(`flow_bank_checked_at_${owner}`, String(Date.now())); return; }
+        if (data.connections.some(c => c.recovery_required)) {
+            showBankSyncStatus('recovery', 'Finish restoring bank updates in Account.');
+            document.dispatchEvent(new Event('flow-bank-recovery-pending'));
+            return;
+        }
         for (const connection of data.connections) {
             if (!bankOwnerIsCurrent(owner) || flowStorage.getItem('flow_pending') === '1') return;
             if (connection.needs_reconnect) { reconnect = true; continue; }

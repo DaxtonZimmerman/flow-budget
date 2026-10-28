@@ -131,7 +131,7 @@ async function getPlaidChanges(connection) {
                 cursor = page.next_cursor;
 
                 if (!page.has_more) {
-                    return { ...changes, cursor };
+                    return { ...changes, cursor, historyComplete: page.transactions_update_status === "HISTORICAL_UPDATE_COMPLETE" };
                 }
             }
         } catch (error) {
@@ -243,7 +243,7 @@ Deno.serve(async function(request) {
                         error: "Back up your Flow data and disconnect the test bank before connecting a real one."
                     }, 409);
                 }
-                Object.assign(options, { products: ["transactions"] });
+                Object.assign(options, { products: ["transactions"], ...(environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" ? { transactions: { days_requested: 730 } } : {}) });
             }
 
             options.webhook = `${projectUrl}/functions/v1/${environment === "production"
@@ -288,6 +288,7 @@ Deno.serve(async function(request) {
                 item_id: result.item_id,
                 access_token: result.access_token,
                 environment,
+                recovery_required: environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true",
                 institution_name: typeof body.institution_name === "string"
                     ? body.institution_name.slice(0, 100) : "Bank"
             });
@@ -301,12 +302,12 @@ Deno.serve(async function(request) {
                 return reply({ error: "Could not save the connection. Try again." }, 500);
             }
 
-            return reply({ connected: true });
+            return reply({ connected: true, recovery_required: environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" });
         }
 
         if (body.action === "connections") {
             const { data, error } = await database.from("plaid_connections")
-                .select("id,institution_name,access_token,environment,created_at,last_synced_at,reconnect_required")
+                .select("id,institution_name,access_token,environment,created_at,last_synced_at,reconnect_required,recovery_required")
                 .eq("user_id", userData.user.id)
                 .order("created_at", { ascending: false });
 
@@ -340,11 +341,12 @@ Deno.serve(async function(request) {
                     last_synced_at: connection.last_synced_at,
                     transaction_status: feedStatus,
                     needs_reconnect: needsReconnect,
+                    recovery_required: connection.recovery_required === true,
                     environment: connectionEnvironment(connection)
                 });
             }
 
-            return reply({ connections, new_connection_environment: pilotEnvironment(userData.user.id) });
+            return reply({ connections, new_connection_environment: pilotEnvironment(userData.user.id), recovery_mode: Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" });
         }
 
         if (body.action === "reconnect-complete") {
@@ -404,20 +406,43 @@ Deno.serve(async function(request) {
             })), retrieved_at: new Date().toISOString(), balance_source: "cached" });
         }
 
-        if (body.action === "sync") {
+        if (body.action === "complete-recovery") {
+            if (typeof body.connection_id !== "string" || !Number.isSafeInteger(body.expected_revision) ||
+                !body.data || body.data.clientSchemaVersion !== 2 || !Array.isArray(body.data.transactions) ||
+                JSON.stringify(body.data).length > 8_000_000 || typeof body.expected_cursor !== "string") {
+                return reply({ error: "Open a fresh recovery preview first." }, 400);
+            }
+            // Service-only RPC checks owner, staged feed, cursor and workspace revision atomically.
+            const saved = await database.rpc("complete_plaid_recovery", {
+                connection_id: body.connection_id, owner_id: userData.user.id,
+                expected_revision: body.expected_revision, expected_cursor: body.expected_cursor,
+                new_data: body.data
+            });
+            if (saved.error) return reply({ error: "Your saved work or bank feed changed. Open a fresh preview; nothing was replaced." }, 409);
+            return reply(saved.data);
+        }
+
+        if (body.action === "sync" || body.action === "recovery-preview") {
             if (typeof body.connection_id !== "string") {
                 return reply({ error: "Choose a bank connection." }, 400);
             }
 
             const { data: connection, error: connectionError } = await database
                 .from("plaid_connections")
-                .select("id,item_id,access_token,cursor,environment")
+                .select("id,item_id,access_token,cursor,environment,recovery_required,history_complete")
                 .eq("id", body.connection_id)
                 .eq("user_id", userData.user.id)
                 .maybeSingle();
 
             if (connectionError || !connection) {
                 return reply({ error: "Bank connection not found." }, 404);
+            }
+
+            if (connection.recovery_required && body.action !== "recovery-preview") {
+                return reply({ error: "Finish the bank recovery preview in Account first.", recovery_required: true }, 409);
+            }
+            if (!connection.recovery_required && body.action === "recovery-preview") {
+                return reply({ error: "This bank feed is already active." }, 409);
             }
 
             const item = await plaidRequest("/item/get", {
@@ -445,6 +470,22 @@ Deno.serve(async function(request) {
                 return reply({ error: "Bank data changed. Sync again." }, 409);
             }
 
+            let recovery = {};
+            if (body.action === "recovery-preview") {
+                const historyComplete = connection.history_complete || changes.historyComplete;
+                if (changes.historyComplete && !connection.history_complete) {
+                    const marked = await database.from("plaid_connections").update({ history_complete: true })
+                        .eq("id", connection.id).eq("user_id", userData.user.id);
+                    if (marked.error) return reply({ error: "Could not prepare recovery. Try again." }, 500);
+                }
+                const accounts = await plaidRequest("/accounts/get", { access_token: connection.access_token }, connectionEnvironment(connection));
+                recovery = { recovery_required: true, history_complete: Boolean(historyComplete), cursor: changes.cursor,
+                    accounts: (accounts.accounts || []).map(a => ({ account_id: a.account_id, name: a.name,
+                        type: a.type, subtype: a.subtype, balances: { available: a.balances?.available ?? null,
+                            current: a.balances?.current ?? null, iso_currency_code: a.balances?.iso_currency_code ?? null,
+                            last_updated_datetime: a.balances?.last_updated_datetime ?? null } })) };
+            }
+
             const { data: transactions, error: listError } = await database
                 .from("plaid_transactions")
                 .select("data")
@@ -455,6 +496,7 @@ Deno.serve(async function(request) {
             }
 
             return reply({
+                ...recovery,
                 transactions: transactions.map(function(row) { return row.data; }),
                 last_synced_at: new Date().toISOString(),
                 transaction_status: transactionFeedStatus(item)
