@@ -72,3 +72,11 @@ test('failed imports leave the newer feed unapplied and recover on the automatic
 test('an unavailable status cache cannot block bank imports or alter the saved account',async()=>{
  const a=makeApp({blockFeedStorage:true,feedStatus:{last_successful_update:'2026-10-19T15:00:00Z'}});await a.run();assert.equal(JSON.parse(a.saved.get('transactions')).length,1);assert.equal(a.saves(),1);assert.equal(a.status().phase,'ready');assert.equal(a.saved.has('flow_bank_feed:person-1'),false);
 });
+
+test('server recovery pauses bank requests while keeping saved transactions untouched',async()=>{
+ const app=makeApp();app.saved.set('transactions','[{"id":"saved-before-outage"}]');
+ vm.runInContext('var flowBankRecoveryPaused=true',app.context);
+ await app.run();await app.force();
+ assert.deepEqual(app.actions,[]);assert.equal(app.saves(),0);
+ assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'saved-before-outage');
+});

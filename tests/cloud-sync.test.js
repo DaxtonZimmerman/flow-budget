@@ -13,7 +13,7 @@ function setupCloud(editing = false) {
     const events = [];
     const network = { onLine: true };
     const client = {
-        auth: { getUser: async () => ({ data: { user: { id: "person-1" } }, error: null }) },
+        auth: { getUser: async () => ({ data: { user: { id: "person-1", email:"pilot@example.test", email_confirmed_at:"2026-01-01T00:00:00Z" } }, error: null }) },
         from: () => ({
             select: () => ({
                 eq: () => ({ maybeSingle: async () => ({ data: cloud, error: null }) })
@@ -314,4 +314,85 @@ test('recovery deduplicates identical work and is hidden without the matching ve
     assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
     app.run('window.FlowAuth={authorized:true,user:{id:"someone-else"}}');
     assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
+});
+
+function recoveryApp(identity = true) {
+    const app = setupCloud();
+    app.run('var flowRecoverySourceProject="abcdefghijklmnopqrst"');
+    app.saved.set('flow_user_id', 'original-owner');
+    app.saved.set('flow_verified_user', 'original-owner');
+    app.saved.set('flow_revision', '51');
+    app.saved.set('transactions', '[{"id":"original-payment","notes":"keep my note"}]');
+    if (identity) app.saved.set('sb-abcdefghijklmnopqrst-auth-token', JSON.stringify({
+        access_token:'old-private-token-never-upload', refresh_token:'old-refresh-never-upload',
+        user:{id:'original-owner',email:'Pilot@example.test',email_confirmed_at:'2026-01-01T00:00:00Z'}
+    }));
+    return app;
+}
+
+test('server replacement protects local work before new authentication changes its owner marker', async () => {
+    const app = recoveryApp();
+    await app.run('prepareFlowServerRecovery()');
+    app.saved.set('flow_verified_user','person-1');
+    await app.run('connectFlowAccount({id:"person-1"})');
+    assert.equal(app.saved.get('flow_user_id'),'person-1');
+    assert.equal(app.saved.get('flow_revision'),'1');
+    assert.equal(app.getCloud().data.transactions[0].id,'original-payment');
+    assert.equal(app.getCloud().data.transactions[0].notes,'keep my note');
+    assert.doesNotMatch(JSON.stringify(app.getCloud()),/old-private-token|old-refresh/);
+    assert.equal(JSON.parse(app.saved.get('flow_recovery_v1:original-owner'))[0].data.transactions[0].id,'original-payment');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'),'original-payment');
+    assert.equal(JSON.parse(app.saved.get('flow_server_recovery_v1')).destination,'person-1');
+    assert.ok(app.saved.has('sb-abcdefghijklmnopqrst-auth-token'));
+    await app.run('prepareFlowServerRecovery(); connectFlowAccount({id:"person-1"})');
+    assert.equal(app.getCloud().revision,1,'Reopening must not upload the original snapshot again');
+});
+
+test('an existing destination workspace wins while the original saved work remains recoverable', async () => {
+    const app = recoveryApp();
+    await app.run('prepareFlowServerRecovery()');
+    app.setCloud({revision:7,data:{transactions:[{id:'newer-workspace'}]}});
+    await app.run('connectFlowAccount({id:"person-1"})');
+    assert.equal(app.getCloud().revision,7);
+    assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'newer-workspace');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1")[0].data.transactions[0].id'),'original-payment');
+});
+
+test('missing, unverified, or different prior identity cannot upload or replace a saved workspace', async () => {
+    for (const kind of ['missing','unverified','different-owner','different-email','unconfirmed-new']) {
+        const app = recoveryApp(kind !== 'missing');
+        if (kind === 'unverified') app.saved.set('flow_verified_user','someone-else');
+        if (kind === 'different-owner') app.saved.set('sb-abcdefghijklmnopqrst-auth-token',JSON.stringify({user:{id:'someone-else',email:'pilot@example.test',email_confirmed_at:'yes'}}));
+        if (kind === 'different-email') app.client.auth.getUser=async()=>({data:{user:{id:'person-1',email:'another@example.test',email_confirmed_at:'yes'}}});
+        if (kind === 'unconfirmed-new') app.client.auth.getUser=async()=>({data:{user:{id:'person-1',email:'pilot@example.test'}}});
+        await app.run('prepareFlowServerRecovery()');
+        await assert.rejects(app.run('connectFlowAccount({id:"person-1"})'),e=>e.code==='FLOW_RECOVERY_REQUIRED');
+        assert.equal(app.getCloud(),null);
+        assert.equal(app.saved.get('flow_user_id'),'original-owner');
+        assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'original-payment');
+    }
+});
+
+test('storage failure protects the original workspace and prevents replacement uploads', async () => {
+    const app = recoveryApp();
+    app.failStorageAt('flow_recovery_v1:original-owner');
+    await assert.rejects(app.run('prepareFlowServerRecovery()'),/storage full/i);
+    assert.equal(app.getCloud(),null);
+    assert.equal(app.saved.get('flow_user_id'),'original-owner');
+    assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'original-payment');
+});
+
+test('recovery cannot overwrite a concurrently created destination or disclose original work to another sign-in', async () => {
+    const app = recoveryApp();
+    await app.run('prepareFlowServerRecovery()');
+    const rpc=app.client.rpc;
+    app.client.rpc=async(...args)=>{app.setCloud({revision:1,data:{transactions:[{id:'another-device'}]}});return rpc(...args);};
+    await assert.rejects(app.run('connectFlowAccount({id:"person-1"})'),/Conflict/);
+    assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'original-payment');
+    assert.equal(app.getCloud().data.transactions[0].id,'another-device');
+    app.client.rpc=rpc;
+    await app.run('connectFlowAccount({id:"person-1"})');
+    app.saved.set('flow_user_id','someone-else');
+    assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
+    assert.equal(app.run('getFlowRecoveryCopies("someone-else").length'),0);
 });

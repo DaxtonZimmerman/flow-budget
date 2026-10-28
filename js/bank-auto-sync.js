@@ -10,6 +10,9 @@ let bankReturnChecking = false;
 let bankSyncState = { phase: 'idle', message: '' };
 
 async function bankRequest(action, values = {}) {
+    if (typeof flowBankRecoveryPaused !== 'undefined' && flowBankRecoveryPaused) {
+        throw new Error('Bank updates are paused while we restore your saved connection.');
+    }
     const requestOwner=flowStorage.getItem('flow_user_id'), startedAt=Date.now();
     const result = await getFlowClient().functions.invoke("plaid", {
         body: { action: action, ...values }
@@ -107,6 +110,9 @@ async function syncBankConnection(connectionId) {
     try { return await request; } finally { bankSyncRequests.delete(key); }
 }
 async function updateBanksAutomatically(options = {}) {
+    if (typeof flowBankRecoveryPaused !== 'undefined' && flowBankRecoveryPaused) {
+        showBankSyncStatus('recovery', 'Bank updates are paused during account recovery.'); return;
+    }
     const owner = flowStorage.getItem('flow_user_id'), client = getFlowClient();
     if (!owner || !client) { showBankSyncStatus('none', ''); return; }
     if (document.hidden || bankRefreshing || typeof flowSyncing !== 'undefined' && flowSyncing) return;

@@ -18,6 +18,14 @@ async function showBankConnections() {
 
     bankPanel.hidden = false;
 
+    if (typeof flowBankRecoveryPaused !== 'undefined' && flowBankRecoveryPaused) {
+        bankButton.hidden = true;
+        bankIntro.textContent = 'Bank updates are paused while we restore the saved connection. You do not need to reconnect your bank.';
+        bankMessage.textContent = 'Your budgeting changes can still save normally.';
+        bankList.replaceChildren();
+        return;
+    }
+
     try {
         const data = await bankRequest("connections");
         const productionPilot = data.new_connection_environment === "production";

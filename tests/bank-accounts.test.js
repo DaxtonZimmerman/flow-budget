@@ -56,3 +56,10 @@ test('a payday check shares an in-progress cached fetch and receives an honest o
  assert.equal((await setup({reconnect:true}).refresh()).status,'unavailable');
  const offline=setup();offline.context.navigator.onLine=false;assert.equal((await offline.refresh()).status,'unavailable');assert.equal(offline.calls.length,0);
 });
+
+test('replacement-server preparation keeps cached balances and does not query empty bank tables',async()=>{
+ const app=setup();app.context.flowBankRecoveryPaused=true;
+ const saved='[{"id":"retained-balance"}]';app.saved.set('bankAccounts',saved);
+ assert.equal((await app.refresh()).status,'unavailable');
+ assert.equal(app.saved.get('bankAccounts'),saved);assert.deepEqual(app.calls,[]);assert.equal(app.flushes(),0);
+});

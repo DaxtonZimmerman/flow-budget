@@ -45,7 +45,12 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const apiKey = Deno.env.get("RESEND_API_KEY")?.trim();
     const secret = Deno.env.get("SEND_EMAIL_HOOK_SECRET")?.trim().replace(/^v1,/, "");
     const pilotId = Deno.env.get("PLAID_PILOT_USER_ID")?.trim();
-    if (!apiKey || !secret || !pilotId) {
+    // A replacement project has no user ID until its first code sign-in.
+    // The exact private recipient can bootstrap that account; this never enables bank linking.
+    const signInEmail = Deno.env.get("FLOW_SIGN_IN_EMAIL")?.trim().toLowerCase();
+    const allowedEmail = signInEmail && /^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(signInEmail)
+        ? signInEmail : null;
+    if (!apiKey || !secret || (!pilotId && !allowedEmail)) {
         return reply(503, "Email sign-in is temporarily unavailable.");
     }
 
@@ -70,7 +75,9 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const email = user?.email;
     const token = emailData?.token;
     const eventId = request.headers.get("webhook-id");
-    if (user?.id !== pilotId || typeof email !== "string" || email.length > 254 ||
+    if (!user?.id || (pilotId && user.id !== pilotId) ||
+        (allowedEmail && (typeof email !== "string" || email.toLowerCase() !== allowedEmail)) ||
+        typeof email !== "string" || email.length > 254 ||
         !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(email) ||
         !["magiclink", "signup"].includes(emailData?.email_action_type) ||
         typeof token !== "string" || !/^\d{6,10}$/.test(token) ||

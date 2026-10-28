@@ -8,6 +8,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         catch (_) { return 0; }
     }
     async function performRefresh(force = false) {
+        if (typeof flowBankRecoveryPaused !== 'undefined' && flowBankRecoveryPaused) return {status:'unavailable'};
         const owner = flowStorage.getItem('flow_user_id');
         if (running || document.hidden || !owner || !navigator.onLine || flowStorage.getItem('flow_pending') === '1' || !getFlowClient()) return {status:'unavailable'};
         const key = `flow_accounts_checked_${owner}`;

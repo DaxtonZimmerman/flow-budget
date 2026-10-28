@@ -1,6 +1,7 @@
 /* The gate is present in the initial HTML, before personal screens can be shown. */
 html[data-flow-auth=checking] body>:not(.flow-auth-loading):not(script) { visibility:hidden!important; pointer-events:none!important; }
 html[data-flow-updating=true] body { pointer-events:none; }
+html[data-flow-recovering=true] .nav,html[data-flow-recovering=true] .sidebar-bottom,html[data-flow-recovering=true] .toolbar-actions { display:none!important; }
 .flow-auth-loading { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:#f5f7f1; color:#183d31; z-index:10000; padding:28px; text-align:center; font-family:Arial,sans-serif; }
 .flow-auth-loading p { max-width:360px; line-height:1.6; }
 .flow-auth-loading a { font-size:13px; color:inherit; }

@@ -112,6 +112,59 @@ function replaceFlowSnapshot(data) {
 const flowWorkspaceKeys = ['transactions', 'budgets', 'budgetsByMonth', 'categoryRules', 'recurringItems', 'bankAccounts', 'flowPlanning',
     'flow_user_id', 'flow_revision', 'flow_pending', 'flow_pending_client', 'flowLastEstimate'];
 const flowRecoveryKey = owner => 'flow_recovery_v1:' + (owner || 'unlinked');
+const flowServerRecoveryKey = 'flow_server_recovery_v1';
+
+function flowServerRecoverySource() {
+    return typeof flowRecoverySourceProject === 'string' && /^[a-z]{20}$/.test(flowRecoverySourceProject)
+        ? flowRecoverySourceProject : null;
+}
+
+function readFlowServerRecovery() {
+    const text = flowStorage.getItem(flowServerRecoveryKey);
+    if (!text) return null;
+    const row = JSON.parse(text);
+    if (row.version !== 1 || row.source !== flowServerRecoverySource() || !row.owner || !row.copyId) {
+        throw new Error('Your saved recovery copy has been left untouched.');
+    }
+    return row;
+}
+
+async function prepareFlowServerRecovery() {
+    const source = flowServerRecoverySource();
+    if (!source || readFlowServerRecovery()) return;
+    const owner = flowStorage.getItem('flow_user_id');
+    if (!owner || !hasFlowSavedWork()) return;
+    const snapshot = getFlowSnapshot();
+    keepFlowRecoveryCopy(owner, snapshot, 'server-recovery');
+    const copies = readFlowRecoveryCopies(owner);
+    const copy = copies.find(row => JSON.stringify(row.data) === JSON.stringify(snapshot));
+    let email = null;
+    // The cached, previously verified identity is used only for local ownership matching.
+    // Fresh authentication on the replacement server is still required.
+    if (flowStorage.getItem('flow_verified_user') === owner) {
+        try {
+            const storage = flowAuthStorage || localStorage;
+            const session = JSON.parse(await storage.getItem('sb-' + source + '-auth-token'));
+            if (session?.user?.id === owner && session.user.email_confirmed_at && typeof session.user.email === 'string') {
+                email = session.user.email.trim().toLowerCase();
+            }
+        } catch (_) { /* Missing old identity requires a protected recovery screen. */ }
+    }
+    flowStorage.setItem(flowServerRecoveryKey, JSON.stringify({ version:1, source, owner, email, copyId:copy.id }));
+}
+
+function hasFlowSavedWork() {
+    return flowWorkspaceKeys.slice(0, 7).some(key => {
+        const value = flowStorage.getItem(key);
+        return value && !['[]', '{}', 'null'].includes(value);
+    });
+}
+
+function flowRecoveryRequired() {
+    const error = new Error('Your saved data is protected while we restore your account.');
+    error.code = 'FLOW_RECOVERY_REQUIRED';
+    return error;
+}
 
 function readFlowRecoveryCopies(owner) {
     const text = flowStorage.getItem(flowRecoveryKey(owner));
@@ -124,7 +177,12 @@ function readFlowRecoveryCopies(owner) {
 function getFlowRecoveryCopies(owner) {
     if (!owner || flowStorage.getItem('flow_user_id') !== owner ||
         window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== owner)) return [];
-    return readFlowRecoveryCopies(owner);
+    const copies = readFlowRecoveryCopies(owner);
+    const migration = flowServerRecoverySource() && readFlowServerRecovery();
+    if (migration?.destination === owner && migration.owner !== owner) {
+        return [...copies, ...readFlowRecoveryCopies(migration.owner).map(row => ({ ...row, owner }))];
+    }
+    return copies;
 }
 
 function keepFlowRecoveryCopy(owner, snapshot, reason) {
@@ -173,17 +231,38 @@ async function connectFlowAccount(user) {
     const previousOwner = flowStorage.getItem('flow_user_id');
     if (previousOwner === user.id) return true;
     const snapshot = JSON.stringify(getFlowSnapshot());
-    const hasEarlierWork = flowWorkspaceKeys.slice(0, 7).some(key => {
-        const value = flowStorage.getItem(key);
-        return value && !['[]', '{}', 'null'].includes(value);
-    });
-    const cloud = await getCloudData(client, user.id);
+    const hasEarlierWork = hasFlowSavedWork();
     const verified = await client.auth.getUser();
     if (verified.error || verified.data?.user?.id !== user.id) throw new Error('Sign in again to open Flow.');
+    const migration = flowServerRecoverySource() && readFlowServerRecovery();
+    let restore = false;
+    if (migration && !migration.destination) {
+        const current = verified.data.user;
+        if (!migration.email || !current.email_confirmed_at || typeof current.email !== 'string' ||
+            current.email.trim().toLowerCase() !== migration.email || previousOwner !== migration.owner) {
+            throw flowRecoveryRequired();
+        }
+        restore = true;
+    } else if (flowServerRecoverySource() && hasEarlierWork && !migration) {
+        // Never infer ownership from an ID or a workspace alone.
+        throw flowRecoveryRequired();
+    }
+    let cloud = await getCloudData(client, user.id);
+    if (restore && !cloud) {
+        if (flowStorage.getItem('flow_user_id') !== previousOwner || JSON.stringify(getFlowSnapshot()) !== snapshot ||
+            window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== user.id)) {
+            throw new Error('Flow changed while restoring. Please try again.');
+        }
+        const data = JSON.parse(snapshot);
+        validateFlowSnapshot(data);
+        const revision = await saveCloudData(client, 0, data);
+        cloud = { revision, data };
+    }
     const opened = acceptFlowAccountCopy(user.id, cloud?.revision || 0, cloud?.data || {
         clientSchemaVersion:2, transactions:[], budgets:[], budgetsByMonth:{}, categoryRules:[], recurringItems:[], bankAccounts:[], flowPlanning:null
     }, { expectedOwner:previousOwner, expectedSnapshot:snapshot, recover:hasEarlierWork, reason:'account-open' });
     if (!opened) throw new Error('Flow changed while opening. Please try again.');
+    if (restore) flowStorage.setItem(flowServerRecoveryKey, JSON.stringify({ ...migration, destination:user.id }));
     return true;
 }
 

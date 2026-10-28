@@ -73,6 +73,7 @@ function forgetBankFeedConnection(connectionId, owner) {
     writeBankFeedStatus(owner, loadBankFeedStatus(owner).filter(row => row.id !== connectionId));
 }
 function bankFeedSummary(rows, phase = '') {
+    if (phase === 'recovery') return {kind:'waiting', title:'Bank updates paused during recovery'};
     if (phase === 'checking') return {kind:'checking', title:'Checking for bank updates…'};
     if (phase === 'error') return {kind:'retrying', title:'Couldn’t check · retrying automatically'};
     if (phase === 'offline') return {kind:'offline', title:'Offline · updates will resume'};

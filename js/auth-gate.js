@@ -107,6 +107,7 @@
                 lock('Reconnect to open your saved account.', true);
                 resolveReady(null); return;
             }
+            if (typeof prepareFlowServerRecovery === 'function') await read(() => prepareFlowServerRecovery());
             const result = await read(() => client.auth.getSession());
             if (attempt !== attemptNumber || redirecting) return;
             const session = result.data?.session;

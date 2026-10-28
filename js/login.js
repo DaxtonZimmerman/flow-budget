@@ -5,7 +5,8 @@
     const sent = document.querySelector('#login-sent'), resend = document.querySelector('#login-resend');
     const title = document.querySelector('#login-title'), description = document.querySelector('#login-description');
     const client = getFlowClient(), storage = typeof flowAuthStorage !== 'undefined' ? flowAuthStorage : localStorage;
-    const pendingKey = 'flow-email-signin';
+    const pendingKey = typeof flowRecoverySourceProject !== 'undefined'
+        ? 'flow-email-signin:' + new URL(flowCloudUrl).hostname : 'flow-email-signin';
     let pending = null, sending = false, verifying = false, lastIssue = 'none';
     const validEmail = value => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     function updateResend() {

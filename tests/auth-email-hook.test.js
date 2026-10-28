@@ -166,3 +166,24 @@ test("unsupported methods and oversized bodies cannot reach the provider", async
     assert.equal((await server.send(event, { body: "x".repeat(65537) })).status, 401);
     assert.equal(server.calls.length, 0);
 });
+
+test('replacement project can send the first signup code only to its exact private allowlisted email', async () => {
+    const server=makeServer({PLAID_PILOT_USER_ID:'',FLOW_SIGN_IN_EMAIL:' Pilot@Example.test '});
+    const signup={...event,user:{...event.user,id:'new-project-user'},email_data:{...event.email_data,email_action_type:'signup'}};
+    assert.equal((await server.send(signup)).status,200);
+    assert.deepEqual(server.calls[0].body.to,['pilot@example.test']);
+    assert.equal((await server.send({...signup,user:{...signup.user,email:'another@example.test'}})).status,403);
+    assert.equal(server.calls.length,1);
+    assert.deepEqual(server.logs,[]);
+});
+
+test('configured private user ID and email must both match; an invalid email cannot bootstrap signup',async()=>{
+    const server=makeServer({FLOW_SIGN_IN_EMAIL:'pilot@example.test'});
+    assert.equal((await server.send({...event,user:{...event.user,id:'other'}})).status,403);
+    assert.equal((await server.send({...event,user:{...event.user,email:'another@example.test'}})).status,403);
+    for(const email of ['bad-address','pilot@example.test,other@example.test','']){
+        const bad=makeServer({PLAID_PILOT_USER_ID:'',FLOW_SIGN_IN_EMAIL:email});
+        assert.equal((await bad.send()).status,503);
+        assert.equal(bad.calls.length,0);
+    }
+});

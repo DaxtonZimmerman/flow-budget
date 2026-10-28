@@ -15,6 +15,7 @@ async function showAccount() {
     if (accountOpening) return;
     accountOpening = true;
     retryPanel.hidden = true;
+    delete document.documentElement.dataset.flowRecovering;
     try {
         if (window.FlowAuth) {
             await window.FlowAuth.ready;
@@ -48,12 +49,20 @@ async function showAccount() {
             return;
         }
         connectedPanel.hidden = false;
-        deletePanel.hidden = false;
+        deletePanel.hidden = typeof flowBankRecoveryPaused !== 'undefined' && flowBankRecoveryPaused;
         document.querySelector("#account-address").textContent = accountUser.email;
         await flowSync();
         renderRecoveryCopies();
-    } catch (_) {
-        accountMessage.textContent = 'Could not open your saved account yet. Check your connection and try again.';
+    } catch (error) {
+        const recovering = error.code === 'FLOW_RECOVERY_REQUIRED';
+        if (recovering) document.documentElement.dataset.flowRecovering = 'true';
+        retryPanel.querySelector('h3').textContent = recovering ? 'Your saved data is protected.' : "Let's get you back in.";
+        retryPanel.querySelector('p').textContent = recovering
+            ? 'We could not confirm the saved account on this phone. Keep Flow installed while we finish recovery. Bank updates are paused.'
+            : 'Reconnect to the internet, then try again. Your earlier work stays saved.';
+        accountMessage.textContent = recovering ? '' : 'Could not open your saved account yet. Check your connection and try again.';
+        document.querySelector('#account-retry').textContent = recovering ? 'Check recovery' : 'Try again';
+        if (recovering) showFlowStatus('Account recovery in progress.');
         retryPanel.hidden = false;
     } finally { accountOpening = false; }
 }
