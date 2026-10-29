@@ -3,7 +3,6 @@ const test=require('node:test'),path=require('node:path');
 test('staged bank completion uses real PostgreSQL locks, backups, owner RLS, revision/cursor guards and replay protection',async t=>{const db=new PGlite();t.after(()=>db.close());const root=path.join(__dirname,'..')+path.sep;
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;grant usage on schema auth,public to authenticated,service_role;grant execute on function auth.uid() to authenticated;`);
 for(const file of ['supabase/setup.sql','supabase/plaid-setup.sql','supabase/2026-10-19-client-data-version.sql','supabase/2026-10-28-staged-bank-recovery.sql'])await db.exec(fs.readFileSync(root+file,'utf8'));
-await db.exec('grant select,insert,update,delete on public.flow_data to service_role');
 const owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',conn='33333333-3333-4333-8333-333333333333';
 await db.query('insert into auth.users values($1),($2)',[owner,other]);
 const before={clientSchemaVersion:2,transactions:[{id:'saved-private'}],bankAccounts:[]},next={...before,transactions:[{id:'new-feed'}]};
@@ -13,6 +12,13 @@ const complete=(id=owner,rev=7,cursor='cursor-2')=>db.query('select public.compl
 await db.exec('set role service_role');
 await assert.rejects(()=>complete(),/fresh completed/);await assert.rejects(()=>complete(other),/fresh completed/);
 await db.query('update public.plaid_connections set history_complete=true where id=$1',[conn]);
+// Match a project with automatic table grants disabled. The original deployment
+// must reproduce the live failure before the explicit server-only grant repairs it.
+await assert.rejects(()=>complete(),/permission denied for table flow_data/);
+await db.exec('reset role');
+await db.exec(fs.readFileSync(root+'supabase/2026-10-28-bank-recovery-workspace-access.sql','utf8'));
+assert.deepEqual((await db.query("select has_table_privilege('service_role','public.flow_data','SELECT') as read, has_table_privilege('service_role','public.flow_data','UPDATE') as update, has_table_privilege('service_role','public.flow_data','INSERT') as insert, has_table_privilege('service_role','public.flow_data','DELETE') as delete, has_table_privilege('anon','public.flow_data','SELECT') as anonymous")).rows[0],{read:true,update:true,insert:false,delete:false,anonymous:false});
+await db.exec('set role service_role');
 await assert.rejects(()=>complete(owner,6),/Saved work changed/);await assert.rejects(()=>complete(owner,7,'stale-cursor'),/fresh completed/);
 assert.equal((await db.query('select count(*) as n from public.flow_bank_recovery_backups')).rows[0].n,0);
 const result=(await complete()).rows[0].result;assert.equal(result.revision,8);assert.equal(result.data.transactions[0].id,'new-feed');

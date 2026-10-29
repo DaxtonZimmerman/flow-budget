@@ -5,7 +5,7 @@ This release prepares a new connection on Flow Recovery. It does not transfer th
 ## Release order
 
 1. Review the frontend, bank function and additive migration together. Obtain the owner's approval before committing/publishing or changing the live server.
-2. Apply `supabase/2026-10-28-staged-bank-recovery.sql` on the replacement project only. It adds staging flags and owner-readable recovery copies. It does not modify financial rows or provider credentials.
+2. Apply `supabase/2026-10-28-staged-bank-recovery.sql` and `supabase/2026-10-28-bank-recovery-workspace-access.sql` on the replacement project only. They add staging flags, owner-readable recovery copies, and explicit SELECT/UPDATE privileges on `flow_data` for the existing server role. The latter is required on projects created with automatic table grants disabled. Browser roles and owner RLS remain unchanged; no financial rows or provider credentials are modified.
 3. Deploy `supabase/functions/plaid/index.ts` to the existing `plaid` function. Keep its user-JWT check enabled. The existing signed webhooks and email hook do not need a deployment.
 4. On the replacement project, privately set `PLAID_PILOT_USER_ID` to the newly verified user for the existing pilot email, `PLAID_RECOVERY_ENABLED=true`, and `PLAID_PILOT_ENABLED=true`. Never reuse the old project's user UUID. Keep the pilot limited to this exact verified user; keep existing credentials and the Free plan.
 5. Publish the matching frontend. `flowBankRecoveryPaused=false` resumes checks, but an empty recovery server preserves old account snapshots and a staged connection cannot auto-import.
@@ -26,5 +26,7 @@ Copies can be downloaded in Account → Backup & restore. They are intended for 
 ## Validation
 
 `npm test` includes deterministic matching tests, server endpoint tests, background-sync/account-cache staging guards, and a real PostgreSQL migration/RLS test via PGlite. Browser testing uses synthetic accounts and transactions only. The class demo can be presented independently of bank availability.
+
+The PostgreSQL test starts without implicit server table privileges, reproduces the missing `flow_data` permission, applies the explicit grant migration, and verifies completion, protected backups, owner isolation and revision/cursor checks. If the switch returns the generic fresh-preview error, also check the server role's SELECT/UPDATE privileges before asking the owner to repeat the preview.
 
 If preparation or publishing fails, keep the pilot disabled and preserve both the existing workspace and original Item. Do not clear data, reinstall Flow, delete connections, repeat token searches, restart the broken database, or add paid services as a shortcut.
