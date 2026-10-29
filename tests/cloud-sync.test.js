@@ -373,6 +373,23 @@ test('missing, unverified, or different prior identity cannot upload or replace 
     }
 });
 
+test('a desktop with an unverified old identity opens the account already recovered on another device without uploading or exposing earlier work', async () => {
+    for (const identity of [false, true]) {
+        const app = recoveryApp(identity);
+        if (identity) app.client.auth.getUser=async()=>({data:{user:{id:'person-1',email:'another@example.test',email_confirmed_at:'yes'}}});
+        await app.run('prepareFlowServerRecovery()');
+        app.setCloud({revision:12,data:{clientSchemaVersion:2,transactions:[{id:'recovered-on-phone'}],bankAccounts:[]}});
+        await app.run('connectFlowAccount({id:"person-1"})');
+        assert.equal(app.saved.get('flow_user_id'),'person-1');
+        assert.equal(app.saved.get('flow_revision'),'12');
+        assert.equal(JSON.parse(app.saved.get('transactions'))[0].id,'recovered-on-phone');
+        assert.equal(app.getCloud().revision,12,'The old device must not write to the saved account');
+        assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0,'Unverified old data must stay hidden from the new sign-in');
+        assert.equal(JSON.parse(app.saved.get('flow_recovery_v1:original-owner'))[0].data.transactions[0].id,'original-payment');
+        assert.equal(JSON.parse(app.saved.get('flow_server_recovery_v1')).destination,undefined);
+    }
+});
+
 test('storage failure protects the original workspace and prevents replacement uploads', async () => {
     const app = recoveryApp();
     app.failStorageAt('flow_recovery_v1:original-owner');

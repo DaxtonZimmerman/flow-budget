@@ -134,24 +134,9 @@
         disclosure(document.querySelector('.home-payday-path'),'payday-path','Your payday path');
         disclosure(document.querySelector('#flow-plan-tools'),'more-plan-tools','Cards & advanced tools');
         if (phone.matches) document.querySelector('.home-payday-path')?.closest('details')?.style.setProperty('order','5');
-        updateBills(); updateActivity(); observeDialogs();
+        updateBills(); updateActivity();
     }
     function schedule() { if (!queued) { queued = true; queueMicrotask(refresh); } }
-    const observed = new WeakSet();
-    function sheetViewport() {
-        const view = window.visualViewport;
-        document.documentElement.style.setProperty('--flow-sheet-height', (view ? view.height * .94 : innerHeight * .94) + 'px');
-        document.documentElement.style.setProperty('--flow-sheet-bottom', Math.max(0, view ? innerHeight - view.height - view.offsetTop : 0) + 'px');
-    }
-    function observeDialogs() {
-        for (const dialog of document.querySelectorAll('dialog')) if (!observed.has(dialog)) {
-            observed.add(dialog);
-            new MutationObserver(() => {
-                document.documentElement.classList.toggle('flow-sheet-open', Boolean(document.querySelector('dialog[open]')));
-                sheetViewport();
-            }).observe(dialog,{ attributes:true, attributeFilter:['open'] });
-        }
-    }
     document.addEventListener('click', event => {
         const tab = event.target.closest('[data-mobile-bill-tab]');
         if (tab) { billsTab = tab.dataset.mobileBillTab; updateBills(); }
@@ -159,8 +144,6 @@
     window.addEventListener('hashchange', () => { if (location.hash === '#bill-discovery') { billsTab = 'suggestions'; updateBills(); } });
     for (const name of ['flow-payday-rendered','flow-activity-rendered','flow-transaction-view-refresh','flow-accounts-updated','flow-review-updated','flow-planning-updated']) document.addEventListener(name,schedule);
     phone.addEventListener('change', () => { moveFilters(); schedule(); });
-    window.visualViewport?.addEventListener('resize',sheetViewport);
-    window.visualViewport?.addEventListener('scroll',sheetViewport);
-    prepareFilters(); moveFilters(); sheetViewport(); schedule();
+    prepareFilters(); moveFilters(); schedule();
     document.addEventListener('DOMContentLoaded',schedule);
 })();

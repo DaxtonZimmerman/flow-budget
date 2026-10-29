@@ -234,20 +234,20 @@ async function connectFlowAccount(user) {
     const hasEarlierWork = hasFlowSavedWork();
     const verified = await client.auth.getUser();
     if (verified.error || verified.data?.user?.id !== user.id) throw new Error('Sign in again to open Flow.');
+    // Another device may already have recovered this signed-in account. Opening
+    // its owner-protected server copy does not require importing old local data.
+    let cloud = await getCloudData(client, user.id);
     const migration = flowServerRecoverySource() && readFlowServerRecovery();
     let restore = false;
     if (migration && !migration.destination) {
         const current = verified.data.user;
-        if (!migration.email || !current.email_confirmed_at || typeof current.email !== 'string' ||
-            current.email.trim().toLowerCase() !== migration.email || previousOwner !== migration.owner) {
-            throw flowRecoveryRequired();
-        }
-        restore = true;
-    } else if (flowServerRecoverySource() && hasEarlierWork && !migration) {
+        restore = Boolean(migration.email && current.email_confirmed_at && typeof current.email === 'string' &&
+            current.email.trim().toLowerCase() === migration.email && previousOwner === migration.owner);
+        if (!restore && !cloud) throw flowRecoveryRequired();
+    } else if (flowServerRecoverySource() && hasEarlierWork && !migration && !cloud) {
         // Never infer ownership from an ID or a workspace alone.
         throw flowRecoveryRequired();
     }
-    let cloud = await getCloudData(client, user.id);
     if (restore && !cloud) {
         if (flowStorage.getItem('flow_user_id') !== previousOwner || JSON.stringify(getFlowSnapshot()) !== snapshot ||
             window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== user.id)) {

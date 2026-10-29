@@ -58,10 +58,10 @@ async function showAccount() {
         if (recovering) document.documentElement.dataset.flowRecovering = 'true';
         retryPanel.querySelector('h3').textContent = recovering ? 'Your saved data is protected.' : "Let's get you back in.";
         retryPanel.querySelector('p').textContent = recovering
-            ? 'We could not confirm the saved account on this phone. Keep Flow installed while we finish recovery. Bank updates are paused.'
+            ? 'We could not match the earlier data on this device to your sign-in. It stays protected here. Use the same email you use for Flow, then try again.'
             : 'Reconnect to the internet, then try again. Your earlier work stays saved.';
         accountMessage.textContent = recovering ? '' : 'Could not open your saved account yet. Check your connection and try again.';
-        document.querySelector('#account-retry').textContent = recovering ? 'Check recovery' : 'Try again';
+        document.querySelector('#account-retry').textContent = recovering ? 'Open saved account' : 'Try again';
         if (recovering) showFlowStatus('Account recovery in progress.');
         retryPanel.hidden = false;
     } finally { accountOpening = false; }
