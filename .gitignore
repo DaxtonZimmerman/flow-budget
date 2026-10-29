@@ -147,3 +147,59 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Flow: private settings and credentials (public js/cloud-config.js stays tracked)
+.envrc
+.direnv/
+.secrets/
+secrets/
+credentials/
+credentials*.json
+secrets.json
+secrets.local.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Flow downloads can contain personal transactions and account information
+flow-backup*.json
+flow-*-backup*.json
+flow-recovery-*.json
+flow-bank-recovery-*.json
+flow-transactions*.csv
+/backups/
+/exports/
+/private/
+*.dump
+*.sql.gz
+*.sql.zst
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Local Supabase state; keep migrations, function source, and config.toml
+supabase/.temp/
+supabase/.branches/
+
+# Browser sign-ins and generated test output
+/playwright/.auth/
+/auth-state*.json
+/storage-state*.json
+playwright-report/
+test-results/
+blob-report/
+/artifacts/
+
+# Local editor, operating-system, and scratch files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+/tmp/
+/scratch/
