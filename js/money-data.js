@@ -115,6 +115,22 @@ function getMoneyTotals(transactions, month) {
 }
 
 
+// Use the same reporting rules for chart drill-downs, including split portions.
+function categoryActivity(transactions, category, month) {
+    if (typeof category !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) return [];
+    const days = new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),0).getDate();
+    const seen = new Set(), rows=[];
+    for (const transaction of transactions) {
+        if (!transaction.date || transaction.date.slice(0,7)!==month || transaction.status==='pending' || transaction.type==='Transfer') continue;
+        if (transaction.id !== undefined && seen.has(String(transaction.id))) continue;
+        if (transaction.id !== undefined) seen.add(String(transaction.id));
+        const value=getSpendingBreakdown([transaction],month,days).categorySpending[category];
+        if (!Number.isFinite(value) || !value) continue;
+        rows.push({transaction,cents:moneyToCents(value),split:Boolean(transaction.allocations?.length)});
+    }
+    return rows.sort((a,b)=>b.transaction.date.localeCompare(a.transaction.date));
+}
+
 function getSpendingBreakdown(transactions, month, daysInMonth) {
     const weeklyCents = Array(Math.ceil(daysInMonth / 7)).fill(0);
     const categoryCents = Object.create(null);

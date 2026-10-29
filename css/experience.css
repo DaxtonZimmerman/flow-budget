@@ -1,4 +1,18 @@
 /* Flow's app language: one main decision, tactile controls, details on demand. */
+.category-open { width:100%; padding:7px 0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; font:inherit; border-radius:8px; min-height:48px; }
+.category-open:hover { background:#f2f6ed; }
+.category-open-arrow { margin-left:10px; color:#71896e; font-size:19px; line-height:12px; }
+.category-open .progress-bar,.category-open .progress-fill { display:block; }
+.category-activity-dialog { width:min(560px,calc(100% - 28px)); padding:24px; }
+.category-activity-total { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:8px 0 12px; }
+.category-activity-total>strong { font-size:32px; letter-spacing:-1px; }
+.category-activity-total>span { color:#68786e; font-size:12px; }
+.category-activity-row { display:flex; width:100%; min-height:72px; align-items:center; gap:13px; padding:16px 0; color:inherit; border:0; border-bottom:1px solid #e4e9df; background:none; text-align:left; cursor:pointer; font:inherit; }
+.category-activity-row>span:first-child { flex:1; min-width:0; }
+.category-activity-row strong { font-size:14px; overflow-wrap:anywhere; }
+.category-activity-row small { display:block; margin-top:6px; color:#68786e; font-size:12px; }
+.category-activity-row>strong { flex-shrink:0; font-variant-numeric:tabular-nums; }
+.category-activity-arrow { font-size:22px; color:#71896e; }
 .home-money-details { color:#d8e8d7; margin:13px 0 5px; }
 .home-money-details>summary { justify-content:flex-start; font-size:11px; min-height:38px; gap:8px; }
 .home-money-details>summary::after { content:'+'; margin-left:auto; font-size:17px; }
