@@ -4,6 +4,7 @@ for (const file of readdirSync('.').filter(f=>f.endsWith('.html') && !['offline.
     const source=readFileSync(file,'utf8')
         // Sample-money screens never open a real bank sign-in.
         .replace(/\s*<script src="https:\/\/cdn\.plaid\.com\/link\/v2\/stable\/link-initialize\.js" defer><\/script>/g, '')
+        .replace(/href="login\.html(?=[?"#])/g, 'href="../login.html')
         .replace(/(src|href)="((?:js|css|assets|vendor)\/[^"#]+|manifest\.webmanifest(?:\?[^"#]*)?)"/g,'$1="../$2"');
     writeFileSync('demo/'+file,source);
 }

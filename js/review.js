@@ -274,7 +274,7 @@ function showQuickReview() {
     document.querySelector("#individual-review-count").textContent = `${remaining} items`;
     document.dispatchEvent(new Event("flow-review-updated"));
     document.querySelector("#quick-review-summary").textContent =
-        `${remaining} transactions need a decision. ${likelyTransfers.length} name groups look like transfers; confirm those first.`;
+        `${remaining} ${remaining===1?"payment":"payments"} to sort. Similar payments stay together.`;
     quickReviewGroups.replaceChildren();
 
     for (const group of groups.slice(0, quickReviewLimit)) {

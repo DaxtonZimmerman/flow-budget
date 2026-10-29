@@ -302,10 +302,15 @@ function flowDataChanged() {
 
 // IMPORTANT: Async/API request. await waits for Supabase data; a failed request throws an error for the caller to handle.
 async function getCloudData(client, userId) {
-    const result = await client.from("flow_data")
-        .select("revision,data")
-        .eq("user_id", userId)
-        .maybeSingle();
+    let timer;
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+        const error=new Error('Your account took too long to open. Please try again.');
+        error.name='AuthRetryableFetchError';reject(error);
+    },10000);});
+    let result;
+    try {
+        result=await Promise.race([client.from("flow_data").select("revision,data").eq("user_id",userId).maybeSingle(),timeout]);
+    } finally {clearTimeout(timer);}
 
     if (result.error) {
         throw result.error;

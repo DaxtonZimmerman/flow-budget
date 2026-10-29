@@ -29,3 +29,12 @@ test('bank imports and other origins do not inherit the short sign-in timeout',a
  await a.context.flowAuthFetch('https://other.invalid/auth/v1/user',options);
  assert.equal(a.timers.size,0);assert.equal(calls[0].options,options);assert.equal(calls[1].options,options);
 });
+test('a stalled account read times out without changing data and a later retry can succeed',async()=>{
+ const a=app(async()=>({ok:true}));let finish;
+ const client={from:()=>({select:()=>({eq:()=>({maybeSingle:()=>new Promise(resolve=>finish=resolve)})})})};
+ const pending=a.context.getCloudData(client,'owner');assert.equal([...a.timers.values()][0].delay,10000);a.expire();
+ await assert.rejects(pending,/took too long/);assert.equal(a.timers.size,0);
+ finish({data:{revision:2,data:{transactions:[]}},error:null});
+ client.from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{revision:3},error:null})})})});
+ assert.equal((await a.context.getCloudData(client,'owner')).revision,3);assert.equal(a.timers.size,0);
+});

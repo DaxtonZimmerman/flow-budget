@@ -10,7 +10,7 @@
         let node = document.querySelector('#flow-connectivity');
         if (!node) { node = document.createElement('div'); node.id = 'flow-connectivity'; node.className = 'offline-banner'; node.setAttribute('role', 'status'); mount()?.prepend(node); }
         node.hidden = navigator.onLine;
-        node.textContent = 'You’re offline. Your changes will sync when you reconnect.';
+        node.textContent = 'Offline · changes saved here';
     }
     function busy() {
         for (const form of dirtyForms) if (!form.isConnected || form.closest('dialog:not([open])')) dirtyForms.delete(form);
@@ -32,7 +32,7 @@
         if (!worker || worker.state === 'redundant') return;
         pendingWorker = worker;
         if (!updateLock) worker.postMessage({ type: 'FLOW_UPDATE_READY', ready: !busy() });
-        updateNotice(busy() ? 'An update will finish automatically after your current edit.' : 'Flow will update automatically when all open tabs are ready.');
+        updateNotice(busy() ? 'Update ready. Finish your edit first.' : 'Updating automatically…');
     }
     function changed(event) {
         if (updateLock) { event.preventDefault(); event.stopImmediatePropagation(); return; }

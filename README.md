@@ -19,7 +19,7 @@ The personal app requires an email code entered inside Flow. The public demo has
 - Extra tools include savings goals, net worth, splits, reimbursement links, transfer review, CSV import, and recovery exports.
 - Phone layouts use bottom navigation and focused sliding panels. The installable app shell updates automatically after current edits are safe.
 
-**Current recovery status (October 28, 2026):** personal sign-in and saved budgeting data have moved to a working Supabase Free project. Bank updates are temporarily paused while a replacement connection is prepared. The class demo and manual budgeting features operate independently of bank reporting.
+**Private pilot status (October 29, 2026):** sign-in, saved budgeting data, and the replacement bank feed are working on Flow Recovery. A protected copy of the earlier workspace was saved during the switch. Bank reporting can still arrive later than activity shown by the bank. The public class demo uses sample money.
 
 ## Run locally
 
@@ -69,7 +69,7 @@ Income is positive; expenses are negative. Amounts are calculated in integer cen
 
 ## Testing and deployment
 
-`npm test` runs the automated suite, including validation, totals, imports, transfers, owner isolation, protected recovery, and signed provider callbacks. Browser verification also covers the public demo's forms and phone layouts. The prepared bank recovery release passes 334 automated checks, including real PostgreSQL recovery and permission tests.
+`npm test` runs the automated suite, including validation, totals, imports, transfers, owner isolation, protected recovery, and signed provider callbacks. Browser verification also covers the public demo's forms and phone layouts. The prepared bank recovery release passes 347 automated checks, including real PostgreSQL recovery and permission tests.
 
 GitHub Actions runs the tests, builds `dist/`, and deploys GitHub Pages from `main`; see [pages.yml](.github/workflows/pages.yml). A push to `main` publishes the website, so review changes and apply any required database migrations first.
 

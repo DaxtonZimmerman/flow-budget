@@ -1,4 +1,30 @@
 /* Flow's app language: one main decision, tactile controls, details on demand. */
+.home-money-details { color:#d8e8d7; margin:13px 0 5px; }
+.home-money-details>summary { justify-content:flex-start; font-size:11px; min-height:38px; gap:8px; }
+.home-money-details>summary::after { content:'+'; margin-left:auto; font-size:17px; }
+.home-money-details[open]>summary::after { content:'−'; }
+.home-money-details .home-simple-math { margin:4px 0 12px; }
+.quick-paydays { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+.app-redesign .quick-date { min-height:42px; padding:10px 14px; border:1px solid #dce5d5; border-radius:24px; background:#f4f7ef; color:#31523c; font:inherit; font-size:12px; cursor:pointer; }
+.app-redesign .quick-date[aria-pressed=true] { color:#fff; background:#205940; border-color:#205940; }
+.review-pager { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 0 18px; border-bottom:1px solid #e3eadc; }
+.review-pager>span { color:#607263; font-size:12px; font-variant-numeric:tabular-nums; }
+.review-pager .back-button { min-height:44px; min-width:72px; }
+.quick-review-group[hidden],.review-pager[hidden] { display:none!important; }
+.quick-review-dialog .quick-review-group { border-bottom:0; padding:22px 0; }
+.quick-review-dialog .quick-review-heading p { max-width:42ch; }
+.home-hero .home-money-details .home-simple-math strong { font-size:18px; }
+@media(max-width:768px) {
+ .quick-review-dialog .quick-review-group { display:block; min-width:0; width:100%; }
+ .quick-review-dialog .quick-review-group>div:first-child { width:100%; margin-bottom:18px; }
+ .quick-review-dialog .quick-review-group .review-controls { display:grid; flex-basis:auto; width:100%; min-width:0; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .review-pager .back-button { width:auto; flex:0 0 80px; }
+ .review-pager>span { flex:1; text-align:center; white-space:nowrap; }
+ .quick-review-dialog .quick-review-heading h2 { font-size:25px; }
+ .quick-paydays { gap:7px; }
+ .app-redesign .quick-date { flex:1; white-space:nowrap; }
+ .home-hero .home-money-details { margin-top:9px; }
+}
 body.app-redesign { --text:#193f34; --text-light:#68786e; --background:#f5f7f1; --border:#e4e9df; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
 .app-redesign .main { max-width:1400px; }
 .app-redesign .sidebar { border-right:1px solid #e7ebe3; }

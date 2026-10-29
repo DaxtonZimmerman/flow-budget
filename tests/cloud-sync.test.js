@@ -50,6 +50,7 @@ function setupCloud(editing = false) {
         },
         window: { addEventListener: () => {}, location: { reload: () => { reloads++; } } },
         setTimeout,
+        clearTimeout,
         Event
     });
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "cloud-sync.js"), "utf8");

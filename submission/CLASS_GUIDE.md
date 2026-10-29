@@ -56,4 +56,6 @@ The daily-commit requirement should be judged from the actual log. Days without 
 
 ## Verification for the prepared release
 
-The release passes 334 automated checks. The public demo was also checked in the browser for adding an expense, editing its amount, reloading, deleting it, and returning totals and the chart to normal. The bank recovery workflow was exercised with synthetic data on phone and desktop layouts, with a downloaded recovery copy verified. Live bank syncing still requires the approved deployment and your own new bank connection; do not present it as restored until that connection has synced.
+The prepared update passes 347 automated checks. Browser checks cover income and expense validation, live totals, edit/delete, setup with quick payday choices, focused payment review, popups, and desktop recovery. The private bank feed was activated and a subsequent sync was verified; its earlier workspace is protected in a recovery copy. Present with the public demo to keep personal account data private.
+
+The latest interface keeps Home brief, puts calculations behind a disclosure, and shows one merchant at a time in quick review. Starting or saving a plan confirms its displayed amounts without another confirmation checkbox; invalid amounts and changed-data guards remain enforced.
