@@ -37,10 +37,10 @@
         const body=dialog.querySelector('.notification-body');body.replaceChildren();
         const head=dialog.querySelector('.dialog-head');head.replaceChildren();
         dialog.classList.toggle('notification-welcome',view==='welcome');
-        if(view==='settings'){const back=button('‹','open','icon-button');back.setAttribute('aria-label','Back to notifications');head.append(back);}
+        if(view==='settings'){const back=button('','open','icon-button');back.setAttribute('aria-label','Back to notifications');back.innerHTML='<i data-lucide="chevron-left" aria-hidden="true"></i>';head.append(back);}
         const title=make('h2',view==='settings'?'Notification settings':view==='welcome'?'A little heads-up.':'Notifications');title.id='notification-title';head.append(title);
         if(view==='inbox'){const gear=button('','settings','icon-button');gear.setAttribute('aria-label','Notification settings');gear.innerHTML='<i data-lucide="settings-2" aria-hidden="true"></i>';head.append(gear);}
-        const close=button('×','close','icon-button');close.setAttribute('aria-label','Close notifications');head.append(close);
+        const close=button('','close','icon-button');close.setAttribute('aria-label','Close notifications');close.innerHTML='<i data-lucide="x" aria-hidden="true"></i>';head.append(close);
         if(view==='welcome')renderWelcome(body);
         else if(view==='settings')renderSettings(body);
         else renderInbox(body);
