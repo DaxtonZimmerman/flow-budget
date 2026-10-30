@@ -34,6 +34,26 @@ test('pending payments, same-day payments and balances without timestamps retain
  for(const extra of [{bankUpdatedAt:null},{bankUpdatedAt:'2026-10-10T00:00:00Z'},{availableCents:null},{type:'credit'},{currency:'EUR'}])assert.equal(state(c,p,[tx()],[account(extra)]).rows[0].paid,false);
  const e=c.paydayEstimate(p,[account({bankUpdatedAt:null})],[tx()],today,now);assert.equal(e.billsCents,1000);
 });
+test('a passed bill date keeps the spending estimate visible while a missing or pending payment stays reserved',()=>{
+ const c=model(),p=plan(c),before=JSON.stringify(p),a=account({bankUpdatedAt:null});
+ const dueDay=c.paydayEstimate(p,[{...a,retrievedAt:'2026-10-19T15:00:00Z'}],[],'2026-10-19',Date.parse('2026-10-19T16:00:00Z'));assert.equal(dueDay.ready,true);
+ for(const rows of [[],[tx({status:'pending'})],[tx()]]){
+  const e=c.paydayEstimate(p,[a],rows,today,now);
+  assert.equal(e.ready,true);assert.equal(e.billsCents,1000);assert.equal(e.leftCents,89000);assert.equal(e.leftCents,dueDay.leftCents);
+  assert.equal(e.missing.length,0);assert.equal(e.billRows[0].paid,false);
+ }
+ assert.equal(JSON.stringify(p),before);assert.equal(p.bills[0].nextDate,'2026-10-19');
+});
+test('the delayed payment releases its bill reservation only once after the bank balance reflects it',()=>{
+ const c=model(),p=plan(c),before=JSON.stringify(p),oldBalance=account({availableCents:90000,bankUpdatedAt:null});
+ const waiting=c.paydayEstimate(p,[oldBalance],[],today,now);assert.equal(waiting.ready,true);assert.equal(waiting.leftCents,89000);
+ const reflected=account({availableCents:89000});
+ for(const rows of [[tx()],[tx(),tx()]]){
+  const e=c.paydayEstimate(p,[reflected],rows,today,now);
+  assert.equal(e.ready,true);assert.equal(e.billsCents,0);assert.equal(e.leftCents,waiting.leftCents);assert.equal(e.billRows[0].paid,true);
+ }
+ assert.equal(JSON.stringify(p),before);
+});
 test('matching needs the confirmed merchant, bank account, direction, and date window',()=>{
  const c=model(),p=plan(c);for(const extra of [{name:'Different service'},{accountId:'other'},{bankConnectionId:'other'},{type:'Transfer'},{type:'Refund',amount:10},{date:'2026-10-01'}])assert.equal(state(c,p,[tx(extra)]).rows[0].paid,false);
 });

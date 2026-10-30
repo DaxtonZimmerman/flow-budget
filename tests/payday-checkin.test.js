@@ -29,9 +29,9 @@ test('fresh reserves do not carry old purchases into the new period or inflate c
  const c=model(),p=plan(c),next=c.preparePaydayCheckIn(p,choices({balanceMode:'bank'}),today),rows=[{id:'old',source:'bank',bankConnectionId:'conn',accountId:'cash',bankTransactionId:'old',name:'Groceries',amount:-40,type:'Expense',category:'Food',date:'2026-10-22',status:'posted'},{name:'Expected pay',amount:2000,type:'Income',date:'2026-10-30'}];
  const e=c.paydayEstimate(next,[account()],rows,today,now);assert.equal(e.balanceCents,100000);assert.equal(e.essentialsCents,20000);assert.equal(e.leftCents,70000);assert.equal(next.manualBalance,null);
 });
-test('unpaid old bills remain due and stale or missing bank balances still block a new estimate',()=>{
+test('unpaid old bills stay reserved without blocking an estimate, while stale or missing bank balances still block it',()=>{
  const c=model(),p=plan(c,{bills:[{id:'rent',name:'Rent',amountCents:10000,nextDate:'2026-10-21',frequency:'monthly'}]}),next=c.preparePaydayCheckIn(p,choices({balanceMode:'bank'}),today);
- assert.equal(c.paydayEstimate(next,[account()],[],today,now).ready,false);assert.equal(c.paydayEstimate(next,[account()],[],today,now).billsCents,10000);
+ assert.equal(c.paydayEstimate(next,[account()],[],today,now).ready,true);assert.equal(c.paydayEstimate(next,[account()],[],today,now).billsCents,10000);
  const noBills=c.preparePaydayCheckIn(plan(c),choices({balanceMode:'bank'}),today);
  for(const accounts of [[],[account({retrievedAt:'2026-10-01T00:00:00Z'})],[account({availableCents:null})],[account({type:'credit'})]])assert.equal(c.paydayEstimate(noBills,accounts,[],today,now).ready,false);
 });

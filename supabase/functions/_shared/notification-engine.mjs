@@ -234,7 +234,9 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
     }
     const tracking = typeof getBillTrackingState === 'function' ? getBillTrackingState(planning, accounts, transactions, today, now) : null;
     const bills = validPlanDate(planning.payday.nextDate) ? (tracking ? tracking.rows.filter(b => b.dueDate <= planning.payday.nextDate && !b.paid) : planBillOccurrences(planning, planning.payday.nextDate)) : [];
-    if (bills.some(b => b.dueDate < today)) missing.push('Check overdue bills');
+    // Passing a due date does not invalidate the estimate: unpaid bills are still deducted below.
+    // Keep their reservation while the bank feed catches up rather than hiding the spending amount.
+    if (bills.some(b => b.dueDate < today)) notes.push('Unconfirmed bill payments stay set aside after their due date.');
     // Release reserves only for posted spending known to precede the balance snapshot.
     // Retrieval time alone does not establish that a cached bank balance reflects a purchase.
     const recorded = flowEssentialActivity(planning, accounts, transactions, today, tracking?.excludedPayments);

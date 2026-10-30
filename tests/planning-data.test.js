@@ -44,7 +44,7 @@ test('monthly bills keep month-end anchors and weekly bills repeat through the p
  const m=model(),p=plan(m);p.bills=[{id:'month',name:'Month',amountCents:100,nextDate:'2027-01-31',frequency:'monthly',anchorDay:31}];
  const occurrences=m.evaluate('planBillOccurrences',p,'2027-03-31');assert.deepEqual(Array.from(occurrences,b=>b.dueDate),['2027-01-31','2027-02-28','2027-03-31']);
  p.bills=[{id:'week',name:'Weekly',amountCents:100,nextDate:'2026-10-20',frequency:'weekly'}];assert.equal(m.evaluate('planBillOccurrences',p,'2026-11-03').length,3);
- p.bills[0].nextDate='2026-10-19';assert.equal(estimate(m,p).ready,false);
+ p.bills[0].nextDate='2026-10-19';const overdue=estimate(m,p);assert.equal(overdue.ready,true);assert.equal(overdue.billsCents,200);
 });
 test('malformed, duplicate and unknown-version planning data is rejected without replacing saved data',()=>{
  const m=model(),p=plan(m);m.evaluate('saveFlowPlanning',p);const original=m.saved.get('flowPlanning');
