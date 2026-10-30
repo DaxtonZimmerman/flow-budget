@@ -139,6 +139,18 @@ function applyBankChanges(transactions, accountId, changes, rules = []) {
 
 /* match one bank's saved snapshot */
 
+function validateBankSnapshot(snapshot) {
+    const rows = snapshot?.transactions;
+    if (snapshot?.snapshot_complete !== true || !Array.isArray(rows) ||
+        !Number.isSafeInteger(snapshot.transaction_count) || snapshot.transaction_count !== rows.length ||
+        new Set(rows.map(t=>t?.transaction_id)).size !== rows.length || rows.some(t=>
+            !t || typeof t.transaction_id !== 'string' || !t.transaction_id ||
+            typeof t.account_id !== 'string' || !t.account_id || !/^\d{4}-\d{2}-\d{2}$/.test(t.date) ||
+            t.amount === null || !Number.isFinite(Number(t.amount)))) {
+        throw new Error('Bank history is incomplete. Your saved payments are kept; Flow will try again.');
+    }
+}
+
 function mergeBankSnapshot(transactions, connectionId, bankItems, rules = []) {
     const oldBankItems = transactions.filter(function(item) {
         return item.source === "bank" && item.bankConnectionId === connectionId;

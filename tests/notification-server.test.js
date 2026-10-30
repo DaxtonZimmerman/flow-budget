@@ -14,7 +14,7 @@ function fixture(options={}){
    if(mode==='delete')for(const r of result){const index=devices.indexOf(r);if(index>=0)devices.splice(index,1);}
    return {data:result,error:null};
   }return q;
- },rpc:async(_,{p_subscription,p_event})=>{const key=p_subscription+':'+p_event;if(ledger.has(key))return {data:false};ledger.set(key,{subscription_id:p_subscription,event_key:p_event,state:'sending'});return {data:true};}};
+ },rpc:async(_,{p_subscription,p_event})=>{const key=p_subscription+':'+p_event;const old=ledger.get(key);if(old&&!(old.state==='failed'&&old.retry_at&&Date.parse(old.retry_at)<=(options.now||Date.parse('2026-10-29T16:05:00Z'))&&old.attempts<3))return {data:false};ledger.set(key,{subscription_id:p_subscription,event_key:p_event,state:'sending',attempts:(old?.attempts||0)+1});return {data:true};}};
  const deps={env:k=>options.missingKey&&k==='FLOW_PUSH_PRIVATE_KEY'?undefined:envs[k],createClient:(_,key)=>key==='public'?{auth:{getUser:async token=>({data:{user:token==='valid'?{id:'owner',email_confirmed_at:'2026-10-01'}:token==='other'?{id:'other',email_confirmed_at:'2026-10-01'}:null}})}}:db,
   send:async(...args)=>{sent.push(args);if(options.sendError)throw options.sendError;},now:()=>options.now||Date.parse('2026-10-29T16:05:00Z')};
  return {deps,calls,devices,ledger,sent};
@@ -52,4 +52,16 @@ test('scheduled pushes require a private schedule secret, respect device quiet h
 test('expired push destinations are removed without touching the saved workspace or bank connection',async()=>{
  const {deliverNotifications}=await import('../supabase/functions/flow-notification-delivery/handler.mjs');const x=fixture({snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}],sendError:{statusCode:410}});
  const r=await deliverNotifications(scheduled(),x.deps);assert.equal(r.status,200);assert.equal(x.devices.length,0);assert.equal(x.calls.some(c=>c.table==='flow_data'&&c.mode!=='read'),false);assert.equal(x.calls.some(c=>/plaid/.test(c.table)),false);
+});
+
+test('a definite push rate rejection retries after Retry-After and only one concurrent run sends',async()=>{
+ const {deliverNotifications}=await import('../supabase/functions/flow-notification-delivery/handler.mjs'),options={snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}],sendError:{statusCode:429,headers:{'retry-after':'7200'}},now:Date.parse('2026-10-29T16:05:00Z')},x=fixture(options);
+ assert.equal((await deliverNotifications(scheduled(),x.deps)).status,503);assert.equal(x.sent.length,1);await deliverNotifications(scheduled(),x.deps);assert.equal(x.sent.length,1);
+ options.sendError=null;options.now+=7200000;await Promise.all([deliverNotifications(scheduled(),x.deps),deliverNotifications(scheduled(),x.deps)]);assert.equal(x.sent.length,2);assert.ok([...x.ledger.values()].every(r=>r.state==='sent'));await deliverNotifications(scheduled(),x.deps);assert.equal(x.sent.length,2);
+});
+test('ambiguous push failures remain claimed and definite rejection retries stop after three attempts',async()=>{
+ const {deliverNotifications}=await import('../supabase/functions/flow-notification-delivery/handler.mjs');
+ for(const sendError of [new Error('Socket timed out'),{statusCode:503}]){const x=fixture({snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}],sendError});assert.equal((await deliverNotifications(scheduled(),x.deps)).status,503);await deliverNotifications(scheduled(),x.deps);assert.equal(x.sent.length,1);}
+ const options={snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}],sendError:{statusCode:429},now:Date.parse('2026-10-29T16:05:00Z')},x=fixture(options);
+ for(let i=0;i<5;i++){await deliverNotifications(scheduled(),x.deps);options.now+=3600000;}assert.equal(x.sent.length,3);assert.ok([...x.ledger.values()].every(r=>r.attempts===3&&r.retry_at===null));
 });

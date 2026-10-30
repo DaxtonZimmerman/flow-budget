@@ -1,0 +1,10 @@
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+function render(rows){const node=()=>({children:[],classList:{add(){}},style:{},appendChild(n){this.children.push(n);},append(...n){this.children.push(...n);},replaceChildren(){this.children=[];},setAttribute(){},addEventListener(){}}),label=node();
+ const context=vm.createContext({budgetList:node(),emptyBudgets:node(),budgetTotal:node(),budgetSpent:node(),budgetRemaining:node(),categoryInput:{},selectedMonth:'2026-10',budgets:[{category:'Food',limit:100},{category:'Transport',limit:100}],transactions:rows,budgetMoney:n=>n.toLocaleString('en-US',{style:'currency',currency:'USD'}),document:{createElement:node,querySelector:()=>label}});
+ for(const file of ['money-data.js','budget-data.js'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+file,'utf8'),context);const src=fs.readFileSync(__dirname+'/../js/budgets.js','utf8');vm.runInContext(src.slice(src.indexOf('function showBudgets()'),src.indexOf('/* save a budget */'))+';showBudgets()',context);return {context,label};}
+test('monthly total offsets overspending across categories and labels an overall shortfall',()=>{
+ const {context:c,label}=render([{id:'food',type:'Expense',category:'Food',amount:-250,date:'2026-10-10'}]);assert.equal(c.budgetTotal.textContent,'$200.00');assert.equal(c.budgetSpent.textContent,'$250.00');assert.equal(c.budgetRemaining.textContent,'$50.00');assert.equal(label.textContent,'Over budget');
+});
+test('monthly remaining handles refunds and cents without treating pending payments as posted spending',()=>{
+ const {context:c,label}=render([{id:'food',type:'Expense',category:'Food',amount:-200.03,date:'2026-10-10'},{id:'refund',type:'Refund',category:'Food',amount:0.04,date:'2026-10-11'},{id:'pending',type:'Expense',category:'Food',amount:-50,date:'2026-10-11',status:'pending'}]);assert.equal(c.budgetSpent.textContent,'$199.99');assert.equal(c.budgetRemaining.textContent,'$0.01');assert.equal(label.textContent,'Remaining');
+});

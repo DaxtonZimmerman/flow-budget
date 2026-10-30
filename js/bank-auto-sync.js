@@ -14,16 +14,25 @@ async function bankRequest(action, values = {}) {
         throw new Error('Bank updates are paused while we restore your saved connection.');
     }
     const requestOwner=flowStorage.getItem('flow_user_id'), startedAt=Date.now();
-    const result = await getFlowClient().functions.invoke("plaid", {
-        body: { action: action, ...values }
-    });
+    const controller = new AbortController();
+    const deadline = ['sync','recovery-preview'].includes(action) ? 90000 : 20000;
+    let timer;
+    const timeout = new Promise((_, reject) => { timer = setTimeout(() => {
+        controller.abort(); reject(new Error('Bank check took too long. Flow will try again.'));
+    }, deadline); });
+    let result;
+    try {
+        result = await Promise.race([getFlowClient().functions.invoke("plaid", {
+            body: { action: action, ...values }, signal: controller.signal, timeout: deadline
+        }), timeout]);
+    if (!bankOwnerIsCurrent(requestOwner)) throw new Error('Your signed-in account changed.');
 
     if (result.error) {
         let message = result.error.message || "Could not reach your bank.";
         let needsReconnect = false;
 
         try {
-            const details = await result.error.context?.json();
+            const details = await Promise.race([result.error.context?.json(), timeout]);
 
             if (typeof details?.error === "string") message = details.error;
             needsReconnect = details?.needs_reconnect === true;
@@ -42,8 +51,10 @@ async function bankRequest(action, values = {}) {
         throw error;
     }
 
+    if (['sync','recovery-preview'].includes(action)) validateBankSnapshot(result.data);
     if(action==='connections' && typeof rememberBankFeedConnections==='function') rememberBankFeedConnections(result.data.connections,requestOwner,startedAt);
     return result.data;
+    } finally { clearTimeout(timer); }
 }
 
 

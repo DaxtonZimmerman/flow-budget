@@ -114,6 +114,7 @@ function makeServer(options = {}) {
                 },
                 rpc: async (name, values) => {
                     rpcCalls.push({ name, ...values });
+                    if(name==='read_plaid_snapshot') return {data:options.snapshotMissing?null:{complete:true,count:options.snapshotCount??(options.snapshotRows||[{transaction_id:'txn-1',account_id:'cash',date:'2026-10-30',amount:1}]).length,transactions:options.snapshotRows||[{transaction_id:'txn-1',account_id:'cash',date:'2026-10-30',amount:1}]},error:options.snapshotError||null};
                     return { data: name === "disconnect_plaid_connection"
                         ? { revision: 2, data: { transactions: [] } } : null,
                     error: options.rpcError || null };
@@ -315,7 +316,7 @@ test("sync gathers every page before saving changes and cursor", async () => {
     assert.equal(server.calls[0].url, "https://sandbox.plaid.com/item/get");
     assert.equal(server.calls[1].body.cursor, "");
     assert.equal(server.calls[2].body.cursor, "cursor-1");
-    assert.equal(server.rpcCalls.length, 1);
+    assert.equal(server.rpcCalls.filter(c=>c.name === "save_plaid_sync").length, 1);
     assert.equal(server.rpcCalls[0].next_cursor, "cursor-2");
     assert.equal(server.rpcCalls[0].added[0].transaction_id, "txn-1");
     assert.equal(server.rpcCalls[0].removed[0].transaction_id, "old-txn");
@@ -348,7 +349,7 @@ test("a changed Plaid page restarts from the original cursor", async () => {
     ).map(call => call.body.cursor), [
         "", "cursor-1", "", "cursor-1"
     ]);
-    assert.equal(server.rpcCalls.length, 1);
+    assert.equal(server.rpcCalls.filter(c=>c.name === "save_plaid_sync").length, 1);
     assert.equal(server.rpcCalls[0].added.length, 1);
 });
 
@@ -531,4 +532,14 @@ test('recovery completion requires a checked versioned snapshot and passes only 
  const result=await server.request({action:'complete-recovery',connection_id:'connection-1',expected_revision:7,expected_cursor:'cursor-2',owner_id:'attacker',data:{clientSchemaVersion:2,transactions:[],bankAccounts:[]}});
  assert.equal(result.status,200);assert.equal(server.rpcCalls[0].owner_id,'user-1');assert.equal(server.rpcCalls[0].expected_revision,7);assert.equal(server.calls.length,0,'completion never creates, removes or rotates a Plaid Item');
  const stale=await makeServer({rpcError:new Error('stale')}).request({action:'complete-recovery',connection_id:'connection-1',expected_revision:7,expected_cursor:'cursor-2',data:{clientSchemaVersion:2,transactions:[],bankAccounts:[]}});assert.equal(stale.status,409);
+});
+
+test('sync returns a complete scalar snapshot beyond the REST row cap and fails closed on incomplete reads',async()=>{
+ const rows=Array.from({length:1205},(_,i)=>({transaction_id:'t'+i,account_id:'cash',date:'2026-10-30',amount:1}));
+ const server=makeServer({snapshotRows:rows}),r=await server.request({action:'sync',connection_id:'connection-1'});
+ assert.equal(r.status,200);assert.equal(r.body.transaction_count,1205);assert.equal(r.body.snapshot_complete,true);assert.equal(r.body.transactions.length,1205);
+ const call=server.rpcCalls.find(c=>c.name==='read_plaid_snapshot');assert.equal(call.p_owner,'user-1');assert.equal(call.p_connection,'connection-1');assert.equal(call.p_cursor,server.rpcCalls[0].next_cursor);
+ for(const options of [{snapshotMissing:true},{snapshotCount:999},{snapshotError:new Error('read failed')}]){
+  const broken=await makeServer(options).request({action:'sync',connection_id:'connection-1'});assert.equal(broken.status,503);assert.equal('transactions' in broken.body,false);
+ }
 });

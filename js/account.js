@@ -180,6 +180,7 @@ document.querySelector("#delete-account").addEventListener("click", async functi
         // The deleted account can no longer access cloud data.
     }
     flowStorage.removeItem(flowRecoveryKey(accountUser.id));
+    flowStorage.removeItem(flowUncertainSaveKey(accountUser.id));
     for (const key of ["transactions", "budgets", "budgetsByMonth",
         "categoryRules", "recurringItems", "flowPlanning", "bankAccounts",
         "flow_user_id", "flow_revision", "flow_pending", "flowLastEstimate", "flow_pending_client", "flow_verified_user"]) {

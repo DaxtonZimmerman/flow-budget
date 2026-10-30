@@ -6,6 +6,25 @@ let flowAuthStorage;
 let flowSyncing = false;
 let flowSyncAgain = false;
 let flowViewRefreshPending = false;
+let flowSyncFailures = 0, flowSyncRetryTimer;
+
+// Cancel requests at the transport and ignore late results even if it fails to
+// honour cancellation. Writes are reconciled through their revision journal.
+async function flowRequestDeadline(start, milliseconds=15000) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : { signal:undefined, abort(){} }; let timer;
+    const timeout = new Promise((_,reject)=>{ timer=setTimeout(()=>{
+        controller.abort(); const error=new Error('Sync took too long. Retrying automatically.');
+        error.name='FlowSyncTimeout'; reject(error);
+    },milliseconds); });
+    try { return await Promise.race([start(controller.signal),timeout]); }
+    finally { clearTimeout(timer); }
+}
+function flowUncertainSaveKey(owner) { return 'flow_uncertain_save:'+owner; }
+function flowSnapshotSignature(value) {
+    if (Array.isArray(value)) return '['+value.map(flowSnapshotSignature).join(',')+']';
+    if (value && typeof value === 'object') return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+flowSnapshotSignature(value[k])).join(',')+'}';
+    return JSON.stringify(value);
+}
 
 function flowViewIsBeingEdited() {
     return Boolean(document.querySelector('dialog[open], #transaction-details-dialog[open], #payday-dialog[open], #transaction-form, #setup-form') ||
@@ -301,16 +320,10 @@ function flowDataChanged() {
 
 
 // IMPORTANT: Async/API request. await waits for Supabase data; a failed request throws an error for the caller to handle.
+function flowCancellable(query,signal) { return typeof query.abortSignal === 'function' ? query.abortSignal(signal) : query; }
 async function getCloudData(client, userId) {
-    let timer;
-    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
-        const error=new Error('Your account took too long to open. Please try again.');
-        error.name='AuthRetryableFetchError';reject(error);
-    },10000);});
-    let result;
-    try {
-        result=await Promise.race([client.from("flow_data").select("revision,data").eq("user_id",userId).maybeSingle(),timeout]);
-    } finally {clearTimeout(timer);}
+    const result=await flowRequestDeadline(signal=>flowCancellable(client.from("flow_data").select("revision,data")
+        .eq("user_id",userId).maybeSingle(),signal),10000);
 
     if (result.error) {
         throw result.error;
@@ -321,10 +334,10 @@ async function getCloudData(client, userId) {
 
 
 async function saveCloudData(client, revision, data) {
-    const result = await client.rpc("save_flow_data", {
+    const result = await flowRequestDeadline(signal=>flowCancellable(client.rpc("save_flow_data", {
         expected_revision: revision,
         new_data: data
-    });
+    }),signal));
 
     if (result.error) {
         throw result.error;
@@ -356,11 +369,13 @@ async function flowSync(retry = 0) {
     }
 
     flowSyncing = true;
+    clearTimeout(flowSyncRetryTimer);
     let cloudReady = false;
     let retryConflict = false;
+    let failed = false;
 
     try {
-        const userResult = await client.auth.getUser();
+        const userResult = await flowRequestDeadline(()=>client.auth.getUser(),10000);
         const user = userResult.data.user;
 
         if (userResult.error || !user || user.id !== linkedUserId) {
@@ -372,7 +387,43 @@ async function flowSync(retry = 0) {
         const cloud = await getCloudData(client, linkedUserId);
         if (flowStorage.getItem('flow_user_id') !== linkedUserId) return;
         const cloudRevision = cloud ? cloud.revision : 0;
-        const localRevision = Number(flowStorage.getItem("flow_revision") || 0);
+        let localRevision = Number(flowStorage.getItem("flow_revision") || 0);
+
+        // A lost reply is not proof the write failed. Match the exact submitted
+        // snapshot before acknowledging it; newer edits remain pending.
+        const journalKey = flowUncertainSaveKey(linkedUserId);
+        let journal = JSON.parse(flowStorage.getItem(journalKey) || 'null');
+        if (journal && flowStorage.getItem('flow_pending') !== '1') {
+            keepFlowRecoveryCopy(linkedUserId,journal.data,'unconfirmed-save');
+            flowStorage.removeItem(journalKey); journal=null;
+        }
+        if (journal) {
+            if (cloudRevision === journal.revision + 1 && flowSnapshotSignature(cloud?.data) === flowSnapshotSignature(journal.data)) {
+                localRevision = cloudRevision;
+                flowStorage.setItem('flow_revision',String(localRevision));
+                flowStorage.removeItem(journalKey);
+                if (JSON.stringify(getFlowSnapshot()) === JSON.stringify(journal.data)) {
+                    flowStorage.removeItem('flow_pending'); flowStorage.removeItem('flow_pending_client');
+                }
+            } else if (cloudRevision === journal.revision) {
+                // Retry the same CAS, not newer edits. If the original request
+                // commits late, only one of the two writes can win.
+                const revision = await saveCloudData(client,journal.revision,journal.data);
+                if (flowStorage.getItem('flow_user_id') !== linkedUserId) return;
+                flowStorage.setItem('flow_revision',String(revision));
+                flowStorage.removeItem(journalKey);
+                if (JSON.stringify(getFlowSnapshot()) === JSON.stringify(journal.data)) {
+                    flowStorage.removeItem('flow_pending'); flowStorage.removeItem('flow_pending_client');
+                    showFlowStatus('All changes saved.'); cloudReady=true;
+                } else { flowSyncAgain=true; showFlowStatus('Saving new changes…'); }
+                return cloudReady;
+            } else {
+                // Preserve the uncertain submission as well as the current edits
+                // before the ordinary concurrent-device conflict policy runs.
+                keepFlowRecoveryCopy(linkedUserId,journal.data,'unconfirmed-save');
+                flowStorage.removeItem(journalKey);
+            }
+        }
 
         if (flowStorage.getItem("flow_pending") === "1") {
             const olderEdits = cloud?.data?.clientSchemaVersion === 2 && flowStorage.getItem('flow_pending_client') !== '2';
@@ -386,9 +437,11 @@ async function flowSync(retry = 0) {
 
             const snapshot = getFlowSnapshot();
             if (window.FlowAuth && (!window.FlowAuth.authorized || window.FlowAuth.user?.id !== linkedUserId)) return;
+            flowStorage.setItem(journalKey,JSON.stringify({revision:localRevision,data:snapshot}));
             const revision = await saveCloudData(client, localRevision, snapshot);
             if (flowStorage.getItem('flow_user_id') !== linkedUserId) return;
             flowStorage.setItem("flow_revision", String(revision));
+            flowStorage.removeItem(journalKey);
 
             if (JSON.stringify(getFlowSnapshot()) === JSON.stringify(snapshot)) {
                 flowStorage.removeItem("flow_pending");
@@ -414,10 +467,18 @@ async function flowSync(retry = 0) {
         }
 
     } catch (error) {
+        failed = true;
         retryConflict = attempt < 1 && /conflict|data changed/i.test(error.message || '');
         showFlowStatus(retryConflict ? 'Catching up with your account…' : 'Could not sync yet. Your changes are still saved here.');
     } finally {
         flowSyncing = false;
+
+        if (failed && !retryConflict && flowStorage.getItem('flow_user_id') === linkedUserId) {
+            flowSyncFailures++;
+            flowSyncAgain=false;
+            flowSyncRetryTimer=setTimeout(flowSync,Math.min(300000,15000*2**Math.min(flowSyncFailures-1,5)));
+            flowSyncRetryTimer?.unref?.();
+        } else if (!failed) flowSyncFailures=0;
 
         if (flowSyncAgain && !retryConflict) {
             flowSyncAgain = false;

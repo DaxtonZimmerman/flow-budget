@@ -56,7 +56,6 @@ function showBudgets() {
 
     let totalLimit = 0;
     let totalSpent = 0;
-    let totalRemaining = 0;
 
 
     for (const budget of budgets) {
@@ -67,7 +66,6 @@ function showBudgets() {
 
         totalLimit += moneyToCents(budget.limit);
         totalSpent += moneyToCents(spent);
-        totalRemaining += moneyToCents(remaining);
 
 
         const row = document.createElement("div");
@@ -187,7 +185,9 @@ function showBudgets() {
 
     budgetTotal.textContent = budgetMoney(centsToMoney(totalLimit));
     budgetSpent.textContent = budgetMoney(centsToMoney(totalSpent));
-    budgetRemaining.textContent = budgetMoney(centsToMoney(totalRemaining));
+    const remainingCents = totalLimit - totalSpent;
+    budgetRemaining.textContent = budgetMoney(centsToMoney(Math.abs(remainingCents)));
+    document.querySelector('#budget-remaining-label').textContent = remainingCents < 0 ? 'Over budget' : 'Remaining';
     if (typeof lucide !== "undefined") lucide.createIcons();
 
 }

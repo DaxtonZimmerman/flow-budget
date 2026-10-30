@@ -486,18 +486,20 @@ Deno.serve(async function(request) {
                             last_updated_datetime: a.balances?.last_updated_datetime ?? null } })) };
             }
 
-            const { data: transactions, error: listError } = await database
-                .from("plaid_transactions")
-                .select("data")
-                .eq("item_id", connection.item_id);
+            const { data: snapshot, error: listError } = await database.rpc("read_plaid_snapshot", {
+                p_connection: connection.id, p_owner: userData.user.id, p_cursor: changes.cursor
+            });
 
-            if (listError) {
-                return reply({ error: "Could not load bank transactions." }, 500);
+            if (listError || !snapshot || snapshot.complete !== true ||
+                !Array.isArray(snapshot.transactions) || snapshot.count !== snapshot.transactions.length) {
+                return reply({ error: "Could not load complete bank history. Please try again." }, 503);
             }
 
             return reply({
                 ...recovery,
-                transactions: transactions.map(function(row) { return row.data; }),
+                transactions: snapshot.transactions,
+                snapshot_complete: true,
+                transaction_count: snapshot.count,
                 last_synced_at: new Date().toISOString(),
                 transaction_status: transactionFeedStatus(item)
             });

@@ -3,12 +3,12 @@ function makeApp(options={}){
  const saved=options.saved||new Map([['flow_user_id','person-1']]),session=new Map(),actions=[],events=[],timers=[],listeners={window:new Map(),document:new Map()};let clock=Date.parse('2026-10-19T16:00:00Z'),saves=0,cloudChecks=0,failed=false,authOwner='person-1',rows=[{transaction_id:'t1',account_id:'cash',amount:12.5,date:'2026-10-19',name:'Test Market',pending:false}],serverSyncedAt=null,feedStatus=options.feedStatus;
  class ClockDate extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
  const listen=target=>(name,fn)=>{if(!listeners[target].has(name))listeners[target].set(name,[]);listeners[target].get(name).push(fn);};
- const context=vm.createContext({Date:ClockDate,Event,CustomEvent,localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>{if(options.blockFeedStorage&&k.startsWith('flow_bank_feed:'))throw Error('Status cache full');saved.set(k,v);},removeItem:k=>saved.delete(k)},sessionStorage:{getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,v)},navigator:{onLine:true},getFlowClient:()=>options.noClient?null:({auth:{getUser:async()=>({data:{user:{id:authOwner}},error:null})},functions:{invoke:async(_name,request)=>{
+ const context=vm.createContext({AbortController,Date:ClockDate,Event,CustomEvent,localStorage:{getItem:k=>saved.get(k)??null,setItem:(k,v)=>{if(options.blockFeedStorage&&k.startsWith('flow_bank_feed:'))throw Error('Status cache full');saved.set(k,v);},removeItem:k=>saved.delete(k)},sessionStorage:{getItem:k=>session.get(k)??null,setItem:(k,v)=>session.set(k,v)},navigator:{onLine:true},getFlowClient:()=>options.noClient?null:({auth:{getUser:async()=>({data:{user:{id:authOwner}},error:null})},functions:{invoke:async(_name,request)=>{
  const action=request.body.action;actions.push(action);if(failed||action==='sync'&&options.syncFailure)throw Error('Unavailable');
  if(action==='connections'){if(options.duringConnections)await options.duringConnections(saved);return {data:{connections:[{id:'bank-1',recovery_required:options.recoveryRequired,needs_reconnect:options.reconnect,last_synced_at:serverSyncedAt,institution_name:'Test Bank',transaction_status:feedStatus}]},error:null};}
  if(options.duringSync)await options.duringSync(saved);
- return {data:{transactions:rows,last_synced_at:new Date(clock).toISOString(),transaction_status:feedStatus},error:null};
- }}}),getFlowSnapshot:()=>({transactions:JSON.parse(saved.get('transactions')||'[]')}),flowDataChanged:async()=>{saves++;},refreshFlowDataViews:()=>events.push('view-refresh'),document:{hidden:false,addEventListener:listen('document'),dispatchEvent:event=>{events.push(event.type);for(const fn of listeners.document.get(event.type)||[])fn(event);},querySelector:()=>null},window:{addEventListener:listen('window'),location:{reload:()=>{throw Error('Sync must not reload the page');}}},setTimeout:(fn,delay)=>{timers.push({fn,delay});return timers.length;}});
+ return {data:{transactions:rows,snapshot_complete:options.incomplete!==true,transaction_count:options.wrongCount??rows.length,last_synced_at:new Date(clock).toISOString(),transaction_status:feedStatus},error:null};
+ }}}),getFlowSnapshot:()=>({transactions:JSON.parse(saved.get('transactions')||'[]')}),flowDataChanged:async()=>{saves++;},refreshFlowDataViews:()=>events.push('view-refresh'),document:{hidden:false,addEventListener:listen('document'),dispatchEvent:event=>{events.push(event.type);for(const fn of listeners.document.get(event.type)||[])fn(event);},querySelector:()=>null},window:{addEventListener:listen('window'),location:{reload:()=>{throw Error('Sync must not reload the page');}}},setTimeout:(fn,delay)=>{const t={fn,delay};timers.push(t);return t;},clearTimeout:t=>{const i=timers.indexOf(t);if(i>=0)timers.splice(i,1);}});
  context.flowSync=async()=>{cloudChecks++;if(options.cloudBlocked)return false;context.document.dispatchEvent(new Event('flow-cloud-ready'));return true;};
  for(const file of ['bank-status.js','bank-data.js','bank-auto-sync.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js',file),'utf8'),context);
  return {saved,actions,events,context,timers,run:()=>vm.runInContext('updateBanksAutomatically()',context),force:()=>vm.runInContext('checkBanksOnReturn(true)',context),status:()=>vm.runInContext('bankSyncState',context),rows:value=>{rows=value;},feed:value=>{feedStatus=value;},advance:ms=>{clock+=ms;},webhook:()=>{serverSyncedAt=new Date(clock).toISOString();},fail:value=>{failed=value;},auth:value=>{authOwner=value;},saves:()=>saves,cloudChecks:()=>cloudChecks,tick:async()=>{const timer=timers.shift();clock+=timer.delay;await timer.fn();},emit:async(target,name,event={})=>{for(const fn of listeners[target].get(name)||[])await fn(event);await new Promise(setImmediate);}};
@@ -84,4 +84,18 @@ test('server recovery pauses bank requests while keeping saved transactions unto
 test('a staged replacement is never imported by minute checks or manual background checks',async()=>{
  const a=makeApp({recoveryRequired:true});a.saved.set('transactions','[{"id":"old-history"}]');await a.run();await a.force();
  assert.deepEqual(a.actions,['connections']);assert.equal(a.status().phase,'recovery');assert.equal(JSON.parse(a.saved.get('transactions'))[0].id,'old-history');assert.equal(a.saves(),0);
+});
+
+test('an incomplete bank snapshot never removes saved history or user corrections',async()=>{
+ for(const options of [{incomplete:true},{wrongCount:900}]){
+  const a=makeApp(options),before=JSON.stringify([{id:'saved',source:'bank',bankConnectionId:'bank-1',notes:'Keep correction'}]);a.saved.set('transactions',before);
+  await a.run();assert.equal(a.saved.get('transactions'),before);assert.equal(a.saves(),0);assert.equal(a.status().phase,'error');
+ }
+});
+test('a stalled bank request releases its lock, ignores late data and retries automatically',async()=>{
+ let release;const options={duringConnections:()=>new Promise(r=>release=r)},a=makeApp(options);
+ const first=a.run();await new Promise(setImmediate);const deadline=a.timers.find(t=>t.delay===20000);deadline.fn();await first;
+ assert.equal(vm.runInContext('bankRefreshing',a.context),false);assert.equal(a.status().phase,'error');
+ options.duringConnections=undefined;a.advance(60000);await a.run();assert.equal(a.status().phase,'ready');assert.equal(a.saves(),1);
+ release();await new Promise(setImmediate);assert.equal(a.saves(),1);assert.equal(a.status().phase,'ready');
 });

@@ -69,10 +69,12 @@ Income is positive; expenses are negative. Amounts are calculated in integer cen
 
 ## Testing and deployment
 
-`npm test` runs the automated suite, including validation, totals, imports, transfers, owner isolation, protected recovery, and signed provider callbacks. Browser verification also covers the public demo's forms and phone layouts. The prepared bank recovery release passes 347 automated checks, including real PostgreSQL recovery and permission tests.
+`npm test` runs the automated suite, including validation, totals, imports, transfers, owner isolation, protected recovery, and signed provider callbacks. Browser verification also covers the public demo's forms and phone layouts. The reliability update passes 392 automated checks, including interrupted saves, complete bank history, notification retries, and real PostgreSQL permission tests.
 
 GitHub Actions runs the tests, builds `dist/`, and deploys GitHub Pages from `main`; see [pages.yml](.github/workflows/pages.yml). A push to `main` publishes the website, so review changes and apply any required database migrations first.
 
 `js/cloud-config.js` contains only a public Supabase URL and publishable key. Database passwords, service-role keys, provider secrets, login codes, and real account backups do not belong in the repository. Row Level Security restricts saved workspaces to their owners; bank-token tables are server-only. Hosted database/function configuration is separate from the static website build.
 
 The private bank pilot uses existing services on their Free/Trial plans. Public real-bank signups, payments, paid products and subscription-cancellation services are not enabled. [Production readiness](docs/production-readiness.md) records the broader release work.
+
+The October 30 reliability update also needs `supabase/2026-10-30-complete-bank-snapshot.sql` and `supabase/2026-10-30-push-retry.sql` applied before deploying the matching `plaid` and `flow-notification-delivery` functions. Apply the server changes before publishing the browser update; incomplete feeds are deliberately rejected.

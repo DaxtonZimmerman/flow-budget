@@ -4,7 +4,8 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function setupCloud(editing = false) {
+function setupCloud(editing = false, options = {}) {
+    const timers=[];
     const saved = new Map();
     const status = { textContent: "" };
     let cloud = null;
@@ -31,7 +32,7 @@ function setupCloud(editing = false) {
             return { data: cloud.revision, error: null };
         }
     };
-    const context = vm.createContext({
+    const context = vm.createContext({AbortController,
         localStorage: {
             getItem: key => saved.has(key) ? saved.get(key) : null,
             setItem: (key, value) => { if (key === failedKey) throw new Error("Synthetic storage full"); saved.set(key, value); },
@@ -49,8 +50,8 @@ function setupCloud(editing = false) {
             dispatchEvent: event => events.push(event.type)
         },
         window: { addEventListener: () => {}, location: { reload: () => { reloads++; } } },
-        setTimeout,
-        clearTimeout,
+        setTimeout: options.manualClock ? (fn,delay)=>{const t={fn,delay};timers.push(t);return t;} : setTimeout,
+        clearTimeout: options.manualClock ? t=>{const i=timers.indexOf(t);if(i>=0)timers.splice(i,1);} : clearTimeout,
         Event
     });
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "cloud-sync.js"), "utf8");
@@ -58,6 +59,7 @@ function setupCloud(editing = false) {
 
     return {
         saved,
+        timers,
         client,
         status,
         events,
@@ -413,4 +415,27 @@ test('recovery cannot overwrite a concurrently created destination or disclose o
     app.saved.set('flow_user_id','someone-else');
     assert.equal(app.run('getFlowRecoveryCopies("person-1").length'),0);
     assert.equal(app.run('getFlowRecoveryCopies("someone-else").length'),0);
+});
+
+function pendingCloudFixture(){const a=setupCloud(false,{manualClock:true});a.saved.set('flow_user_id','person-1');a.saved.set('flow_revision','0');a.saved.set('flow_pending','1');a.saved.set('flow_pending_client','2');a.saved.set('transactions','[{"id":"original"}]');return a;}
+async function stallSave(a){let submitted,release;const original=a.client.rpc;a.client.rpc=(_name,args)=>{submitted=args.new_data;return new Promise(r=>release=r);};const job=a.run('flowSync()');await new Promise(setImmediate);a.timers.find(t=>t.delay===15000).fn();await job;a.client.rpc=original;return {data:submitted,release};}
+test('a timed-out committed save reconciles its snapshot and saves newer edits without losing either',async()=>{
+ const a=pendingCloudFixture(),stalled=await stallSave(a);assert.equal(a.run('flowSyncing'),false);assert.equal(a.saved.get('flow_pending'),'1');assert.ok(a.timers.some(t=>t.delay===15000));
+ // PostgreSQL JSONB returns object keys in a different order.
+ a.setCloud({revision:1,data:Object.fromEntries(Object.entries(stalled.data).reverse())});a.saved.set('transactions','[{"id":"newer-edit"}]');
+ await a.run('flowSync()');assert.equal(a.getCloud().revision,2);assert.equal(a.getCloud().data.transactions[0].id,'newer-edit');assert.equal(a.saved.has('flow_pending'),false);
+ stalled.release({data:99});await new Promise(setImmediate);assert.equal(a.saved.get('flow_revision'),'2');assert.equal(a.saved.has('flow_uncertain_save:person-1'),false);
+});
+test('an uncommitted timed-out write retries the original CAS before uploading newer work',async()=>{
+ const a=pendingCloudFixture(),stalled=await stallSave(a);a.saved.set('transactions','[{"id":"next"}]');
+ await a.run('flowSync()');assert.equal(a.getCloud().data.transactions[0].id,'original');assert.equal(a.saved.get('flow_pending'),'1');assert.equal(JSON.parse(a.saved.get('transactions'))[0].id,'next');
+ await a.run('flowSync()');assert.equal(a.getCloud().data.transactions[0].id,'next');assert.equal(a.getCloud().revision,2);stalled.release({data:1});
+});
+test('an ambiguous save and newer local work both survive a different device winning the revision',async()=>{
+ const a=pendingCloudFixture(),stalled=await stallSave(a);a.saved.set('transactions','[{"id":"unsaved-new"}]');a.setCloud({revision:1,data:{clientSchemaVersion:2,transactions:[{id:'other-device'}]}});
+ await a.run('flowSync()');const copies=JSON.parse(a.saved.get('flow_recovery_v1:person-1'));assert.ok(copies.some(c=>c.data.transactions[0].id==='original'));assert.ok(copies.some(c=>c.data.transactions[0].id==='unsaved-new'));assert.equal(JSON.parse(a.saved.get('transactions'))[0].id,'other-device');stalled.release({data:1});
+});
+test('a hung account read clears the sync lock and schedules recovery while preserving pending edits',async()=>{
+ const a=pendingCloudFixture();a.client.from=()=>({select:()=>({eq:()=>({maybeSingle:()=>new Promise(()=>{})})})});
+ const job=a.run('flowSync()');await new Promise(setImmediate);a.timers.find(t=>t.delay===10000).fn();await job;assert.equal(a.run('flowSyncing'),false);assert.equal(a.saved.get('flow_pending'),'1');assert.equal(a.getCloud(),null);
 });

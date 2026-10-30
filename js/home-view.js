@@ -49,3 +49,12 @@ function flowHomeMoneySource(planning, accounts, today, now=Date.now()) {
     return {...status,amountCents:Number.isSafeInteger(sum)?sum:null,manual:false,rows};
 }
 if(typeof module!=='undefined'&&module.exports)module.exports.flowHomeMoneySource=flowHomeMoneySource;
+
+// Entries append on manual save and on import. Reverse same-day ties so a new
+// arrival is visible immediately, without changing its actual transaction date.
+function flowRecentTransactions(rows, limit=3) {
+    return rows.map((row,index)=>({row,index})).sort((a,b)=>
+        (b.row.date||'').localeCompare(a.row.date||'') || b.index-a.index
+    ).slice(0,limit).map(item=>item.row);
+}
+if(typeof module!=='undefined'&&module.exports)module.exports.flowRecentTransactions=flowRecentTransactions;

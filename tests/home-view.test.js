@@ -53,3 +53,10 @@ test('confirmed balances remain separate from cached bank amounts, including an 
  const {flowHomeMoneySource}=require('../js/home-view.js');const m=flowHomeMoneySource({manualBalance:{cents:-1250,date:today},selectedAccountIds:['cash']},[{id:'cash',availableCents:99999}],today,now);
  assert.equal(m.amountCents,-1250);assert.equal(m.manual,true);assert.equal(m.kind,'confirmed');assert.equal(m.rows.length,0);
 });
+
+test('recent activity includes newly saved same-day payments and imports without changing source order',()=>{
+ const {flowRecentTransactions}=require('../js/home-view.js');
+ const rows=[{id:'old',date:'2026-10-30'},{id:'second',date:'2026-10-30'},{id:'new-income',date:'2026-10-30'},{id:'late-old-bank',date:'2026-10-29'}];
+ const before=JSON.stringify(rows);assert.deepEqual(flowRecentTransactions(rows,2).map(r=>r.id),['new-income','second']);assert.equal(JSON.stringify(rows),before);
+ rows.push({id:'new-bank',date:'2026-10-30'});assert.deepEqual(flowRecentTransactions(rows,2).map(r=>r.id),['new-bank','new-income']);
+});

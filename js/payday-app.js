@@ -226,7 +226,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         homeCarousel?.cleanup(); homeCarousel = null;
         home.dataset.design = 'payday-path';
         const e = estimate(), source = homeSource(), tasks = homeTasks(e), today = flowToday();
-        const recent = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 3);
+        const recent = flowRecentTransactions(transactions);
         const upcoming = p.billsConfirmed ? e.bills.filter(b => b.dueDate >= today && b.dueDate <= p.payday.nextDate).slice(0, 2) : [];
         let notice = '';
         if (p.setup.completed && !e.ready) notice = '<div class="home-notice" role="status">' + icon('circle-help') + '<div><strong>Let’s update your plan</strong><p>' + esc(e.missing[0]) + '.</p></div>' + button('Details', 'breakdown', 'home-text-link') + '</div>';
