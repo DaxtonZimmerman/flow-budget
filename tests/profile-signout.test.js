@@ -16,3 +16,7 @@ test('pending edits and a different owner block sign-out without touching data',
 test('a failed provider sign-out preserves the workspace and permits retry',async()=>{
  const x=app({failed:true});await assert.rejects(x.signOut(),/try again/);assert.equal(x.context.FlowAuth.handlingSignOut,false);assert.equal(x.saved.get('transactions'),'private');assert.equal(x.redirects.length,0);
 });
+test('sign-out disables this device’s phone reminders before ending its session',async()=>{
+ const x=app(),order=[];x.context.FlowNotifications={beforeSignOut:async()=>order.push('notifications')};const client=x.context.getFlowClient();x.context.getFlowClient=()=>({...client,auth:{signOut:async()=>{order.push('session');return {error:null};}}});
+ await x.signOut();assert.deepEqual(order,['notifications','session']);assert.equal(x.saved.has('flow_user_id'),false);
+});

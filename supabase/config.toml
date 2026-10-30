@@ -13,6 +13,12 @@ verify_jwt = false
 [functions.flow-auth-email]
 verify_jwt = false
 
+# User actions require a verified Flow session; the schedule has its own private secret.
+[functions.flow-notifications]
+verify_jwt = true
+[functions.flow-notification-delivery]
+verify_jwt = false
+
 # Local development templates. Hosted Supabase uses the matching dashboard templates.
 [auth.email.template.magic_link]
 subject = "Your Flow sign-in code"

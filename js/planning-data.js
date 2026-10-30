@@ -177,6 +177,34 @@ function planBillOccurrences(planning, through) {
     }
     return result.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
+// Recorded budget use is independent of whether a cached balance includes a purchase.
+// Reserve release below remains conservative; these fields are display/reporting only.
+function flowEssentialActivity(planning, accounts, transactions, today = flowToday(), excludedPayments = new Set()) {
+    const totals = new Map(planning.essentials.map(e => [e.category, {usedCents:0,pendingCents:0}]));
+    if (!validPlanDate(planning.periodStartedOn)) return totals;
+    const rows = new Map(), conflicts = new Set();
+    const keyOf = t => t.source === 'bank' ? JSON.stringify([t.bankConnectionId,t.accountId,t.bankTransactionId||t.id]) : String(t.id);
+    for (const t of transactions) {
+        if (!validPlanDate(t.date) || t.date < planning.periodStartedOn || t.date > today || !['Expense','Refund'].includes(t.type) || !Number.isFinite(t.amount) || (t.type==='Expense' ? t.amount>=0 : t.amount<=0)) continue;
+        if (excludedPayments.has(typeof billPaymentKey === 'function' ? billPaymentKey(t) : '')) continue;
+        const account=accounts.find(a=>a.bankConnectionId===t.bankConnectionId&&a.accountId===t.accountId);
+        if (t.source==='bank' && !planning.selectedAccountIds.includes(account?.id) &&
+            !(account?.type==='credit' && planning.features?.cards?.some(c=>c.accountId===account.id&&c.mode!=='outside'))) continue;
+        const key=keyOf(t),prior=rows.get(key);
+        if (prior && JSON.stringify([prior.amount,prior.date,prior.type,prior.status,prior.category,prior.allocations])!==JSON.stringify([t.amount,t.date,t.type,t.status,t.category,t.allocations]))conflicts.add(key);
+        else rows.set(key,t);
+    }
+    const postedPendingIds=new Set([...rows.values()].filter(t=>t.source==='bank'&&t.status!=='pending'&&t.pendingTransactionId).map(t=>JSON.stringify([t.bankConnectionId,t.accountId,t.pendingTransactionId])));
+    for (const [key,t] of rows) {
+        if(conflicts.has(key)||t.status==='pending'&&postedPendingIds.has(JSON.stringify([t.bankConnectionId,t.accountId,t.bankTransactionId])))continue;
+        const parts=typeof flowTransactionParts==='function'?flowTransactionParts(t):[{category:t.category,cents:Math.abs(Math.round(t.amount*100))}];
+        for(const part of parts){const total=totals.get(part.category);if(!total||part.income||!Number.isSafeInteger(part.cents))continue;
+            if(t.status==='pending'){if(t.type==='Expense')total.pendingCents+=part.cents;}
+            else total.usedCents+=(t.type==='Refund'?-1:1)*part.cents;
+        }
+    }
+    return totals;
+}
 function paydayEstimate(planning, accounts, transactions, today = flowToday(), now = Date.now()) {
     const missing = [], notes = [];
     if (!planning.setup.completed) missing.push('Finish your setup');
@@ -207,6 +235,7 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
     if (bills.some(b => b.dueDate < today)) missing.push('Check overdue bills');
     // Release reserves only for posted spending known to precede the balance snapshot.
     // Retrieval time alone does not establish that a cached bank balance reflects a purchase.
+    const recorded = flowEssentialActivity(planning, accounts, transactions, today, tracking?.excludedPayments);
     const reserves = planning.essentials.map(e => {
         const seen = new Set();
         let spent = 0;
@@ -220,7 +249,9 @@ function paydayEstimate(planning, accounts, transactions, today = flowToday(), n
             seen.add(key);
             spent += (t.type === 'Refund' ? -1 : 1) * Math.abs(Math.round(t.amount * 100));
         }
-        return { ...e, spentCents: spent, remainingCents: Math.max(0, e.amountCents - Math.max(0, spent)) };
+        const activity=recorded.get(e.category)||{usedCents:0,pendingCents:0};
+        return { ...e, spentCents: spent, remainingCents: Math.max(0, e.amountCents - Math.max(0, spent)),
+            ...activity, budgetRemainingCents:Math.max(0,e.amountCents-Math.max(0,activity.usedCents)-activity.pendingCents) };
     });
     notes.push('Essentials stay reserved until confirmed spending is reflected in a dated balance. Payments made today may still be reserved. Bill payments are matched once and only released when reflected in a dated balance or confirmed by you.');
     if (transactions.some(t => t.source !== 'bank' && t.date >= planning.periodStartedOn && t.date <= today)) {

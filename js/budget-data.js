@@ -48,6 +48,7 @@ function saveBudgets(month, budgets) {
 
     flowStorage.setItem("budgetsByMonth", JSON.stringify(budgetsByMonth));
     if (typeof flowDataChanged === "function") flowDataChanged();
+    if (typeof document !== 'undefined') document.dispatchEvent(new Event('flow-budgets-updated'));
 
 }
 

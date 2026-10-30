@@ -20,6 +20,7 @@ var flowStorage = typeof flowStorage !== 'undefined' ? flowStorage : (typeof loc
         if (flowStorage.getItem('flow_pending') === '1') throw new Error('Your changes are still saving. Reconnect and let them finish before signing out.');
         FlowAuth.handlingSignOut = true;
         try {
+            await window.FlowNotifications?.beforeSignOut();
             const result = await client.auth.signOut({scope:'local'});
             if (result.error) throw result.error;
         } catch (_) { FlowAuth.handlingSignOut = false; throw new Error('Could not sign out. Please try again.'); }

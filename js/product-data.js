@@ -40,7 +40,7 @@ function validFlowFeatures(f) {
 function validFlowPlanningExtras(p) {
     const covered=p.manualBalance?.covered;
     if(covered!==undefined && (!Array.isArray(covered)||covered.length>100000||covered.some(c=>!c||typeof c.key!=='string'||typeof c.fingerprint!=='string')||new Set(covered.map(c=>c.key)).size!==covered.length))return false;
-    for(const key of ['remindersEnabled','weeklyReminders'])if(p.preferences?.[key]!==undefined&&typeof p.preferences[key]!=='boolean')return false;
+    for(const key of ['remindersEnabled','weeklyReminders','budgetReminders'])if(p.preferences?.[key]!==undefined&&typeof p.preferences[key]!=='boolean')return false;
     if(p.reservePeriodKey!==undefined&&(typeof p.reservePeriodKey!=='string'||p.reservePeriodKey.length>200))return false;
     return true;
 }

@@ -72,3 +72,29 @@ self.addEventListener('fetch',event=>{
         catch(error){if(request.mode==='navigate')return (await cache.match(new URL('offline.html',root).href))||Response.error();throw error;}
     })());
 });
+
+// Push messages contain only generic copy. Never persist account data in the app-shell cache.
+self.addEventListener('push',event=>{
+    event.waitUntil((async()=>{
+        let data;try{data=event.data?.json();}catch{}
+        const allowedBodies=new Set(['A bill is due today. Open Flow to check it.','A bill is coming up. Open Flow to see what’s due.',
+            'A budget needs a look. Open Flow to see your plan.','Upcoming bills need a look. Open Flow to check them.',
+            'Your budgets need a look. Open Flow to check them.','You’re all set. Flow reminders will appear here.']);
+        await self.registration.showNotification('Flow.',{
+            body:allowedBodies.has(data?.body)?data.body:'Open Flow to check your reminders.',
+            icon:new URL('assets/flow-icon-192.png',root).href,badge:new URL('assets/flow-icon-192.png',root).href,
+            tag:['flow-bill','flow-budget','flow-test'].includes(data?.tag)?data.tag:'flow-reminder',
+            data:{href:new URL('index.html#notifications',root).href}
+        });
+    })());
+});
+self.addEventListener('notificationclick',event=>{
+    event.notification.close();
+    event.waitUntil((async()=>{
+        const target=new URL('index.html#notifications',root).href;
+        const windows=await flowWindows();
+        const existing=windows.find(client=>!client.url.startsWith(new URL('demo/',root).href)&&!['login.html','offline.html'].some(file=>new URL(client.url).pathname===new URL(file,root).pathname));
+        if(existing){existing.postMessage({type:'FLOW_OPEN_NOTIFICATIONS'});await existing.focus();}
+        else await self.clients.openWindow(target);
+    })());
+});
