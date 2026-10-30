@@ -1448,6 +1448,10 @@ function getBudgetSpending(category, transactions, month) {
 }
 
 /* One set of reminder rules for the inbox and the scheduled server sender. */
+function flowShouldOfferNotifications(state) {
+    return Boolean(!state.demo && state.onHome && state.setupComplete && state.remindersEnabled && state.supported && state.ready &&
+        state.permission === 'default' && !state.subscribed && !state.seen);
+}
 function flowNotificationItems(snapshot, today = flowToday(), now = Date.now()) {
     const p = snapshot?.flowPlanning;
     if (!p || !validFlowPlanning(p) || !p.setup.completed || !validPlanDate(today) || p.preferences.remindersEnabled === false) return [];

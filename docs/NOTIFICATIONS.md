@@ -1,6 +1,8 @@
 # Bill and budget reminders
 
-The bell opens an inbox of current bill and budget reminders. Reading a reminder does not mark a bill paid or change money. Tomorrow hides that reminder through the current local day; it can return the following day if still relevant. Paid bills and budgets below their threshold disappear automatically.
+The bell opens an inbox of current bill and budget reminders. Tap a reminder to open its bill or budget; the clock icon snoozes it through the current local day. Reading a reminder does not mark a bill paid or change money. Paid bills and budgets below their threshold disappear automatically.
+
+After setup, Home offers a one-time notification popup on supported devices. “Allow notifications” invokes the system permission prompt only from that tap. “Not now,” closing, or swiping away dismisses the offer; Account → Notifications remains available later. Demos, unfinished setup, previously shown offers, existing subscriptions and already-decided system permissions skip the popup. An iPhone Safari tab does not offer push; the installed Home Screen app does. Settings separate delivery controls from the inbox; test delivery is under “Check delivery.”
 
 ## Rules
 
@@ -12,13 +14,13 @@ The bell opens an inbox of current bill and budget reminders. Reading a reminder
 
 ## Setup on the existing Free server
 
-Do not publish or deploy without the owner's standing review approval.
+The owner authorized routine Flow updates to publish automatically. New provider permissions or credentials still require appropriate approval.
 
 1. Apply `supabase/2026-10-29-notifications.sql`. It creates two server-only tables and an atomic delivery-claim function. Browser database roles receive no access.
 2. Generate a P-256 VAPID key pair using the standard Web Push library. Store only in Edge Function Secrets: `FLOW_PUSH_PUBLIC_KEY`, `FLOW_PUSH_PRIVATE_KEY`. Store a separate cryptographically random value of at least 32 characters as `FLOW_PUSH_SCHEDULE_SECRET`. Never commit or print private values. Keep this pair stable so installed subscriptions continue to work.
 3. Build with `node scripts/build-site.mjs`. This also generates the server's calculation bundle from the same browser calculation sources. Deploy `flow-notifications` and `flow-notification-delivery` with their included shared files. Keep user JWT verification on for `flow-notifications`. The schedule endpoint verifies `x-flow-schedule-secret` itself and has JWT verification off, as recorded in `supabase/config.toml`.
 4. In Supabase Vault, save `flow_push_schedule_secret` matching the function's schedule secret, and `flow_push_delivery_url` pointing to this project's `/functions/v1/flow-notification-delivery` endpoint. Apply `supabase/notification-schedule.sql`; it installs one hourly job and replaces only an existing job named `flow-reminders`.
-5. Publish the reviewed frontend. In the installed iPhone Home Screen app, open the bell → Notification settings → Enable on this device. The permission prompt happens only from this tap. Send a test, close Flow, and verify delivery. Confirm quiet hours and a controlled scheduled delivery before calling closed-app reminders verified.
+5. Publish the frontend. In the installed iPhone Home Screen app, choose “Allow notifications” after setup, or Account → Notifications → Turn on. The permission prompt happens only from this tap. Under “Check delivery,” send a test, close Flow, and verify delivery. Confirm quiet hours and a controlled scheduled delivery before calling scheduled reminders verified.
 
 This is an app delivery schedule, unrelated to any Codex chat automation. No new bank connection, bank permission, paid refresh product, or additional email provider is used.
 
@@ -32,4 +34,4 @@ Automated checks cover the rule engine, browser/server calculation parity, inbox
 
 Phone/desktop visual testing and a real installed-iPhone push test are separate checks. Neither is implied by automated test results.
 
-The October 29 working preview passes 372 automated checks, Deno type checking for both Edge Functions, and a Deno encryption/VAPID request-construction check with temporary synthetic keys and no network delivery. Phone and desktop browser checks verified the bell inbox, bill/budget switches, read/snooze actions, correct budget links, background scroll lock, and recorded versus pending spending on Home and Plan. A real iPhone delivery test remains pending deployment and device opt-in.
+The October 29 notification deployment passed 372 automated checks, Deno type checking for both Edge Functions, and a Deno encryption/VAPID request-construction check with temporary synthetic keys and no network delivery. Phone and desktop browser checks verified the bell inbox, bill/budget switches, read/snooze actions, correct budget links, background scroll lock, and recorded versus pending spending on Home and Plan. The owner confirmed a real test notification arrived on the installed iPhone app. That confirms device delivery, separately from future scheduled bill and budget notices.

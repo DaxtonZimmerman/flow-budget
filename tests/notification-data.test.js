@@ -34,3 +34,7 @@ test('generated server engine produces the same alerts as the app',async()=>{
  const c=model(),s=snapshot(c);s.budgets=[{category:'Food',limit:100}];s.transactions=[tx('meal',-90)];
  const engine=await import('../supabase/functions/_shared/notification-engine.mjs');assert.equal(JSON.stringify(engine.buildNotifications(s,today,now)),JSON.stringify(c.flowNotificationItems(s,today,now)));
 });
+test('notification opt-in is a one-time offer only on a supported signed-in Home after setup',()=>{
+ const c=model(),ready={demo:false,onHome:true,setupComplete:true,remindersEnabled:true,supported:true,ready:true,permission:'default',subscribed:false,seen:false};assert.equal(c.flowShouldOfferNotifications(ready),true);
+ for(const delta of [{demo:true},{onHome:false},{setupComplete:false},{remindersEnabled:false},{supported:false},{ready:false},{permission:'denied'},{permission:'granted'},{subscribed:true},{seen:true}])assert.equal(c.flowShouldOfferNotifications({...ready,...delta}),false);
+});
