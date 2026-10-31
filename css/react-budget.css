@@ -644,3 +644,16 @@
     background: #fbfcf8;
   }
 }
+.rb-not-selected {
+  background: #f4f6ef;
+}
+.rb-pay-comparison {
+  margin-top: 22px;
+  border-top: 1px solid #e0e7d8;
+  padding-top: 18px;
+  font-size: 0.8rem;
+}
+.rb-pay-comparison summary {
+  cursor: pointer;
+  color: #4c6a57;
+}

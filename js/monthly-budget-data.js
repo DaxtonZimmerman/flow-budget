@@ -154,29 +154,34 @@ function flowMonthlyBudgetModel(
     includedKeys: [...guide.includedKeys],
   };
 }
-function flowMonthlyBudgetDraft(snapshot, month, choices, guide) {
+/* The category picker saves exactly what was selected, independent of income setup. */
+function flowMonthlyBudgetDraft(snapshot, month, choices, guide = {}) {
   if (
-    !Number.isSafeInteger(guide.incomeCents) ||
-    guide.incomeCents <= 0 ||
-    !Number.isSafeInteger(guide.savingsCents) ||
-    guide.savingsCents < 0
+    !choices.length ||
+    choices.some((c) => !Number.isSafeInteger(c.cents) || c.cents <= 0)
   )
-    throw new Error("Enter your monthly pay and savings amount.");
-  const planning = snapshot.flowPlanning || defaultFlowPlanning();
+    throw new Error("Choose a category and enter a limit above zero.");
   const next = flowApplySuggestedBudgets(snapshot, month, choices);
+  const selected = new Set(choices.map((c) => c.category));
+  next.budgetsByMonth[month] = next.budgetsByMonth[month].filter((b) =>
+    selected.has(b.category),
+  );
+  const planning = snapshot.flowPlanning || defaultFlowPlanning();
   next.flowPlanning = flowCopy(planning);
   const growth = flowEnableGrowth(next.flowPlanning);
   growth.version = 2;
   growth.budgetGuide = { ...flowBudgetGuide(planning), ...guide };
-  const capacity = flowBudgetCapacity(
-    next.budgetsByMonth[month],
-    flowBudgetBillCosts(planning, snapshot.transactions || [], month),
-    guide.incomeCents,
-    guide.savingsCents,
-  );
-  if (!capacity.fits)
-    throw new Error(
-      "These limits and savings need more than your monthly pay.",
-    );
+  if (!validFlowPlanning(next.flowPlanning))
+    throw new Error("Check your saved budget settings.");
+  const saved = growth.budgetGuide;
+  const capacity =
+    Number.isSafeInteger(saved.incomeCents) && saved.incomeCents > 0
+      ? flowBudgetCapacity(
+          next.budgetsByMonth[month],
+          flowBudgetBillCosts(planning, snapshot.transactions || [], month),
+          saved.incomeCents,
+          saved.savingsCents || 0,
+        )
+      : null;
   return { snapshot: next, capacity };
 }

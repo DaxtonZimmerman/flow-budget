@@ -166,3 +166,98 @@ export function BudgetCard({
     </article>
   );
 }
+
+export function MonthlyReview({
+  monthName,
+  choices,
+  capacity,
+  valid,
+  error,
+  onBack,
+  onSave,
+  onRefresh,
+}) {
+  const total = choices.reduce((sum, c) => sum + (c.cents || 0), 0);
+  return (
+    <>
+      <div className="rb-body">
+        <p className="rb-eyebrow">{monthName}</p>
+        <section className="rb-result">
+          <span>Your monthly limits</span>
+          <strong>{money(total)}</strong>
+          <small>
+            {choices.length} {choices.length === 1 ? "category" : "categories"}
+          </small>
+        </section>
+        <div className="rb-review-limits">
+          {choices.map((c) => (
+            <div key={c.category}>
+              <span>{c.category}</span>
+              <strong>{money(c.cents || 0)}</strong>
+            </div>
+          ))}
+        </div>
+        {capacity && (
+          <details className="rb-pay-comparison">
+            <summary>Compare with saved pay & savings</summary>
+            <dl className="rb-math">
+              <div>
+                <dt>Saved monthly pay</dt>
+                <dd>
+                  {money(
+                    capacity.limitsCents +
+                      capacity.outsideBillsCents +
+                      capacity.leftoverCents,
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Bills outside these limits</dt>
+                <dd>{money(capacity.outsideBillsCents)}</dd>
+              </div>
+              <div>
+                <dt>Saved savings target</dt>
+                <dd>{money(capacity.savingsCents)}</dd>
+              </div>
+              <div>
+                <dt>
+                  {capacity.fits
+                    ? "Left after targets"
+                    : "Above saved pay target"}
+                </dt>
+                <dd>{money(Math.abs(capacity.afterSavingsCents))}</dd>
+              </div>
+            </dl>
+            <p className="rb-footnote">
+              This comparison won’t stop you saving category limits.
+            </p>
+          </details>
+        )}
+        <p className="rb-footnote">Your payday plan stays the same.</p>
+        {error && (
+          <div className="rb-error" role="alert">
+            <p>{error}</p>
+            {/Refresh/.test(error) && (
+              <button className="inline-link" type="button" onClick={onRefresh}>
+                Refresh amounts
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <footer className="rb-footer">
+        <button type="button" className="back-button" onClick={onBack}>
+          Back
+        </button>
+        <button
+          type="button"
+          className="save-button"
+          disabled={!valid}
+          onClick={onSave}
+        >
+          Use this budget
+        </button>
+      </footer>
+    </>
+  );
+}

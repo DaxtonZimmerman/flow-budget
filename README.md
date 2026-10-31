@@ -35,9 +35,9 @@ npm run preview
 
 Open <http://127.0.0.1:4330/demo/index.html> for the sample app. Use <http://127.0.0.1:4330/login.html> only for the configured private account; other email addresses are not enabled for the private pilot. Opening HTML files directly does not provide the required web origin for the installed app and cloud features.
 
-React owns the monthly category screen and three-step budget builder in `src/budget/`. Shared calculation modules, sign-in, storage, and the other screens remain in `js/`. esbuild bundles React locally into `js/flow-react.js`; no CDN is needed. The build also versions assets, generates the isolated demo, and creates the public-file-only offline cache in `dist/`.
+React owns the monthly category screen and two-step category picker in `src/budget/`. Shared calculation modules, sign-in, storage, and the other screens remain in `js/`. esbuild bundles React locally into `js/flow-react.js`; no CDN is needed. The build also versions assets, generates the isolated demo, and creates the public-file-only offline cache in `dist/`.
 
-Monthly suggestions use the latest 30 days of recorded spending, with purchase review and one-off exclusions. Short or stale histories ask for amounts instead of extrapolating. Other is left for manual review. The preview checks take-home pay, savings, existing limits, and known bills before an explicit save; it does not change the payday plan or bank facts.
+Monthly suggestions use the latest 30 days of recorded spending, with purchase review and one-off exclusions. Short or stale histories ask for amounts instead of extrapolating. Other is optional. Choose categories, review their limits, and save. Only selected categories receive a limit for that month. An optional saved pay/savings comparison does not block saving; the payday plan and bank facts stay unchanged.
 
 ## Code structure
 
