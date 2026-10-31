@@ -23,7 +23,7 @@ class BudgetBoundary extends Component {
           {this.props.onClose && (
             <button
               type="button"
-              className="inline-link"
+              className="back-button"
               onClick={this.props.onClose}
             >
               Close

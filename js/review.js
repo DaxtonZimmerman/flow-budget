@@ -144,6 +144,7 @@ function showInbox() {
         dateLabel.appendChild(dateInput);
 
         const categoryLabel = makeText("label", "Category");
+        categoryLabel.className = "review-category-field";
         const categorySelect = document.createElement("select");
         const choices = transaction.category && !categories.includes(transaction.category)
             ? [...categories, transaction.category] : categories;
@@ -300,12 +301,13 @@ function showQuickReview() {
         }
 
         const categoryLabel = makeText("label", "Category");
+        categoryLabel.className = "review-category-field";
         const categorySelect = document.createElement("select");
-        categorySelect.add(new Option("Keep current", ""));
+        categorySelect.add(new Option("Don’t change categories", ""));
         for (const category of categories) categorySelect.add(new Option(category, category));
         categoryLabel.appendChild(categorySelect);
         controls.appendChild(categoryLabel);
-        const rememberLabel = makeText("label", "Remember");
+        const rememberLabel = makeText("label", "Remember category");
         rememberLabel.className = "quick-review-remember";
         const rememberInput = document.createElement("input");
         rememberInput.type = "checkbox";
@@ -328,6 +330,7 @@ function showQuickReview() {
             const updateGroupControls = () => {
                 const transfer = typeSelect.value === "Transfer";
                 categorySelect.disabled = transfer;
+                categorySelect.options[0].textContent = transfer ? "Not needed for transfers" : "Don’t change categories";
                 categoryLabel.firstChild.textContent = transfer ? "Category · not needed" : "Category";
                 rememberInput.disabled = typeSelect.value === "Refund";
                 rememberLabel.lastChild.textContent = transfer ? "Remember transfers" : "Remember category";
@@ -339,7 +342,7 @@ function showQuickReview() {
             typeSelect.addEventListener("change", updateGroupControls);
             updateGroupControls();
         }
-        controls.appendChild(makeButton(`Apply to ${group.count}`, "save-button", function() {
+        controls.appendChild(makeButton(`Save ${group.count} ${group.count === 1 ? "transaction" : "transactions"}`, "save-button", function() {
             const type = typeSelect ? typeSelect.value : group.items[0].type;
             const inferredType = group.items[0].amount < 0 ? "Expense" : "Income";
             const rememberTransfer = rememberInput.checked && type === "Transfer";

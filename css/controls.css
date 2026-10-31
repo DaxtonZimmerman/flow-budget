@@ -1,0 +1,677 @@
+/* One control system for every Flow screen, including generated and React views.
+   Navigation and clickable cards remain distinct from save/change actions. */
+:root {
+  --flow-control-height: 44px;
+  --flow-control-radius: 12px;
+  --flow-control-primary: #184e3c;
+  --flow-control-primary-hover: #113e2f;
+  --flow-control-surface: #ffffff;
+  --flow-control-border: #bdcebc;
+  --flow-control-hover: #edf4e7;
+  --flow-control-danger: #963e32;
+  --flow-control-danger-surface: #fff3ef;
+  --flow-control-danger-border: #dfb5aa;
+  --flow-control-focus: #397851;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .save-button,
+    .add-transaction-link,
+    .back-button,
+    .secondary-button,
+    .home-primary,
+    .home-paid-button,
+    .mobile-paid-button
+  ),
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, a):is(
+    .inline-link,
+    .home-text-link,
+    .text-button,
+    .home-all-tasks,
+    .mobile-full-link,
+    .notification-footer-link,
+    .growth-provider-link
+  ),
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .edit-transaction-link,
+    .delete-transaction-button,
+    .transfer-match-link,
+    .profile-sign-out
+  ) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--flow-control-height);
+  max-width: 100%;
+  padding: 11px 16px;
+  border: 1px solid var(--flow-control-border);
+  border-radius: var(--flow-control-radius);
+  background: var(--flow-control-surface);
+  color: var(--flow-control-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+/* Main actions use the same solid treatment on forms, sheets and cards. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.save-button, .add-transaction-link, .home-primary) {
+  background: var(--flow-control-primary);
+  border-color: var(--flow-control-primary);
+  color: #ffffff;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.save-button, .add-transaction-link, .home-primary):not(:disabled):hover {
+  background: var(--flow-control-primary-hover);
+  border-color: var(--flow-control-primary-hover);
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .back-button,
+    .secondary-button,
+    .home-paid-button,
+    .mobile-paid-button,
+    .edit-transaction-link,
+    .transfer-match-link
+  ):not(:disabled):hover,
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, a):is(
+    .inline-link,
+    .home-text-link,
+    .text-button,
+    .home-all-tasks,
+    .mobile-full-link,
+    .notification-footer-link,
+    .growth-provider-link
+  ):not(:disabled):hover {
+  background: var(--flow-control-hover);
+  border-color: #90ad90;
+}
+/* Compact actions still have a full touch target. No action is just underlined text. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, a):is(
+    .inline-link,
+    .home-text-link,
+    .text-button,
+    .transfer-match-link
+  ) {
+  padding: 9px 12px;
+  font-size: 13px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.notification-footer-link, .mobile-full-link, .profile-sign-out) {
+  width: 100%;
+}
+html body:is(.app-redesign, .login-page, .offline-page) .home-all-tasks {
+  margin: 0 16px 16px;
+  max-width: calc(100% - 32px);
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-notice
+  .home-text-link {
+  margin: 0;
+}
+/* The existing lime hero action stays part of Flow's identity. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-hero
+  .home-primary {
+  color: #173c27;
+  background: #c7e897;
+  border-color: #c7e897;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-hero
+  .home-primary:not(:disabled):hover {
+  background: #d5efaf;
+  border-color: #d5efaf;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-hero
+  :is(.home-text-link, .home-source-button) {
+  min-height: var(--flow-control-height);
+  padding: 9px 12px;
+  border: 1px solid #80a491;
+  border-radius: var(--flow-control-radius);
+  color: #f6faef;
+  background: #ffffff0b;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-hero
+  :is(.home-text-link, .home-source-button):hover {
+  background: #ffffff1a;
+  border-color: #b1c8b7;
+}
+/* Delete, remove and disconnect actions have one clear, separate treatment. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .delete-transaction-button,
+    .profile-sign-out,
+    .growth-danger,
+    .rb-delete,
+    .flow-danger
+  ),
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    [data-plan-action="bill-delete"],
+    [data-tool="remove-split"],
+    [data-tool="remove-split-row"],
+    [data-growth="goal-delete"],
+    [data-growth="wealth-delete"]
+  ) {
+  color: var(--flow-control-danger);
+  border-color: var(--flow-control-danger-border);
+  background: var(--flow-control-danger-surface);
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .delete-transaction-button,
+    .profile-sign-out,
+    .growth-danger,
+    .rb-delete,
+    .flow-danger
+  ):not(:disabled):hover,
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    [data-plan-action="bill-delete"],
+    [data-tool="remove-split"],
+    [data-tool="remove-split-row"],
+    [data-growth="goal-delete"],
+    [data-growth="wealth-delete"]
+  ):not(:disabled):hover {
+  background: #f9e3dc;
+  border-color: #c18475;
+  color: #823125;
+}
+/* Toolbar buttons are recognisable controls, with matching circular targets. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .icon-button,
+    .search-launch,
+    .profile-launch,
+    .notification-launch,
+    .notification-snooze
+  ) {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: 1px solid #d1ddca;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--flow-control-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .icon-button,
+    .search-launch,
+    .profile-launch,
+    .notification-launch,
+    .notification-snooze
+  ):not(:disabled):hover {
+  background: var(--flow-control-hover);
+  border-color: #9fb69b;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.toolbar-add, .home-quick-add) {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--flow-control-primary);
+  border-radius: 50%;
+  background: var(--flow-control-primary);
+  color: #fff;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.home-carousel-arrows, .month-control)
+  .icon-button {
+  width: 44px;
+  height: 44px;
+}
+/* Sheets share titles and spacing without replacing their content or scrolling. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.dialog-heading, .dialog-head, .rb-dialog-head) {
+  gap: 12px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.dialog-heading, .dialog-head, .rb-dialog-head)
+  h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.modal-actions, .setup-footer, .rb-footer) {
+  gap: 12px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.modal-actions, .setup-footer, .rb-footer)
+  :is(.save-button, .back-button) {
+  min-height: 48px;
+  font-size: 14px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.rb-purchase, .rb-budget-card footer)
+  :is(button, a) {
+  min-height: 44px;
+}
+html body:is(.app-redesign, .login-page, .offline-page) .rb-budget-card footer {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .rb-budget-card
+  footer
+  > div {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html body:is(.app-redesign, .login-page, .offline-page) .home-panel-heading {
+  flex-wrap: wrap;
+}
+/* Whole-row actions keep their roomy layout, plus visible borders and hover states. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    button.mobile-list-row,
+    button.home-everyday-row,
+    button.mobile-reserve-row,
+    button.map-part,
+    button.home-next-main,
+    button.growth-start-goal,
+    button.visual-goal,
+    button.rb-activity-row,
+    button.category-open,
+    button.notification-footer-link
+  ) {
+  cursor: pointer;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    button.mobile-list-row,
+    button.home-everyday-row,
+    button.mobile-reserve-row,
+    button.home-next-main,
+    button.growth-start-goal,
+    button.visual-goal,
+    button.rb-activity-row,
+    button.category-open
+  ) {
+  border: 1px solid #dce5d5;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    button.mobile-list-row,
+    button.home-everyday-row,
+    button.mobile-reserve-row,
+    button.home-next-main,
+    button.growth-start-goal,
+    button.visual-goal,
+    button.rb-activity-row,
+    button.category-open
+  ):hover {
+  border-color: #a8bfa2;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-path-stop:is(button)
+  .home-path-dot {
+  border: 1px solid #9fb89a;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .home-path-stop:not(button)
+  .home-path-dot {
+  border: 1px solid transparent;
+}
+/* Consistent segmented choices; selected state is visible without relying on color. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.activity-tabs, .mobile-segments) {
+  padding: 5px;
+  gap: 5px;
+  background: #eaf0e3;
+  border: 1px solid #dce5d4;
+  border-radius: 15px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.activity-tab, .mobile-segments button, .rb-chips button, .type-choice) {
+  min-height: 44px;
+  border-radius: 11px;
+  font-size: 14px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.activity-tab, .mobile-segments button)[aria-pressed="true"],
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .rb-chips
+  button[aria-pressed="true"] {
+  background: #fff;
+  color: #184e3c;
+  box-shadow: 0 1px 4px #184e3c18;
+  font-weight: 700;
+}
+/* Text entry stays visually separate from actions and uses the same field shape. */
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    .form-group,
+    .field,
+    .history-filter,
+    .review-controls,
+    .rb-field,
+    .login-card
+  )
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="file"]
+      ):not([type="hidden"]),
+    select,
+    textarea
+  ) {
+  border-radius: 12px;
+  border-color: #cad8c2;
+  font-size: 16px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(.form-group, .field, .history-filter, .review-controls, .rb-field)
+  :is(
+    select,
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="file"]
+      ):not([type="hidden"])
+  ) {
+  min-height: 48px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 3px solid var(--flow-control-focus);
+  outline-offset: 3px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+html body:is(.app-redesign, .login-page, .offline-page) button:disabled {
+  opacity: 0.58;
+  box-shadow: none;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(button, a)[aria-busy="true"] {
+  cursor: progress;
+}
+@media (max-width: 768px) {
+  html
+    body:is(.app-redesign, .login-page, .offline-page)
+    :is(
+      .home-hero-meta,
+      .source-actions,
+      .home-hero-actions,
+      .heading-actions,
+      .bill-actions,
+      .tool-actions
+    ) {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  html body:is(.app-redesign, .login-page, .offline-page) .home-source-button {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  html body:is(.app-redesign, .login-page, .offline-page) .rb-builder-row-head {
+    flex-wrap: wrap;
+  }
+  html
+    body:is(.app-redesign, .login-page, .offline-page)
+    :is(.login-card, .account-card)
+    :is(.save-button, .back-button) {
+    min-height: 48px;
+  }
+  html
+    body:is(.app-redesign, .login-page, .offline-page)
+    .review-controls
+    > button {
+    min-height: 48px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html
+    body:is(.app-redesign, .login-page, .offline-page)
+    :is(button, a, input, select, textarea) {
+    transition: none;
+  }
+}
+
+html body:is(.app-redesign, .login-page, .offline-page) button.category-open {
+  padding: 10px 12px;
+  border-radius: 12px;
+  min-height: 48px;
+  background: #fff;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  :is(
+    button.home-everyday-row,
+    button.mobile-reserve-row,
+    button.rb-activity-row
+  ) {
+  border-radius: 14px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page).app-redesign
+  .home-everyday-list {
+  display: grid;
+  gap: 10px;
+}
+html
+  body:is(.app-redesign, .login-page, .offline-page)
+  .profile-sign-out[hidden] {
+  display: none;
+}
+/* Keep Activity's important add action labelled when the shared type size changes. */
+@media (max-width: 768px) {
+  html body.app-redesign[data-page="activity"] .add-transaction-link {
+    width: auto;
+    height: auto;
+    min-height: 44px;
+    min-width: 0;
+    display: inline-flex;
+    padding: 11px 13px;
+    border-radius: 12px;
+    font-size: 13px;
+    white-space: normal;
+  }
+  html body.app-redesign[data-page="activity"] .add-transaction-link::after {
+    content: none;
+  }
+  html body.app-redesign .mobile-transaction-more {
+    border: 1px solid #cfddc8;
+    border-radius: 12px;
+    background: #f6f9f1;
+    align-self: center;
+    height: 44px;
+  }
+}
+
+html body.app-redesign .quick-review-group .review-controls {
+  grid-template-columns: 90px minmax(210px, 1fr) auto;
+  flex-basis: 560px;
+}
+html body.app-redesign .quick-review-group .review-category-field {
+  min-width: 0;
+  grid-column: auto;
+}
+html body.app-redesign .quick-review-group .review-category-field select {
+  width: 100%;
+  max-width: none;
+}
+@media (max-width: 768px) {
+  html
+    body.app-redesign
+    .quick-review-dialog
+    .quick-review-group
+    .review-controls {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  html body.app-redesign .quick-review-dialog .review-controls > label,
+  html body.app-redesign .quick-review-dialog .review-controls > button,
+  html
+    body.app-redesign
+    .quick-review-dialog
+    .review-controls
+    .quick-review-remember {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    width: 100%;
+  }
+  html body.app-redesign .quick-review-dialog .review-controls > label {
+    font-size: 13px;
+  }
+  html body.app-redesign .quick-review-heading {
+    align-items: flex-start;
+  }
+  html body.app-redesign .quick-review-heading .back-button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+html body.app-redesign .activity-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  color: #556b58;
+  line-height: 1.3;
+}
+html body.app-redesign .activity-tab[aria-pressed="true"] {
+  border-color: #b8ccb0;
+}
+@media (min-width: 769px) {
+  html body.app-redesign :is(.history-header, .history-row) {
+    grid-template-columns:
+      minmax(120px, 1.6fr) minmax(75px, 0.8fr)
+      90px 90px 148px;
+    gap: 10px;
+  }
+  html body.app-redesign .history-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: 0;
+  }
+  html
+    body.app-redesign
+    .history-actions
+    :is(.edit-transaction-link, .delete-transaction-button) {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  html body.app-redesign .history-row {
+    font-size: 13px;
+  }
+  html body.app-redesign .history-name strong {
+    font-size: 13px;
+  }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  html body.app-redesign :is(.history-header, .history-row) {
+    grid-template-columns: minmax(100px, 1.6fr) minmax(60px, 0.7fr) 80px 148px;
+  }
+}
+@media (min-width: 769px) {
+  html body.app-redesign .history-filters {
+    grid-template-columns: minmax(160px, 1.3fr) repeat(3, minmax(130px, 1fr));
+    gap: 14px;
+  }
+  html body.app-redesign .history-filters .history-filter {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+@media (min-width: 769px) and (max-width: 1100px) {
+  html body.app-redesign .history-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 769px) {
+  html body.app-redesign .history-filters .activity-more-filters {
+    display: block;
+    grid-column: 3 / 5;
+    margin: 0;
+    min-width: 0;
+  }
+  html body.app-redesign .history-filters .more-filters-inner {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 0;
+  }
+}
+@media (min-width: 769px) and (max-width: 1100px) {
+  html body.app-redesign .history-filters .activity-more-filters {
+    grid-column: 1 / -1;
+  }
+}

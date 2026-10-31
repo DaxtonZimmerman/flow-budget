@@ -23,11 +23,24 @@ assert.ok(
 assert.doesNotMatch(page, /src="js\/budgets.js/);
 assert.match(read("dist/sw.js"), /js\/flow-react.js/);
 assert.match(read("dist/sw.js"), /css\/react-budget.css/);
+assert.match(read("dist/sw.js"), /css\/controls.css/);
 let pages = 0;
 for (const folder of ["dist", "dist/demo"])
   for (const file of readdirSync(folder).filter((p) => p.endsWith(".html"))) {
     pages++;
     const html = read(join(folder, file));
+    const styles = [
+      ...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g),
+    ];
+    assert.equal(
+      styles.filter((s) => s[1].includes("css/controls.css")).length,
+      1,
+      file + " needs shared controls once",
+    );
+    assert.ok(
+      styles.at(-1)?.[1].includes("css/controls.css"),
+      file + " must load shared controls last",
+    );
     for (const [, url] of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
       if (/^(https?:|data:|mailto:|tel:|#)/.test(url)) continue;
       const target = url.split(/[?#]/)[0];

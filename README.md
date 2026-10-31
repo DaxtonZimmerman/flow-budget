@@ -54,6 +54,7 @@ Monthly suggestions use the latest 30 days of recorded spending, with purchase r
 | Planning and bills | `js/planning-data.js`, `js/bill-data.js`, `js/payday-app.js` |
 | Bank integration | `js/bank-data.js`, `js/bank-auto-sync.js`, `supabase/functions/` |
 | Responsive interface | `css/`, `js/mobile-app.js`, `js/app-shell.js` |
+| Shared buttons, fields, and action states | `css/controls.css` (loaded last on every screen) |
 
 Browser scripts are separate reusable files loaded in dependency order with `defer`. Calculation functions are tested independently from page rendering. See [DATA_MODEL.md](DATA_MODEL.md) for financial rules and [BANK_CONNECTIONS.md](BANK_CONNECTIONS.md) for the integration.
 

@@ -216,7 +216,7 @@ export function BudgetBoard({ openBuilder }) {
             </button>
             <button
               type="button"
-              className="save-button"
+              className="save-button flow-danger"
               onClick={() => remove(removing)}
             >
               Remove budget
