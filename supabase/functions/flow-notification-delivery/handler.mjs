@@ -33,10 +33,29 @@ export async function deliverNotifications(request,deps) {
     if(!options||!pilot)return response(503,{error:'Delivery is not configured.'});
     const now=deps.now?.()??Date.now();
     try {
+        const raw=await request.text();
+        if(raw.length>1024)return response(413,{error:'Request too large.'});
+        let input;try{input=raw?JSON.parse(raw):{};}catch{return response(400,{error:'Invalid request.'});}
+        if(!input||typeof input!=='object'||Array.isArray(input)||input.action!==undefined&&input.action!=='test')return response(400,{error:'Unsupported action.'});
         const db=deps.createClient(deps.env('SUPABASE_URL'),deps.env('SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false}});
         const devices=await db.from('flow_push_subscriptions').select('id,user_id,subscription,time_zone').eq('user_id',pilot).eq('enabled',true).limit(5);
         if(devices.error)throw devices.error;
         if(!devices.data.length)return response(200,{sent:0});
+        // An explicitly requested test uses the same private sender and saved
+        // destinations. It never creates fake bills or consumes real alerts.
+        if(input.action==='test') {
+            let sent=0;
+            const key='manual-test:'+Math.floor(now/60000);
+            for(const device of devices.data) {
+                if(!validPushSubscription(device.subscription))continue;
+                const claim=await db.rpc('claim_flow_push',{p_subscription:device.id,p_event:key});
+                if(claim.error)throw claim.error;if(!claim.data)continue;
+                await deps.send(device.subscription,JSON.stringify({title:'Flow.',body:'Here’s your Flow alert. Notifications are working.',tag:'flow-test',href:'index.html#notifications'}),options);
+                await recordClaims(db,device.id,[key],{state:'sent',sent_at:new Date(now).toISOString(),retry_at:null});
+                sent++;
+            }
+            return response(200,{sent,test:true});
+        }
         const saved=await db.from('flow_data').select('data').eq('user_id',pilot).maybeSingle();
         if(saved.error)throw saved.error;
         if(!saved.data)return response(200,{sent:0});

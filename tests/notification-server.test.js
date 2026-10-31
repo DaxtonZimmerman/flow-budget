@@ -74,3 +74,14 @@ test('JSON-shaped reminder keys are recorded exactly, including each sent event,
  const writes=x.calls.filter(c=>c.table==='flow_push_deliveries'&&c.mode==='update');assert.equal(writes.length,events.length);
  assert.ok(writes.every(c=>c.filters.some(([field,,multi])=>field==='event_key'&&!multi)));
 });
+
+test('a privately requested test sends a generic alert once per minute without needing or altering financial data',async()=>{
+ const {deliverNotifications}=await import('../supabase/functions/flow-notification-delivery/handler.mjs');
+ const x=fixture({now:Date.parse('2026-10-29T04:00:00Z'),devices:[{id:'d',user_id:'owner',subscription:sub,enabled:true}]});
+ const send=()=>new Request('https://test',{method:'POST',headers:{'x-flow-schedule-secret':envs.FLOW_PUSH_SCHEDULE_SECRET},body:JSON.stringify({action:'test'})});
+ assert.equal((await deliverNotifications(new Request('https://test',{method:'POST',body:'{"action":"test"}'}),x.deps)).status,401);
+ const results=await Promise.all([deliverNotifications(send(),x.deps),deliverNotifications(send(),x.deps)]);
+ assert.equal((await results[0].json()).test,true);assert.equal(x.sent.length,1);assert.match(x.sent[0][1],/Here’s your Flow alert/);
+ assert.equal(x.calls.some(c=>c.table==='flow_data'||/plaid/.test(c.table)),false);assert.equal([...x.ledger.values()][0].state,'sent');
+ const invalid=await deliverNotifications(new Request('https://test',{method:'POST',headers:{'x-flow-schedule-secret':envs.FLOW_PUSH_SCHEDULE_SECRET},body:'{"action":"arbitrary"}'}),x.deps);assert.equal(invalid.status,400);
+});
