@@ -26,6 +26,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node --test tests/*.test.js
       - run: node scripts/build-site.mjs
+      - run: npm run check:setup
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,6 +1,6 @@
 # Flow.
 
-Flow is an income and expenses app built with HTML, CSS, and vanilla JavaScript. It tracks transactions, shows income, spending and remaining balance, and helps plan what is available until payday.
+Flow is an income and expenses app built with HTML, CSS, JavaScript, and React for monthly budgeting. It tracks transactions, shows income, spending and remaining balance, and helps plan what is available until payday.
 
 - [Published app](https://daxtonzimmerman.github.io/flow-budget/)
 - [Public sample-data demo — no sign-in needed](https://daxtonzimmerman.github.io/flow-budget/demo/index.html)
@@ -23,18 +23,21 @@ The personal app requires an email code entered inside Flow. The public demo has
 
 ## Run locally
 
-Use Node.js 22 or newer and Python 3:
+Use Node.js 22 or newer:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 npm test
-node scripts/build-site.mjs
-python3 -m http.server 8000 --directory dist
+npm run build
+npm run check:setup
+npm run preview
 ```
 
-Open <http://localhost:8000/demo/index.html> for the sample app. Use <http://localhost:8000/login.html> only for the configured private account; other email addresses are not enabled for the private pilot. Opening HTML files directly does not provide the required web origin for the installed app and cloud features.
+Open <http://127.0.0.1:4330/demo/index.html> for the sample app. Use <http://127.0.0.1:4330/login.html> only for the configured private account; other email addresses are not enabled for the private pilot. Opening HTML files directly does not provide the required web origin for the installed app and cloud features.
 
-There is no frontend framework or bundler runtime. The build versions assets, generates the isolated demo pages, and creates a public-file-only service worker cache. Its output is `dist/`.
+React owns the monthly category screen and three-step budget builder in `src/budget/`. Shared calculation modules, sign-in, storage, and the other screens remain in `js/`. esbuild bundles React locally into `js/flow-react.js`; no CDN is needed. The build also versions assets, generates the isolated demo, and creates the public-file-only offline cache in `dist/`.
+
+Monthly suggestions use the latest 30 days of recorded spending, with purchase review and one-off exclusions. Short or stale histories ask for amounts instead of extrapolating. Other is left for manual review. The preview checks take-home pay, savings, existing limits, and known bills before an explicit save; it does not change the payday plan or bank facts.
 
 ## Code structure
 
@@ -44,7 +47,7 @@ There is no frontend framework or bundler runtime. The build versions assets, ge
 | Shared money calculations in cents | `js/money-data.js` |
 | Home rendering and charts | `js/script.js`, `js/home-view.js` |
 | History, editing and deletion | `js/transactions.js`, `js/transaction-details.js` |
-| Category budgets | `js/budget-data.js`, `js/budgets.js` |
+| Category budgets | `js/budget-data.js`, `src/budget/`, `js/monthly-budget-data.js` |
 | Storage selection and demo isolation | `js/storage.js` |
 | Saved account sync and protected recovery | `js/cloud-sync.js` |
 | Sign-in and durable sessions | `js/auth-gate.js`, `js/auth-storage.js`, `js/login.js` |

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-flow-release="cd4a733ab5e207ca" lang="en" data-flow-auth="checking">
+<html data-flow-release="d50d9e0ff108252a" lang="en" data-flow-auth="checking">
 
 <head>
     <meta charset="UTF-8">
@@ -39,7 +39,9 @@
     <script src="../js/money-data.js?v=6f52008ebcbb4411" defer></script>
     <script src="../js/review-data.js?v=5fd89fdd5a557e23" defer></script>
     <script src="../js/budget-data.js?v=86103c7b4fb5bd69" defer></script>
-    <script src="../js/budgets.js?v=3c5c13826ffc6695" defer></script>
+    <script src="../js/monthly-budget-data.js?v=9fa5c9a519fb283e" defer></script>
+    <script src="../js/transaction-details-data.js?v=2705ef3f7ad5b54f" defer></script>
+    <script src="../js/transaction-details.js?v=d0e6ba7ac4fea988" defer></script>
     <script src="../js/home-view.js?v=977d0d8514ae9679" defer></script>
     <script src="../js/experience-data.js?v=85e9d263de82e0c9" defer></script>
     <script src="../js/payday-app.js?v=98e9fe49f81d398e" defer></script>
@@ -56,10 +58,12 @@
     <link rel="stylesheet" href="../css/experience.css?v=0dc0aacd4210587a">
     <link rel="stylesheet" href="../css/growth.css?v=901f3fd09cdb3e09">
     <script src="../js/experience.js?v=c90311a4d423dcac" defer></script>
-    <script src="../js/growth-app.js?v=23a91a3912fd73c3" defer></script>
+    <script src="../js/growth-app.js?v=43f717c751ffd943" defer></script>
     <script src="../js/notification-data.js?v=80349ac0a703ac30" defer></script>
     <script src="../js/notifications.js?v=cce996330e460bc9" defer></script>
     <link rel="stylesheet" href="../css/notifications.css?v=33345777607ce0f7">
+    <link rel="stylesheet" href="../css/react-budget.css?v=eeda72078cfa6339">
+    <script src="../js/flow-react.js?v=80103a8bd326e6d7" defer></script>
 </head>
 
 <body class="app-redesign" data-page="plan">
@@ -100,99 +104,12 @@
             <div class="activity-tabs plan-tabs" role="group" aria-label="Plan view"><button type="button" class="activity-tab active" data-plan-tab="payday" aria-pressed="true">Until payday</button><button type="button" class="activity-tab" data-plan-tab="categories" aria-pressed="false">Monthly budget</button></div>
             <div id="payday-plan"></div>
             <div id="category-limits" hidden>
-                <div class="budget-header-actions">
-                    <button type="button" class="save-button" data-new-budget><i data-lucide="plus" aria-hidden="true"></i> Add category</button>
-
-                    <input type="month" id="budget-month" class="month-button" aria-label="Choose month">
-                </div>            <section class="transaction-summary-grid">
-
-                <div class="summary-card">
-                    <div class="summary-top">
-                        <p>Total budget</p>
-                        <span class="card-icon blue-icon">
-                            <i data-lucide="wallet-cards"></i>
-                        </span>
-                    </div>
-                    <h3 id="budget-total">$0.00</h3>
-                </div>
-
-                <div class="summary-card">
-                    <div class="summary-top">
-                        <p>Spent in budgets</p>
-                        <span class="card-icon red-icon">
-                            <i data-lucide="trending-down"></i>
-                        </span>
-                    </div>
-                    <h3 id="budget-spent">$0.00</h3>
-                </div>
-
-                <div class="summary-card">
-                    <div class="summary-top">
-                        <p id="budget-remaining-label">Remaining</p>
-                        <span class="card-icon green-icon">
-                            <i data-lucide="shield-check"></i>
-                        </span>
-                    </div>
-                    <h3 id="budget-remaining">$0.00</h3>
-                </div>
-
-            </section>
-
-
-            <section class="card budget-page-card">
-
-                <div class="section-top">
-                    <div>
-                        <p class="small-label">Monthly limits</p>
-                        <h3>Category budgets</h3>
-                    </div>
-                </div>
-
-                <div id="budget-page-list" class="budget-page-list"></div>
-
-                <div id="empty-budgets" class="plan-empty" hidden><span class="empty-plan-icon"><i data-lucide="sprout" aria-hidden="true"></i></span><h3>Small steps. More breathing room.</h3><p>
-                    Choose your first category to get started. Food or transport is a great place to begin.</p><button class="save-button" type="button" data-new-budget>Add my first category <i data-lucide="plus" aria-hidden="true"></i></button></div>
-
-            </section>
-
+                <div id="monthly-budget-board"><p role="status">Opening your monthly budget…</p></div>
             </div>
         </main>
 
     </div>
 
-    <dialog id="budget-editor" class="budget-editor" aria-labelledby="budget-editor-title"><div class="dialog-heading"><div><p class="small-label">Your plan</p><h2 id="budget-editor-title">Set a category limit</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Close category editor"><i data-lucide="x" aria-hidden="true"></i></button></div><p class="dialog-help">Choose an amount that works for you. You can adjust it any time.</p>                <form id="budget-form" class="budget-form">
-
-                    <div class="form-group">
-                        <label for="budget-category">Category</label>
-                        <select id="budget-category">
-                            <option value="">Select category</option>
-                            <option value="Food">Food</option>
-                            <option value="Transport">Transport</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Shopping">Shopping</option>
-                            <option value="Bills">Bills</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="budget-limit">Monthly limit</label>
-                        <input
-                            id="budget-limit"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            placeholder="0.00"
-                        >
-                    </div>
-
-                    <button class="save-button" type="submit">Save budget</button>
-
-                </form>
-
-                <p id="budget-message" class="form-message" aria-live="polite"></p>
-
-</dialog>
     <dialog id="app-search-dialog" class="app-search-dialog" aria-labelledby="app-search-title">
         <div class="dialog-heading"><h2 id="app-search-title">Find a transaction</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close search"><i data-lucide="x" aria-hidden="true"></i></button></div>
         <form action="transactions.html" method="get" class="app-search-form"><input id="search-month" type="hidden" name="month"><label for="app-search-input" class="sr-only">Name, category, or notes</label><i data-lucide="search" aria-hidden="true"></i><input id="app-search-input" name="search" type="search" placeholder="Name, category, or notes" autocomplete="off"><button type="submit" class="save-button">Search</button></form><p class="dialog-help">Search across your saved activity.</p>

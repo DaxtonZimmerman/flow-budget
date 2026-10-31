@@ -1,0 +1,646 @@
+/* React budget screens share Flow's existing colors, type and native sheets. */
+.rb-monthly-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0 30px;
+}
+.rb-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6e846b;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rb-monthly-intro h3,
+.rb-heading {
+  font-size: 1.65rem;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 8px 0 12px;
+}
+.rb-monthly-intro p,
+.rb-subtitle {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #64766c;
+  margin: 0;
+}
+.rb-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: #fff;
+  border: 1px solid #e0e7dd;
+  border-radius: 22px;
+  margin: 0 0 24px;
+  padding: 24px;
+}
+.rb-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 22px;
+  border-left: 1px solid #e8ede4;
+  min-width: 0;
+}
+.rb-summary > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.rb-summary span {
+  font-size: 0.8rem;
+  color: #6a7b70;
+}
+.rb-summary strong {
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+}
+.rb-over,
+.rb-delete {
+  color: #a35a4c !important;
+}
+.rb-monthly-categories {
+  padding: 28px 0;
+}
+.rb-budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 16px;
+}
+.rb-budget-card {
+  border: 1px solid #e2e9dc;
+  background: #fff;
+  border-radius: 24px;
+  padding: 24px;
+  min-width: 0;
+}
+.rb-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+.rb-symbol {
+  background: #edf2e5;
+  color: #345a44;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  font-size: 1.5rem;
+}
+.rb-status {
+  font-size: 0.7rem;
+  color: #6a8269;
+  padding: 6px 9px;
+  background: #f3f6ed;
+  border-radius: 8px;
+}
+.rb-category-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.rb-category-title > span {
+  color: #7b8c78;
+}
+.rb-budget-card > p {
+  font-size: 0.8rem;
+  margin: 10px 0 24px;
+  color: #687a70;
+}
+.rb-card-amount {
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+  display: block;
+}
+.rb-card-amount small {
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 9px;
+}
+.rb-budget-card progress {
+  display: block;
+  width: 100%;
+  height: 7px;
+  border: 0;
+  border-radius: 8px;
+  accent-color: #1c5544;
+  margin: 20px 0;
+}
+.rb-budget-card progress::-webkit-progress-bar {
+  background: #edf1e7;
+  border-radius: 8px;
+}
+.rb-budget-card progress::-webkit-progress-value {
+  background: #2c644d;
+  border-radius: 8px;
+}
+.rb-budget-card footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid #ecf0e7;
+  padding-top: 16px;
+}
+.rb-budget-card footer > div {
+  display: flex;
+  gap: 14px;
+}
+.rb-budget-card footer button {
+  font-size: 0.78rem;
+}
+.rb-dialog {
+  width: min(600px, calc(100vw - 32px));
+  max-height: 90dvh;
+  border: 0;
+  border-radius: 30px;
+  padding: 0;
+  color: #1b4034;
+  overflow: auto;
+  background: #fbfcf8;
+  overscroll-behavior: contain;
+}
+.rb-dialog::backdrop {
+  background: #153e3559;
+  backdrop-filter: blur(5px);
+}
+.rb-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 26px 18px;
+  background: #fbfcf8;
+}
+.rb-dialog-head h2 {
+  font-size: 1.22rem;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.rb-dialog-head button {
+  font-size: 1.7rem;
+}
+.rb-body {
+  padding: 22px 26px 28px;
+  min-width: 0;
+}
+.rb-progress {
+  display: flex;
+  gap: 8px;
+  padding: 0 26px 8px;
+}
+.rb-progress span {
+  flex: 1;
+  border-top: 3px solid #e3eadb;
+  color: #8b9988;
+  padding-top: 9px;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+.rb-progress .is-active {
+  border-color: #246049;
+  color: #244c3b;
+}
+.rb-money-field {
+  display: block;
+  margin: 24px 0 0;
+}
+.rb-money-field > span:first-child {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.rb-money-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cedac6;
+  background: #fff;
+  border-radius: 16px;
+  padding: 5px 16px;
+}
+.rb-money-input > span {
+  font-size: 1.25rem;
+  color: #8c9a80;
+}
+.rb-money-input input {
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #214a3c;
+  padding: 12px 0;
+  outline-offset: 3px;
+}
+.rb-money-input:has(input:disabled) {
+  background: #f0f2eb;
+  opacity: 0.65;
+}
+.rb-money-input:focus-within {
+  outline: 2px solid #588967;
+  outline-offset: 2px;
+}
+.rb-money-input input:focus {
+  outline: 0;
+}
+.rb-savings {
+  margin: 30px 0 0;
+  border: 0;
+  padding: 0;
+}
+.rb-savings legend {
+  font-size: 0.84rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.rb-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rb-chips button {
+  border: 1px solid #dce4d3;
+  border-radius: 13px;
+  padding: 12px 18px;
+  background: #fff;
+  color: #31533e;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.rb-chips button[aria-pressed="true"] {
+  background: #dcebbb;
+  border-color: #bacc9c;
+  color: #234633;
+  font-weight: 700;
+}
+.rb-savings-total {
+  font-size: 0.8rem;
+  margin-top: 12px;
+  color: #69805f;
+}
+.rb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 26px max(22px, env(safe-area-inset-bottom));
+  border-top: 1px solid #e4eadc;
+  background: #fbfcf8;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+.rb-footer > span {
+  font-size: 0.76rem;
+  color: #7c8e76;
+}
+.rb-footer > button:only-child {
+  width: 100%;
+}
+.rb-history-period {
+  font-size: 0.76rem;
+  color: #6e8364;
+  margin: 16px 0 20px;
+}
+.rb-builder-rows {
+  display: grid;
+  gap: 14px;
+}
+.rb-builder-row {
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #dfe7d8;
+  border-radius: 20px;
+}
+.rb-builder-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rb-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rb-pick input,
+.rb-oneoff input {
+  width: 19px;
+  height: 19px;
+  accent-color: #23523d;
+}
+.rb-builder-row-head button {
+  font-size: 0.75rem;
+}
+.rb-builder-row > p {
+  font-size: 0.76rem;
+  color: #6f7c6b;
+  line-height: 1.45;
+  margin: 9px 0;
+}
+.rb-builder-row .rb-money-field {
+  margin-top: 13px;
+}
+.rb-builder-row .rb-money-field > span:first-child {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+.rb-builder-row .rb-money-input input {
+  font-size: 1.3rem;
+}
+.rb-unsorted {
+  background: #f6f2e8;
+  border-color: #e7dec8;
+}
+.rb-result {
+  background: #194d3b;
+  color: #f6faef;
+  text-align: center;
+  border-radius: 26px;
+  padding: 30px 18px;
+  margin: 22px 0;
+}
+.rb-result > span,
+.rb-result > small {
+  display: block;
+  font-size: 0.82rem;
+  color: #d0dec3;
+}
+.rb-result > strong {
+  display: block;
+  font-size: 2.9rem;
+  letter-spacing: -0.06em;
+  margin: 12px 0;
+}
+.rb-result-over {
+  background: #714b40;
+}
+.rb-math {
+  margin: 24px 0;
+}
+.rb-math > div,
+.rb-review-limits > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 0.85rem;
+  padding: 11px 0;
+}
+.rb-math dt {
+  color: #6e7e6b;
+}
+.rb-math dd {
+  margin: 0;
+  font-weight: 600;
+}
+.rb-review-limits {
+  border-top: 1px solid #dfe7d8;
+  padding-top: 14px;
+}
+.rb-footnote {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #73816b;
+  margin: 20px 0 0;
+}
+.rb-notice {
+  padding: 14px 16px;
+  border-radius: 15px;
+  background: #f3eedf;
+  color: #755a38;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.rb-error {
+  background: #fbede5;
+  padding: 14px 16px;
+  color: #8b4438;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  margin-top: 20px;
+}
+.rb-error p {
+  margin: 0 0 8px;
+}
+.rb-error button {
+  color: inherit;
+}
+.rb-purchases {
+  display: grid;
+  gap: 10px;
+}
+.rb-purchase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 18px 0;
+  border-bottom: 1px solid #e1e8d9;
+  font-size: 0.88rem;
+}
+.rb-purchase > div {
+  min-width: 0;
+}
+.rb-purchase > div strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.rb-purchase > div > span {
+  display: block;
+  font-size: 0.74rem;
+  color: #72846d;
+  margin-top: 6px;
+}
+.rb-oneoff {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+.rb-purchase > button {
+  font-size: 0.76rem;
+}
+.rb-activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #e5eadd;
+  padding: 18px 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.rb-activity-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rb-activity-row strong {
+  font-size: 0.9rem;
+}
+.rb-activity-row small {
+  display: block;
+  color: #718168;
+  font-size: 0.72rem;
+  margin-top: 8px;
+}
+.rb-field {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+}
+.rb-field select {
+  font: inherit;
+  padding: 16px;
+  border: 1px solid #cedac6;
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+}
+.rb-empty {
+  padding: 36px 18px;
+  text-align: center;
+  color: #718168;
+}
+.rb-empty h3,
+.rb-empty h4 {
+  color: #254b39;
+  margin: 12px 0;
+}
+.rb-empty p {
+  line-height: 1.5;
+  margin: 12px 0 20px;
+}
+.rb-empty > span {
+  font-size: 2.5rem;
+  color: #85a373;
+}
+@media (max-width: 700px) {
+  .rb-monthly-intro {
+    display: block;
+    padding: 24px 0;
+  }
+  .rb-monthly-intro h3 {
+    font-size: 1.5rem;
+  }
+  .rb-monthly-intro p {
+    font-size: 0.8rem;
+  }
+  .rb-monthly-intro .save-button {
+    width: 100%;
+    margin-top: 20px;
+  }
+  .rb-summary {
+    padding: 20px 12px;
+    border-radius: 20px;
+    gap: 0;
+  }
+  .rb-summary > div {
+    padding: 0 10px;
+    gap: 14px;
+  }
+  .rb-summary span {
+    font-size: 0.6rem;
+  }
+  .rb-summary strong {
+    font-size: 1.2rem;
+  }
+  .rb-budget-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rb-monthly-categories {
+    padding: 14px 0;
+  }
+  .rb-budget-card {
+    padding: 22px;
+  }
+  .rb-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: auto 0 0;
+    max-height: 94dvh;
+    border-radius: 26px 26px 0 0;
+  }
+  .rb-dialog-head {
+    padding: 24px 20px 16px;
+  }
+  .rb-dialog-head h2 {
+    font-size: 1.13rem;
+  }
+  .rb-body {
+    padding: 20px;
+  }
+  .rb-progress {
+    padding: 0 20px 8px;
+  }
+  .rb-footer {
+    padding: 16px 20px max(22px, env(safe-area-inset-bottom));
+  }
+  .rb-heading {
+    font-size: 1.6rem;
+  }
+  .rb-subtitle {
+    font-size: 0.86rem;
+  }
+  .rb-chips button {
+    padding: 12px 16px;
+  }
+  .rb-footer .save-button {
+    min-width: 135px;
+  }
+  .rb-builder-row {
+    padding: 16px;
+  }
+  .rb-money-input input {
+    font-size: 1.45rem;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rb-dialog[open] {
+    animation: rb-enter 0.22s ease-out;
+  }
+  @keyframes rb-enter {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .app-redesign dialog.rb-dialog[open] {
+    padding: 24px 0 0;
+    background: #fbfcf8;
+  }
+}
