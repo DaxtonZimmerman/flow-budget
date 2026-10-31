@@ -16,6 +16,16 @@ function pushRetryAt(error,now,attempts) {
     const requested=seconds!==null?now+seconds*1000:Date.parse(value);
     return new Date(Math.max(now+300000*2**(attempts-1),Number.isFinite(requested)?requested:0)).toISOString();
 }
+async function recordClaims(db,subscription,events,values) {
+    // Event keys contain JSON quotes and commas. Older PostgREST clients do not
+    // escape these correctly inside in(...); exact equality preserves the key.
+    for(const event of events) {
+        const result=await db.from('flow_push_deliveries').update(values)
+            .eq('subscription_id',subscription).eq('event_key',event).select('event_key').maybeSingle();
+        if(result.error)throw result.error;
+        if(result.data?.event_key!==event)throw new Error('Reminder claim could not be recorded.');
+    }
+}
 export async function deliverNotifications(request,deps) {
     if(request.method!=='POST')return response(405,{error:'Use POST.'});
     if(!sameSecret(request.headers.get('x-flow-schedule-secret'),deps.env('FLOW_PUSH_SCHEDULE_SECRET')))return response(401,{error:'Unauthorized.'});
@@ -54,15 +64,15 @@ export async function deliverNotifications(request,deps) {
                     await deps.send(device.subscription,JSON.stringify({title:'Flow.',body:claimed.length===1?claimed[0].pushText:kind==='bill'?'Upcoming bills need a look. Open Flow to check them.':'Your budgets need a look. Open Flow to check them.',
                         tag:'flow-'+kind,href:'index.html#notifications'}),{...options,timeout:10000});
                     accepted=true;
-                    const result=await db.from('flow_push_deliveries').update({state:'sent',sent_at:new Date(now).toISOString(),retry_at:null}).eq('subscription_id',device.id).in('event_key',keys);
-                    if(result.error)throw result.error;sent++;
+                    await recordClaims(db,device.id,keys,{state:'sent',sent_at:new Date(now).toISOString(),retry_at:null});
+                    sent++;
                 } catch(error) {
                     if([404,410].includes(error.statusCode)) {
                         const r=await db.from('flow_push_subscriptions').delete().eq('id',device.id).eq('user_id',pilot);if(r.error)throw r.error;break;
                     }
                     const attempts=Math.max(1,...prior.data.filter(r=>keys.includes(r.event_key)).map(r=>(r.attempts||1)+1));
                     const retryAt=accepted?null:pushRetryAt(error,now,attempts);
-                    const r=await db.from('flow_push_deliveries').update({state:'failed',retry_at:retryAt}).eq('subscription_id',device.id).in('event_key',keys);if(r.error)throw r.error;
+                    await recordClaims(db,device.id,keys,{state:'failed',retry_at:retryAt});
                     failed++;
                 }
             }

@@ -65,3 +65,12 @@ test('ambiguous push failures remain claimed and definite rejection retries stop
  const options={snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}],sendError:{statusCode:429},now:Date.parse('2026-10-29T16:05:00Z')},x=fixture(options);
  for(let i=0;i<5;i++){await deliverNotifications(scheduled(),x.deps);options.now+=3600000;}assert.equal(x.sent.length,3);assert.ok([...x.ledger.values()].every(r=>r.attempts===3&&r.retry_at===null));
 });
+
+test('JSON-shaped reminder keys are recorded exactly, including each sent event, without list-filter escaping',async()=>{
+ const {deliverNotifications}=await import('../supabase/functions/flow-notification-delivery/handler.mjs');
+ const x=fixture({snapshot:await deliverySnapshot(),devices:[{id:'d',user_id:'owner',subscription:sub,time_zone:'America/Denver',enabled:true}]});
+ assert.equal((await deliverNotifications(scheduled(),x.deps)).status,200);
+ const events=[...x.ledger.values()];assert.ok(events.some(r=>/[",]/.test(r.event_key)));assert.ok(events.every(r=>r.state==='sent'&&r.sent_at));
+ const writes=x.calls.filter(c=>c.table==='flow_push_deliveries'&&c.mode==='update');assert.equal(writes.length,events.length);
+ assert.ok(writes.every(c=>c.filters.some(([field,,multi])=>field==='event_key'&&!multi)));
+});
