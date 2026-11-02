@@ -30,6 +30,26 @@ function pilotEnvironment(userId) {
 }
 
 
+function bankOwner(userId) {
+    return !!Deno.env.get("PLAID_PILOT_USER_ID") && Deno.env.get("PLAID_PILOT_USER_ID") === userId;
+}
+
+async function bankAccess(database, userId) {
+    if (bankOwner(userId)) return { status: "owner", is_owner: true };
+    const { data, error } = await database.from("bank_access_requests")
+        .select("status").eq("user_id", userId).maybeSingle();
+    if (error) throw new Error("Could not check bank access. Try again.");
+    return { status: data?.status || "none", is_owner: false };
+}
+
+async function newBankEnvironment(database, userId) {
+    if (bankOwner(userId)) return pilotEnvironment(userId);
+    const access = await bankAccess(database, userId);
+    return Deno.env.get("PLAID_PILOT_ENABLED") === "true" && access.status === "approved"
+        ? "production" : null;
+}
+
+
 function connectionEnvironment(connection) {
     return connection.environment === "production" ? "production" : "sandbox";
 }
@@ -192,8 +212,36 @@ Deno.serve(async function(request) {
     }
 
     try {
+        if (body.action === "bank-access" || body.action === "request-bank-access") {
+            if (body.action === "request-bank-access" && !bankOwner(userData.user.id)) {
+                const { error } = await database.rpc("request_bank_access", { requester: userData.user.id });
+                if (error) return reply({ error: "Could not send your request. Try again." }, 500);
+            }
+            const access = await bankAccess(database, userData.user.id);
+            if (access.is_owner) {
+                const { data, error } = await database.rpc("list_bank_access_requests");
+                if (error) return reply({ error: "Could not load bank requests. Try again." }, 500);
+                return reply({ ...access, requests: data || [] });
+            }
+            return reply(access);
+        }
+
+        if (body.action === "decide-bank-access") {
+            if (!bankOwner(userData.user.id)) return reply({ error: "Only the Flow owner can approve bank access." }, 403);
+            if (!/^[a-f0-9-]{36}$/i.test(body.user_id || "") || !["approved", "denied"].includes(body.decision) ||
+                !["pending", "approved", "denied"].includes(body.expected_status)) return reply({ error: "Choose a request and decision." }, 400);
+            const { data, error } = await database.rpc("decide_bank_access", {
+                requester: body.user_id, reviewer: userData.user.id, decision: body.decision,
+                expected_status: body.expected_status
+            });
+            if (error) return reply({ error: "Could not save that decision. Try again." }, 500);
+            if (!data) return reply({ error: "This request changed. Refresh the list." }, 409);
+            return reply({ saved: true });
+        }
+
         if (body.action === "create-link-token" || body.action === "reconnect") {
-            let environment = pilotEnvironment(userData.user.id);
+            let environment = body.action === "reconnect" ? "sandbox" : await newBankEnvironment(database, userData.user.id);
+            if (!environment) return reply({ error: "Request bank access and wait for approval first." }, 403);
             const options = {
                 client_name: "Flow",
                 country_codes: ["US"],
@@ -243,7 +291,7 @@ Deno.serve(async function(request) {
                         error: "Back up your Flow data and disconnect the test bank before connecting a real one."
                     }, 409);
                 }
-                Object.assign(options, { products: ["transactions"], ...(environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" ? { transactions: { days_requested: 730 } } : {}) });
+                Object.assign(options, { products: ["transactions"], ...(bankOwner(userData.user.id) && environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" ? { transactions: { days_requested: 730 } } : {}) });
             }
 
             options.webhook = `${projectUrl}/functions/v1/${environment === "production"
@@ -257,7 +305,8 @@ Deno.serve(async function(request) {
                 return reply({ error: "Invalid bank connection." }, 400);
             }
 
-            const environment = pilotEnvironment(userData.user.id);
+            const environment = await newBankEnvironment(database, userData.user.id);
+            if (!environment) return reply({ error: "Request bank access and wait for approval first." }, 403);
             if (environment === "production") {
                 const { data: existing, error } = await database
                     .from("plaid_connections")
@@ -283,15 +332,20 @@ Deno.serve(async function(request) {
             const result = await plaidRequest("/item/public_token/exchange", {
                 public_token: body.public_token
             }, environment);
-            const { error } = await database.from("plaid_connections").insert({
+            const connectionRow = {
                 user_id: userData.user.id,
                 item_id: result.item_id,
                 access_token: result.access_token,
                 environment,
-                recovery_required: environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true",
+                recovery_required: bankOwner(userData.user.id) && environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true",
                 institution_name: typeof body.institution_name === "string"
                     ? body.institution_name.slice(0, 100) : "Bank"
-            });
+            };
+            // Lock and consume approval with the insert, so a revoked or reused approval cannot save a feed.
+            const saved = bankOwner(userData.user.id)
+                ? await database.from("plaid_connections").insert(connectionRow)
+                : await database.rpc("save_approved_bank_connection", { connection: connectionRow });
+            const error = saved.error || (!bankOwner(userData.user.id) && saved.data !== true);
 
             if (error) {
                 try {
@@ -302,7 +356,7 @@ Deno.serve(async function(request) {
                 return reply({ error: "Could not save the connection. Try again." }, 500);
             }
 
-            return reply({ connected: true, recovery_required: environment === "production" && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" });
+            return reply({ connected: true, recovery_required: connectionRow.recovery_required });
         }
 
         if (body.action === "connections") {
@@ -346,7 +400,7 @@ Deno.serve(async function(request) {
                 });
             }
 
-            return reply({ connections, new_connection_environment: pilotEnvironment(userData.user.id), recovery_mode: Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" });
+            return reply({ connections, new_connection_environment: await newBankEnvironment(database, userData.user.id), recovery_mode: bankOwner(userData.user.id) && Deno.env.get("PLAID_RECOVERY_ENABLED") === "true" });
         }
 
         if (body.action === "reconnect-complete") {

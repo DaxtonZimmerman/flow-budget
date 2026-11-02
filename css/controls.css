@@ -675,3 +675,14 @@ html body.app-redesign .activity-tab[aria-pressed="true"] {
     grid-column: 1 / -1;
   }
 }
+
+/* Owner approval queue stays readable on narrow screens. */
+.bank-access-admin { margin-block: 24px; border-top: 1px solid #dce5d7; padding-top: 20px; }
+.bank-access-admin h4 { margin-bottom: 8px; }
+.bank-access-admin .bank-list li > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.bank-access-admin .bank-list small { display: block; margin-top: 6px; }
+@media (max-width: 600px) {
+    .bank-access-admin .bank-list li { align-items: stretch; flex-direction: column; gap: 12px; }
+    .bank-access-admin .bank-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .bank-access-admin .bank-actions button { width: 100%; margin: 0; }
+}

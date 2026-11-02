@@ -76,7 +76,7 @@ function makeServer(options = {}) {
                             return query;
                         },
                         maybeSingle: async () => ({
-                            data: table === "plaid_connections"
+                            data: table === "bank_access_requests" ? (options.accessStatus ? {status:options.accessStatus} : null) : table === "plaid_connections"
                                 ? connections.find(row => Object.entries(filters).every(
                                     ([field, value]) => row[field] === value
                                 )) || null : null,
@@ -114,6 +114,10 @@ function makeServer(options = {}) {
                 },
                 rpc: async (name, values) => {
                     rpcCalls.push({ name, ...values });
+                    if(name === 'list_bank_access_requests') return { data: options.accessRequests || [], error: null };
+                    if(name === 'decide_bank_access') return { data: options.decisionChanged ? false : true, error: null };
+                    if(name === 'save_approved_bank_connection') return { data: !options.approvalRevoked, error: null };
+
                     if(name==='read_plaid_snapshot') return {data:options.snapshotMissing?null:{complete:true,count:options.snapshotCount??(options.snapshotRows||[{transaction_id:'txn-1',account_id:'cash',date:'2026-10-30',amount:1}]).length,transactions:options.snapshotRows||[{transaction_id:'txn-1',account_id:'cash',date:'2026-10-30',amount:1}]},error:options.snapshotError||null};
                     return { data: name === "disconnect_plaid_connection"
                         ? { revision: 2, data: { transactions: [] } } : null,
@@ -234,7 +238,7 @@ test("Plaid calls stay in Sandbox and never return the secret", async () => {
 });
 
 
-test("only the named pilot user receives a production Link token", async () => {
+test("only the owner or approved users receive a production Link token", async () => {
     const server = makeServer({ pilotEnabled: true, noConnections: true });
     const pilot = await server.request({ action: "create-link-token" });
     const other = await server.request({ action: "create-link-token" }, "other-token");
@@ -243,13 +247,12 @@ test("only the named pilot user receives a production Link token", async () => {
     });
 
     assert.equal(pilot.status, 200);
-    assert.equal(other.status, 200);
+    assert.equal(other.status, 403);
     assert.equal(server.calls[0].url, "https://production.plaid.com/link/token/create");
     assert.equal(server.calls[0].body.webhook,
         "https://example.supabase.co/functions/v1/plaid-production-webhook");
     assert.equal(server.calls[0].body.secret, "production-secret-test");
-    assert.equal(server.calls[1].url, "https://sandbox.plaid.com/link/token/create");
-    assert.equal(server.calls[2].url,
+    assert.equal(server.calls[1].url,
         "https://production.plaid.com/item/public_token/exchange");
     assert.equal(server.saved[0].environment, "production");
     assert.equal(JSON.stringify(exchange.body).includes("production-secret-test"), false);
@@ -542,4 +545,48 @@ test('sync returns a complete scalar snapshot beyond the REST row cap and fails 
  for(const options of [{snapshotMissing:true},{snapshotCount:999},{snapshotError:new Error('read failed')}]){
   const broken=await makeServer(options).request({action:'sync',connection_id:'connection-1'});assert.equal(broken.status,503);assert.equal('transactions' in broken.body,false);
  }
+});
+
+
+test("unapproved users cannot create Link or exchange a guessed public token", async () => {
+    for (const accessStatus of [undefined, 'pending', 'denied', 'connected']) {
+        const server = makeServer({ pilotEnabled: true, noConnections: true, accessStatus });
+        for (const action of [{action:'create-link-token'}, {action:'exchange-public-token', public_token:'public-guess'}]) {
+            assert.equal((await server.request(action, 'other-token')).status, 403);
+        }
+        assert.equal(server.calls.length, 0);
+    }
+});
+
+test("approval is consumed with the new feed and never stages another user's bank as owner recovery", async () => {
+    const server = makeServer({pilotEnabled:true, noConnections:true, accessStatus:'approved', recoveryEnabled:true});
+    assert.equal((await server.request({action:'create-link-token'},'other-token')).status,200);
+    const saved = await server.request({action:'exchange-public-token',public_token:'public-test'},'other-token');
+    assert.equal(saved.status,200); assert.equal(saved.body.recovery_required,false);
+    const call=server.rpcCalls.find(c=>c.name==='save_approved_bank_connection');
+    assert.equal(call.connection.user_id,'user-2'); assert.equal(call.connection.environment,'production');
+    assert.equal(call.connection.recovery_required,false);
+    assert.equal(server.calls[0].body.transactions,undefined);
+});
+
+test("revoking approval during Link cannot save a connection; unsaved Item is removed", async () => {
+    const server=makeServer({pilotEnabled:true,noConnections:true,accessStatus:'approved',approvalRevoked:true});
+    const result=await server.request({action:'exchange-public-token',public_token:'public-test'},'other-token');
+    assert.equal(result.status,500);assert.ok(server.calls.some(c=>c.url.endsWith('/item/remove')));
+});
+
+test("only owner sees the approval list and can decide; caller cannot spoof the request owner", async () => {
+    const server=makeServer({accessRequests:[{user_id:'other',email:'tester@example.test',status:'pending'}]});
+    const other=await server.request({action:'bank-access'},'other-token');
+    assert.equal(other.body.is_owner,false);assert.equal(other.body.requests,undefined);
+    const owner=await server.request({action:'bank-access'});assert.equal(owner.body.requests.length,1);
+    assert.equal((await server.request({action:'decide-bank-access',user_id:'11111111-1111-4111-8111-111111111111',decision:'approved',expected_status:'pending'},'other-token')).status,403);
+    await server.request({action:'request-bank-access',user_id:'user-1'},'other-token');
+    assert.equal(server.rpcCalls.find(c=>c.name==='request_bank_access').requester,'user-2');
+});
+
+test("existing bank reconnection does not depend on new-bank approval", async () => {
+    const server=makeServer({connectionEnvironment:'production', accessStatus:'denied'});
+    const result=await server.request({action:'reconnect',connection_id:'connection-1'});
+    assert.equal(result.status,200);assert.equal(server.calls[0].body.access_token,'access-secret-test');
 });

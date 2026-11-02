@@ -6,6 +6,53 @@ const bankMessage = document.querySelector("#bank-message");
 const bankList = document.querySelector("#connected-banks");
 
 
+let currentBankAccess = null;
+let bankAccessBusy = false;
+const bankAccessRefresh = document.querySelector('#refresh-bank-access');
+const bankAccessAdmin = document.querySelector('#bank-access-admin');
+const bankAccessRequests = document.querySelector('#bank-access-requests');
+
+async function showBankAccess() {
+    const access = await bankRequest('bank-access');
+    currentBankAccess = access;
+    bankAccessAdmin.hidden = !access.is_owner;
+    bankAccessRequests.replaceChildren();
+    if (!access.is_owner) return access;
+    const requests = access.requests || [];
+    const pending = requests.filter(request => request.status === 'pending').length;
+    const heading = document.querySelector('[data-account-group="banks"] summary span');
+    if (heading) heading.textContent = pending ? `Bank connections · ${pending} ${pending === 1 ? 'request' : 'requests'}` : 'Bank connections';
+    if (!requests.length) {
+        const empty = document.createElement('li'); empty.textContent = 'No requests yet.'; bankAccessRequests.append(empty);
+    }
+    for (const request of requests) {
+        const row = document.createElement('li'), details = document.createElement('div');
+        const name = document.createElement('strong'), status = document.createElement('small'), actions = document.createElement('div');
+        name.textContent = request.email || 'Flow member';
+        status.textContent = request.status === 'connected' ? 'Bank connected' : request.status === 'approved' ? 'Approved · one connection' : request.status === 'denied' ? 'Declined' : 'Waiting for approval';
+        details.append(name, status); actions.className = 'bank-actions';
+        const decisionButton = (text, decision, className) => {
+            const button = document.createElement('button'); button.type = 'button'; button.className = className; button.textContent = text;
+            button.setAttribute('aria-label', `${text} bank access for ${request.email || 'Flow member'}`);
+            button.addEventListener('click', async () => {
+                if (bankAccessBusy) return;
+                bankAccessBusy = true; actions.querySelectorAll('button').forEach(b => b.disabled = true);
+                try {
+                    await bankRequest('decide-bank-access', { user_id: request.user_id, decision, expected_status: request.status });
+                    bankMessage.textContent = decision === 'approved' ? 'Bank access approved.' : 'Bank access declined.';
+                    await showBankAccess();
+                } catch (error) { bankMessage.textContent = error.message; actions.querySelectorAll('button').forEach(b => b.disabled = false); }
+                finally { bankAccessBusy = false; }
+            });
+            actions.append(button);
+        };
+        if (['pending', 'denied'].includes(request.status)) decisionButton('Approve', 'approved', 'save-button');
+        if (['pending', 'approved'].includes(request.status)) decisionButton(request.status === 'approved' ? 'Cancel approval' : 'Decline', 'denied', 'back-button');
+        row.append(details, actions); bankAccessRequests.append(row);
+    }
+    return access;
+}
+
 async function showBankConnections() {
     const client = getFlowClient();
 
@@ -27,6 +74,7 @@ async function showBankConnections() {
     }
 
     try {
+        const access = await showBankAccess();
         const data = await bankRequest("connections");
         const productionPilot = data.new_connection_environment === "production";
         const realBankConnected = productionPilot && data.connections.some(
@@ -43,8 +91,21 @@ async function showBankConnections() {
             : data.recovery_mode && productionPilot && !realBankConnected
             ? "Restore Mountain America updates with one new connection. This uses another lifetime Trial slot. Flow will preview the new history before replacing the old feed and keep a recovery copy. Your original connection stays untouched."
             : productionPilot
-            ? "Connect your own bank through Plaid. Flow will import the accounts and transactions you choose. Your bank data is saved privately in Flow and on this device for offline use. Back up and disconnect any test bank first. Flow checks for available updates while open and when you return. Your bank may report new activity later. This private pilot supports one real bank at a time. Each new connection uses one of the Trial's 10 lifetime slots, even if you later disconnect it."
+            ? "Connect securely through Plaid. Flow checks for new activity automatically. One bank at a time."
             : "Connect a test bank in Plaid Sandbox. Flow checks for available updates while open and when you return; you can also check here anytime. Reconnect a bank here if it needs attention. Disconnecting removes its synced transactions.";
+        if (!access.is_owner) {
+            const connected = data.connections.some(connection => connection.environment === 'production');
+            const ready = access.status === 'approved' && data.new_connection_environment === 'production';
+            bankButton.hidden = connected || access.status === 'connected';
+            bankButton.disabled = access.status === 'pending' || access.status === 'denied' || (access.status === 'approved' && !ready) || testBankConnected;
+            bankButton.textContent = ready ? 'Connect my bank' : access.status === 'pending' ? 'Request sent' : access.status === 'denied' ? 'Request declined' : access.status === 'approved' ? 'Bank access paused' : 'Request bank access';
+            bankIntro.textContent = connected ? 'Your bank is connected. Updates arrive automatically.'
+                : ready ? 'You’re approved. Connect your bank securely through Plaid.'
+                : access.status === 'pending' ? 'Your request is waiting for the Flow owner. We’ll show your approval here.'
+                : access.status === 'denied' ? 'The Flow owner hasn’t approved bank access.'
+                : access.status === 'connected' ? 'Your approval has been used. Ask the Flow owner before connecting again.'
+                : 'Ask the Flow owner for approval before connecting your bank.';
+        }
         bankList.replaceChildren();
 
         for (const connection of data.connections) {
@@ -206,13 +267,42 @@ async function showBankConnections() {
             bankList.appendChild(item);
         }
     } catch (error) {
+        currentBankAccess = null;
+        bankButton.disabled = true;
+        bankButton.textContent = 'Bank access unavailable';
         bankMessage.textContent = error.message;
     }
 }
 
+bankAccessRefresh.addEventListener('click', async () => {
+    bankAccessRefresh.disabled = true;
+    try { await showBankConnections(); } finally { bankAccessRefresh.disabled = false; }
+});
+let bankAccessRefreshing = false;
+async function refreshBankAccessAutomatically() {
+    if (document.hidden || bankAccessBusy || bankAccessRefreshing || !currentBankAccess) return;
+    bankAccessRefreshing = true;
+    try {
+        if (currentBankAccess.is_owner) await showBankAccess();
+        else if (['pending', 'approved'].includes(currentBankAccess.status)) await showBankConnections();
+    } catch (_) { /* Keep the saved screen; a later check can retry. */ }
+    finally { bankAccessRefreshing = false; }
+}
+setInterval(refreshBankAccessAutomatically, 60000);
+document.addEventListener('visibilitychange', refreshBankAccessAutomatically);
 
 bankButton.addEventListener("click", async function() {
     bankButton.disabled = true;
+    if (!currentBankAccess) { bankMessage.textContent = 'Check bank access first.'; return; }
+    if (!currentBankAccess.is_owner && currentBankAccess.status === 'none') {
+        bankMessage.textContent = 'Sending your request…';
+        try {
+            await bankRequest('request-bank-access');
+            await showBankConnections();
+            bankMessage.textContent = 'Request sent. You’ll see your approval here.';
+        } catch (error) { bankMessage.textContent = error.message; bankButton.disabled = false; }
+        return;
+    }
     bankMessage.textContent = "Opening Plaid…";
 
     try {
